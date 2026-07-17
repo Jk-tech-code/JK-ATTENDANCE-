@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
 import {
   LogOut,
@@ -12,6 +13,7 @@ import {
   BarChart3,
   CalendarDays,
   Sun,
+  Moon,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
@@ -34,6 +36,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const { theme, toggleTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
 
   const handleSignOut = async () => {
@@ -110,11 +113,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start gap-2"
+              className={`justify-start gap-2 ${collapsed ? 'mx-auto px-2' : 'w-full'}`}
               onClick={() => navigate('/dashboard')}
             >
               <LayoutDashboard className="h-4 w-4" />
               {!collapsed && <span>Dashboard</span>}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="relative text-muted-foreground hover:text-foreground"
+            >
+              <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+              <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
             </Button>
             <Button
               variant="ghost"

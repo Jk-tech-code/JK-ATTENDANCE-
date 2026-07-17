@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, Shield } from 'lucide-react'
+import { LogOut, User, Shield, Moon, Sun } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface DashboardLayoutProps {
@@ -17,6 +18,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate('/login', { replace: true })
   }
 
+  const { theme, toggleTheme } = useTheme()
+
   return (
     <div className="min-h-screen bg-muted/30">
       <header role="banner" className="sticky top-0 z-10 border-b bg-background">
@@ -26,6 +29,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <span className="text-sm font-semibold">Attendance</span>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+              <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+            </Button>
             <div className="hidden items-center gap-2 sm:flex">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
