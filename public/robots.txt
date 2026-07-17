@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /forgot-password
+Allow: /login
+Allow: /$
+
+Sitemap: https://jk-attendance-system.netlify.app/sitemap.xml

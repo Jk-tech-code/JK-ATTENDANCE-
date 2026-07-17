@@ -1,0 +1,138 @@
+import type { ReactNode } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Button } from '@/components/ui/button'
+import {
+  LogOut,
+  LayoutDashboard,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  ClipboardList,
+  BarChart3,
+  CalendarDays,
+  Sun,
+} from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+
+interface AdminLayoutProps {
+  children: ReactNode
+}
+
+const navItems = [
+  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
+  { href: '/admin/teachers', label: 'Teachers', icon: Users },
+  { href: '/admin/attendance', label: 'Attendance', icon: ClipboardList },
+  { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/admin/holidays', label: 'Holidays', icon: Sun },
+  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/admin/settings', label: 'Settings', icon: MapPin },
+]
+
+export function AdminLayout({ children }: AdminLayoutProps) {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <div className="flex min-h-screen bg-muted/30">
+      <aside
+        role="navigation"
+        aria-label="Admin navigation"
+        className={`flex flex-col border-r bg-background transition-all duration-200 ${
+          collapsed ? 'w-16' : 'w-56'
+        }`}
+      >
+        <div role="banner" className="flex h-14 items-center justify-between border-b px-4">
+          {!collapsed && (
+            <div className="flex items-center gap-2">
+              <img src="/4_transparent_background.png" alt="JK Attendance" loading="lazy" className="h-8 w-8 object-contain" />
+              <span className="text-sm font-semibold">Admin</span>
+            </div>
+          )}
+          {collapsed && (
+            <div className="mx-auto">
+              <img src="/4_transparent_background.png" alt="JK Attendance" loading="lazy" className="h-8 w-8 object-contain" />
+            </div>
+          )}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="rounded-md p-1 hover:bg-accent"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 p-2">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.href
+            return (
+              <button
+                key={item.href}
+                onClick={() => navigate(item.href)}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'bg-accent font-medium text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="border-t p-2">
+          {!collapsed && (
+            <div className="mb-2 px-3 py-2">
+              <p className="truncate text-sm font-medium">
+                {user?.teacher?.full_name ?? user?.email}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">Admin</p>
+            </div>
+          )}
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={() => navigate('/dashboard')}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {!collapsed && <span>Dashboard</span>}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              title="Sign out"
+              className={collapsed ? 'mx-auto' : ''}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      <main role="main" className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</div>
+      </main>
+    </div>
+  )
+}

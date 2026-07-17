@@ -1,0 +1,45 @@
+[functions.process-end-of-day]
+enabled = true
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/process-end-of-day/index.ts"
+
+[functions.record-attendance]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.daily-report]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.monthly-report]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.attendance-notification]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.verify-admin]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.attendance-ai-analysis]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.calendar-check]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.attendance-validator]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
