@@ -221,7 +221,7 @@ export function exportToCSV(records: Attendance[], filename: string) {
   URL.revokeObjectURL(url)
 }
 
-// ─── Invite teacher (creates auth user + teacher record) ─────
+// ─── Invite teacher (via Edge Function — no service role on client) ─────
 export async function inviteTeacher(input: {
   staff_number: string
   full_name: string
@@ -230,48 +230,20 @@ export async function inviteTeacher(input: {
   phone?: string
   reporting_time?: string
 }): Promise<{ teacher: Teacher; tempPassword: string }> {
-  const { supabaseAdmin } = await import('./supabase-admin')
-  const tempPassword = generatePassword()
+  const token = (await supabase.auth.getSession()).data.session?.access_token
+  if (!token) throw new Error('Not authenticated')
 
-  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email: input.email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { role: 'teacher', full_name: input.full_name },
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-teacher`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
   })
 
-  if (authError) throw new Error(authError.message)
-  if (!authUser.user) throw new Error('Failed to create auth user')
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? 'Failed to invite teacher')
 
-  const { data: teacher, error: teacherError } = await supabase
-    .from('teachers')
-    .insert({
-      id: authUser.user.id,
-      staff_number: input.staff_number,
-      full_name: input.full_name,
-      email: input.email,
-      department: input.department || null,
-      phone: input.phone || null,
-      reporting_time: input.reporting_time || null,
-    })
-    .select()
-    .single()
-
-  if (teacherError) {
-    await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-    throw new Error(teacherError.message)
-  }
-
-  return { teacher: teacher as Teacher, tempPassword }
-}
-
-function generatePassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'
-  let password = ''
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
+  return data
 }
 
 function rowFromRecord(r: Attendance) {

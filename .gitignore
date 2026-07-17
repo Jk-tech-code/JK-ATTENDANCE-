@@ -11,6 +11,15 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
+# Supabase CLI artifacts
+supabase/.temp/
+
+# Generated schema dump
+remote_schema.sql
 
 # Editor directories and files
 .vscode/*

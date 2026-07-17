@@ -43,3 +43,8 @@ import_map = "./functions/deno.json"
 enabled = true
 verify_jwt = true
 import_map = "./functions/deno.json"
+
+[functions.invite-teacher]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
