@@ -22,9 +22,6 @@ import {
   Timer,
 } from 'lucide-react'
 
-const SCHOOL_LAT = -1.51
-const SCHOOL_LNG = 36.95
-
 interface SchoolSettingsData {
   id: string
   school_name: string | null
@@ -46,7 +43,7 @@ export default function SettingsPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const [testLat, setTestLat] = useState<number | null>(null)
-  const [TestLng, setTestLng] = useState<number | null>(null)
+  const [testLng, setTestLng] = useState<number | null>(null)
   const [testDist, setTestDist] = useState<number | null>(null)
   const [testing, setTesting] = useState(false)
   const [testMsg, setTestMsg] = useState<string | null>(null)
@@ -124,12 +121,21 @@ export default function SettingsPage() {
       setTestLat(gps.latitude)
       setTestLng(gps.longitude)
 
+      const schoolLat = settings?.latitude
+      const schoolLng = settings?.longitude
+
+      if (schoolLat == null || schoolLng == null) {
+        setTestMsg('School GPS coordinates not configured. Please set latitude and longitude in the Location Configuration section first.')
+        setTesting(false)
+        return
+      }
+
       const radius = settings?.allowed_radius_meters ?? 100
       const dist = haversineDistance(
         gps.latitude,
         gps.longitude,
-        SCHOOL_LAT,
-        SCHOOL_LNG
+        schoolLat,
+        schoolLng
       )
       setTestDist(Math.round(dist))
 
@@ -241,7 +247,7 @@ export default function SettingsPage() {
                 }
               />
               <p className="text-[10px] text-muted-foreground">
-                Current: Glorious Group of Schools (-1.51, 36.95) &middot;{' '}
+                Current: {settings.school_name ?? 'School'} ({settings.latitude?.toFixed(4) ?? 'N/A'}, {settings.longitude?.toFixed(4) ?? 'N/A'}) &middot;{' '}
                 {settings.allowed_radius_meters ?? 100}m radius
               </p>
             </div>
@@ -373,14 +379,14 @@ export default function SettingsPage() {
               Test GPS Location
             </Button>
 
-            {testLat != null && TestLng != null && (
+            {testLat != null && testLng != null && (
               <div className="space-y-1.5 rounded-md border bg-muted/50 p-3 text-xs">
                 <p className="flex items-center gap-1.5">
                   <MapPin className="h-3 w-3 text-muted-foreground" />
                   <span className="font-medium">Your Position:</span>
                 </p>
                 <p className="pl-5 text-muted-foreground">
-                  Lat: {testLat.toFixed(6)}, Lng: {TestLng.toFixed(6)}
+                  Lat: {testLat.toFixed(6)}, Lng: {testLng.toFixed(6)}
                 </p>
                 {testDist != null && (
                   <p className="pl-5 text-muted-foreground">
@@ -388,7 +394,7 @@ export default function SettingsPage() {
                   </p>
                 )}
                 <p className="pl-5 text-muted-foreground">
-                  School: {SCHOOL_LAT}, {SCHOOL_LNG}
+                  School: {settings.latitude?.toFixed(4) ?? 'N/A'}, {settings.longitude?.toFixed(4) ?? 'N/A'}
                 </p>
                 {testMsg && (
                   <p
