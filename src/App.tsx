@@ -55,7 +55,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />
   return <>{children}</>
 }
 
@@ -80,6 +80,7 @@ export default function App() {
         <Route path="/admin/holidays" element={<AdminRoute><HolidayManagementPage /></AdminRoute>} />
         <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
         <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

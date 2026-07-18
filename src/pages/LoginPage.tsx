@@ -40,7 +40,12 @@ export default function LoginPage() {
       setError(result.error)
       return
     }
-    navigate('/dashboard', { replace: true })
+    const { user } = result
+    if (user && user.role === 'admin') {
+      navigate('/admin', { replace: true })
+    } else {
+      navigate('/dashboard', { replace: true })
+    }
   }
 
   return (

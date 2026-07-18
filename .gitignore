@@ -31,3 +31,9 @@ remote_schema.sql
 *.njsproj
 *.sln
 *.sw?
+
+# Local Netlify folder
+.netlify
+
+# Setup scripts
+scripts/

@@ -9,6 +9,7 @@ export interface DashboardStats {
   absent_today: number
   checked_out_today: number
   in_school_now: number
+  early_departure_today?: number
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -17,16 +18,52 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return data as DashboardStats
 }
 
-export async function getDailyReport(date: string): Promise<any> {
-  const { data, error } = await supabase.rpc('get_daily_report', { p_date: date })
-  if (error) throw new Error(error.message)
-  return data
+export interface DailyReportResult {
+  date: string
+  present: number
+  absent: number
+  late: number
+  total_teachers: number
+  attendance_rate: number
+  avg_check_in_time: string
+  avg_working_minutes: number
 }
 
-export async function getMonthlyReport(year: number, month: number): Promise<any> {
+export interface MonthlyReportResult {
+  year: number
+  month: number
+  summary: {
+    total_teachers: number
+    working_days: number
+    present_days: number
+    late_days: number
+    absent_days: number
+    attendance_percentage: number
+    avg_working_hours: number
+  }
+  teachers: Array<{
+    teacher_id: string
+    full_name: string
+    staff_number: string
+    total_days: number
+    present: number
+    late: number
+    absent: number
+    attendance_percentage: number
+    avg_working_hours: number
+  }>
+}
+
+export async function getDailyReport(date: string): Promise<DailyReportResult> {
+  const { data, error } = await supabase.rpc('get_daily_report', { p_date: date })
+  if (error) throw new Error(error.message)
+  return data as DailyReportResult
+}
+
+export async function getMonthlyReport(year: number, month: number): Promise<MonthlyReportResult> {
   const { data, error } = await supabase.rpc('get_monthly_report', { p_year: year, p_month: month })
   if (error) throw new Error(error.message)
-  return data
+  return data as MonthlyReportResult
 }
 
 // ─── Teachers CRUD ───────────────────────────────────────────
@@ -162,8 +199,15 @@ export interface AttendanceFilters {
   page_size?: number
 }
 
+export interface AttendanceWithTeacher extends Attendance {
+  teacher: {
+    full_name: string
+    staff_number: string
+  } | null
+}
+
 export interface PaginatedAttendance {
-  records: Attendance[]
+  records: AttendanceWithTeacher[]
   total: number
   page: number
   page_size: number
@@ -189,7 +233,7 @@ export async function getAttendanceRecords(filters: AttendanceFilters = {}): Pro
     .range(from, to)
 
   if (error) throw new Error(error.message)
-  return { records: data as Attendance[], total: count ?? 0, page, page_size }
+  return { records: data as AttendanceWithTeacher[], total: count ?? 0, page, page_size }
 }
 
 // ─── Teacher Delete ──────────────────────────────────────────
@@ -199,11 +243,11 @@ export async function deleteTeacher(id: string): Promise<void> {
 }
 
 // ─── Export helpers ──────────────────────────────────────────
-export function exportToCSV(records: Attendance[], filename: string) {
+export function exportToCSV(records: AttendanceWithTeacher[], filename: string) {
   const headers = ['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']
   const rows = records.map(r => [
-    (r as any).teacher?.full_name ?? '',
-    (r as any).teacher?.staff_number ?? '',
+    r.teacher?.full_name ?? '',
+    r.teacher?.staff_number ?? '',
     r.attendance_date,
     r.check_in ? new Date(r.check_in).toLocaleTimeString() : '-',
     r.check_out ? new Date(r.check_out).toLocaleTimeString() : '-',
@@ -246,21 +290,21 @@ export async function inviteTeacher(input: {
   return data
 }
 
-function rowFromRecord(r: Attendance) {
+function rowFromRecord(r: AttendanceWithTeacher): string[] {
   return [
-    (r as any).teacher?.full_name ?? '',
-    (r as any).teacher?.staff_number ?? '',
+    r.teacher?.full_name ?? '',
+    r.teacher?.staff_number ?? '',
     r.attendance_date,
     r.check_in ? new Date(r.check_in).toLocaleTimeString() : '-',
     r.check_out ? new Date(r.check_out).toLocaleTimeString() : '-',
-    r.status,
-    r.late_minutes ?? 0,
-    r.working_minutes ?? 0,
+    r.status ?? '-',
+    String(r.late_minutes ?? 0),
+    String(r.working_minutes ?? 0),
   ]
 }
 
 // ─── Excel export ────────────────────────────────────────────
-export function exportToExcel(records: Attendance[], filename: string) {
+export function exportToExcel(records: AttendanceWithTeacher[], filename: string) {
   const headers = [['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']]
   const rows = records.map(r => rowFromRecord(r))
   const wsData = [...headers, ...rows]
@@ -274,23 +318,32 @@ export function exportToExcel(records: Attendance[], filename: string) {
 }
 
 // ─── PDF export ──────────────────────────────────────────────
-export function exportToPDF(records: Attendance[], filename: string) {
+export function exportToPDF(records: AttendanceWithTeacher[], filename: string) {
   const headers = [['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']]
   const rows = records.map(r => rowFromRecord(r))
 
-  import('jspdf').then(({ default: jsPDF }) => {
-    import('jspdf-autotable').then(() => {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-      doc.text(`Attendance Report - ${filename}`, 14, 15)
-      ;(doc as any).autoTable({
-        startY: 22,
-        head: [headers[0]],
-        body: rows,
-        styles: { fontSize: 7 },
-        headStyles: { fillColor: [59, 130, 246] },
-      })
-      doc.save(`${filename}.pdf`)
+  import('jspdf').then(async ({ default: jsPDF }) => {
+    await import('jspdf-autotable')
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }) as unknown as {
+      text: (text: string, x: number, y: number) => void
+      autoTable: (options: {
+        startY: number
+        head: string[][]
+        body: string[][]
+        styles?: Record<string, unknown>
+        headStyles?: Record<string, unknown>
+      }) => void
+      save: (filename: string) => void
+    }
+    doc.text(`Attendance Report - ${filename}`, 14, 15)
+    doc.autoTable({
+      startY: 22,
+      head: [headers[0]],
+      body: rows,
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [59, 130, 246] },
     })
+    doc.save(`${filename}.pdf`)
   })
 }
 

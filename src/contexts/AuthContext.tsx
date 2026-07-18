@@ -6,7 +6,7 @@ import { getCurrentUser, signIn as authSignIn, signOut as authSignOut } from '@/
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (email: string, password: string) => Promise<{ error: string | null; user: AuthUser | null }>
   signOut: () => Promise<{ error: string | null }>
 }
 
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const result = await authSignIn(email, password)
     if (result.user) setUser(result.user)
-    return { error: result.error }
+    return { error: result.error, user: result.user }
   }
 
   const signOut = async () => {
