@@ -1,32 +1,61 @@
-# React + TypeScript + Vite
+# JK Attendance System
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+GPS-based attendance tracking system for **Glorious Group of Schools**.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Frontend:** React 19, TypeScript, Tailwind CSS v4, shadcn/ui
+- **Backend:** Supabase (Auth, Database, Edge Functions)
+- **Charts:** Recharts
+- **Export:** jsPDF, xlsx
+- **PWA:** vite-plugin-pwa (offline support)
+- **Deployment:** Netlify
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Teacher check-in/check-out with GPS geofencing
+- Real-time attendance dashboard
+- Admin panel with teacher management
+- Monthly reports with AI-powered insights (OpenAI / DeepSeek)
+- Calendar & holiday management
+- Attendance export (CSV, Excel, PDF)
+- Dark/light mode
+- PWA (installable on mobile)
 
-## Expanding the Oxlint configuration
+## Setup
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Environment Variables (Netlify)
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key |
+
+### Supabase Edge Function Secrets
+
+```bash
+supabase secrets set OPENAI_API_KEY=sk-...
+supabase secrets set DEEPSEEK_API_KEY=sk-...
+```
+
+### Cron Job (End-of-Day Processing)
+
+Trigger daily at closing time:
+
+```
+https://ireyodsiyvvjfqymgdpa.supabase.co/functions/v1/process-end-of-day
+```
+
+## Login
+
+- **Admin:** kipkemoijared855@gmail.com
+- **Teachers:** Created via admin panel → Invite Teacher
+
+## Admin Panel
+
+Accessible at `/admin` after logging in as admin.
