@@ -10,7 +10,7 @@ export default function NotFoundPage() {
       <Helmet>
         <title>404 — Page Not Found | JK Attendance</title>
         <meta name="description" content="The page you are looking for does not exist." />
-        <meta name="robots" content="index, follow" />
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
         <Card className="w-full max-w-md">

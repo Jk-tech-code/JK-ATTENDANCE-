@@ -41,18 +41,18 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api',
-              expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
+              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
               networkTimeoutSeconds: 10,
             },
           },
         ],
       },
     }),
-    sitemap({
+      sitemap({
       hostname: 'https://jk-attendance-system.netlify.app',
       dynamicRoutes: ['/login', '/forgot-password'],
-      exclude: ['/admin/*', '/dashboard'],
-      generateRobotsTxt: false,
+      exclude: ['/admin/*', '/dashboard', '/reset-password'],
+      generateRobotsTxt: true,
     }),
   ],
   resolve: {
@@ -61,6 +61,7 @@ export default defineConfig({
     },
   },
   build: {
+    reportCompressedSize: false,
     target: 'es2023',
     minify: 'esbuild',
     cssMinify: true,
