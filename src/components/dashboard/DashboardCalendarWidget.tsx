@@ -8,6 +8,7 @@ import type { DashboardStats } from '@/services/admin'
 import { CalendarDays, Sun, Moon, CloudSun, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 export function DashboardCalendarWidget() {
   const navigate = useNavigate()
@@ -37,7 +38,7 @@ export function DashboardCalendarWidget() {
 
         if (upcoming.length > 0) setNextEvent(upcoming[0])
       })
-      .catch(console.error)
+      .catch(() => toast.error('Failed to load calendar data'))
       .finally(() => setLoading(false))
   }, [])
 

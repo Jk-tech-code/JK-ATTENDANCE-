@@ -35,6 +35,20 @@ interface SchoolSettingsData {
   weekend_working_days: string | null
 }
 
+interface AttendanceGpsRecord {
+  id: string
+  teacher_id: string
+  attendance_date: string
+  check_in: string | null
+  teacher_latitude: number | null
+  teacher_longitude: number | null
+  distance_from_school: number | null
+  location_status: string | null
+  device: string | null
+  browser: string | null
+  gps_accuracy: number | null
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SchoolSettingsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +67,7 @@ export default function SettingsPage() {
     browser: detectBrowser(),
   }))
 
-  const [attendanceWithGps, setAttendanceWithGps] = useState<any[]>([])
+  const [attendanceWithGps, setAttendanceWithGps] = useState<AttendanceGpsRecord[]>([])
   const [loadingAttendance, setLoadingAttendance] = useState(false)
 
   useEffect(() => {
@@ -478,7 +492,7 @@ export default function SettingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {attendanceWithGps.map((rec: any) => (
+                  {attendanceWithGps.map((rec) => (
                     <tr key={rec.id} className="border-b last:border-0 hover:bg-muted/50">
                       <td className="px-2 py-1.5">{rec.attendance_date}</td>
                       <td className="px-2 py-1.5">

@@ -5,13 +5,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getDashboardStats, getTeachers } from '@/services/admin'
 import { getDailyReportEdge } from '@/services/attendanceApi'
 import type { DashboardStats } from '@/services/admin'
+import type { DailyReport } from '@/services/attendanceApi'
+import type { Teacher } from '@/types'
 import { Users, Clock, AlertTriangle, CheckCircle, LogOut, MapPin, Timer } from 'lucide-react'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [daily, setDaily] = useState<any>(null)
-  const [teachers, setTeachers] = useState<any[]>([])
+  const [daily, setDaily] = useState<DailyReport | null>(null)
+  const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,7 +28,7 @@ export default function AdminDashboardPage() {
         setDaily(d)
         setTeachers(t)
       })
-      .catch(console.error)
+      .catch(() => toast.error('Failed to load dashboard data'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -36,7 +39,7 @@ export default function AdminDashboardPage() {
     { label: 'Absent Today', value: stats?.absent_today ?? 0, icon: AlertTriangle, color: 'text-red-600' },
     { label: 'Checked Out', value: stats?.checked_out_today ?? 0, icon: LogOut, color: 'text-purple-600' },
     { label: 'In School Now', value: stats?.in_school_now ?? 0, icon: MapPin, color: 'text-indigo-600' },
-    { label: 'Early Departure', value: (stats as any)?.early_departure_today ?? 0, icon: Timer, color: 'text-orange-600' },
+    { label: 'Early Departure', value: stats?.early_departure_today ?? 0, icon: Timer, color: 'text-orange-600' },
   ]
 
   return (

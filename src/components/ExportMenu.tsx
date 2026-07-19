@@ -4,12 +4,13 @@ import { Dialog } from '@/components/ui/dialog'
 import { Download, FileSpreadsheet, FileText, FileDown } from 'lucide-react'
 
 interface ExportMenuProps {
+  label?: string
   onExportCSV: () => void
   onExportExcel: () => void
   onExportPDF: () => void
 }
 
-export function ExportMenu({ onExportCSV, onExportExcel, onExportPDF }: ExportMenuProps) {
+export function ExportMenu({ label = 'Export', onExportCSV, onExportExcel, onExportPDF }: ExportMenuProps) {
   const [open, setOpen] = useState(false)
 
   const items = [
@@ -21,7 +22,7 @@ export function ExportMenu({ onExportCSV, onExportExcel, onExportPDF }: ExportMe
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Download className="mr-2 h-4 w-4" />Export
+        <Download className="mr-2 h-4 w-4" />{label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen} title="Export As">
         <div className="space-y-2">

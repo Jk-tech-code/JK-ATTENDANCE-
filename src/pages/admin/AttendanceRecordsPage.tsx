@@ -74,12 +74,12 @@ export default function AttendanceRecordsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Attendance Records</h1>
         <div className="flex gap-2">
-          <ExportMenu
+          <ExportMenu label="Export Page"
             onExportCSV={() => handleExport('csv')}
             onExportExcel={() => handleExport('xlsx')}
             onExportPDF={() => handleExport('pdf')}
           />
-          <ExportMenu
+          <ExportMenu label="Export All"
             onExportCSV={() => handleExportAll('csv')}
             onExportExcel={() => handleExportAll('xlsx')}
             onExportPDF={() => handleExportAll('pdf')}

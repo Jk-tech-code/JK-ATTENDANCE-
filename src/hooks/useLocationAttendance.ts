@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { checkInWithLocation, type CheckInWithLocationResult } from '@/services/attendance'
 import { captureGpsPosition } from '@/services/location'
 import { getDeviceInfo } from '@/lib/device'
+import { getSchoolSettings } from '@/services/admin'
 import {
   AlreadyCheckedInError,
   GpsDeniedError,
@@ -90,7 +91,9 @@ export function useLocationAttendance(): UseLocationAttendanceReturn {
           throw new LowAccuracyError(result.accuracy ?? gps.accuracy)
         }
         if (result.location_status === 'outside_school') {
-          throw new LocationRejectedError(result.distance ?? 0, 100)
+          const settings = await getSchoolSettings()
+          const radius = settings?.allowed_radius_meters ?? 100
+          throw new LocationRejectedError(result.distance ?? 0, radius)
         }
         throw new Error(result.message ?? result.error ?? 'Check-in failed')
       }

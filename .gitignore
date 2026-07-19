@@ -21,6 +21,9 @@ supabase/.temp/
 # Generated schema dump
 remote_schema.sql
 
+# Stray shell artifacts
+-
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

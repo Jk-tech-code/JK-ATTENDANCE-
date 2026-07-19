@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getDailyReportEdge, getMonthlyReportEdge, getAttendanceAnalytics } from '@/services/attendanceApi'
-import type { MonthlyReportResult, AIAnalysisResult } from '@/services/attendanceApi'
+import type { DailyReport, MonthlyReportResult, AIAnalysisResult } from '@/services/attendanceApi'
 import { exportToCSV, exportToExcel, exportToPDF } from '@/services/admin'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
-import { format, eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { format } from 'date-fns'
 import { Download, Brain, Lightbulb, AlertTriangle, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -19,33 +19,22 @@ export default function ReportsPage() {
   const [year, setYear] = useState(currentYear)
   const [month, setMonth] = useState(new Date().getMonth() + 1)
 
-  const [daily, setDaily] = useState<any>(null)
+  const [daily, setDaily] = useState<DailyReport | null>(null)
   const [monthly, setMonthly] = useState<MonthlyReportResult | null>(null)
-  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [aiData, setAiData] = useState<AIAnalysisResult | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    const start = startOfMonth(new Date(year, month - 1))
-    const end = endOfMonth(new Date(year, month - 1))
-    const dates = eachDayOfInterval({ start, end })
 
     Promise.all([
       getDailyReportEdge(today),
       getMonthlyReportEdge(year, month),
-      ...dates.map(date => getDailyReportEdge(format(date, 'yyyy-MM-dd')).catch(() => null)),
     ])
-      .then(([dailyResult, monthlyResult, ...dailyReports]) => {
+      .then(([dailyResult, monthlyResult]) => {
         setDaily(dailyResult)
         setMonthly(monthlyResult)
-        setMonthlyTrend(dailyReports.filter(Boolean).map((r: any) => ({
-          date: r.date,
-          rate: r.attendance_rate,
-          present: r.present,
-          absent: r.absent,
-        })))
       })
       .catch(() => toast.error('Failed to load reports'))
       .finally(() => setLoading(false))
@@ -57,8 +46,8 @@ export default function ReportsPage() {
       const result = await getAttendanceAnalytics({ year, month })
       setAiData(result)
       toast.success('AI analysis complete')
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'AI analysis failed')
     } finally {
       setAiLoading(false)
     }
@@ -189,40 +178,25 @@ export default function ReportsPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader><CardTitle className="text-lg">Daily Attendance Trend</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(8)} />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="rate" stroke="hsl(221.2, 83.2%, 53.3%)" strokeWidth={2} name="Rate %" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-lg">Present vs Absent</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(8)} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
-                <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {monthly && monthly.teachers && monthly.teachers.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Present vs Absent (Monthly)</CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthly.teachers.slice(0, 20)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="full_name" tick={{ fontSize: 10 }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
+                  <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {aiData && (
         <Card className="border-primary/20">

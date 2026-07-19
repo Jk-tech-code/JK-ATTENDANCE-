@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MapPin, Users, Calendar, Settings } from 'lucide-react'
+import { MapPin, Users, Calendar, Settings, ClipboardList, FileText, BarChart } from 'lucide-react'
 
 export default function AdminOverviewPage() {
   const links = [
@@ -18,9 +18,27 @@ export default function AdminOverviewPage() {
       href: '/admin/teachers',
     },
     {
+      title: 'Attendance Records',
+      description: 'View and export attendance records with filters',
+      icon: ClipboardList,
+      href: '/admin/attendance',
+    },
+    {
+      title: 'Calendar',
+      description: 'View and manage the school calendar',
+      icon: Calendar,
+      href: '/admin/calendar',
+    },
+    {
+      title: 'Reports',
+      description: 'Attendance reports, analytics and AI insights',
+      icon: BarChart,
+      href: '/admin/reports',
+    },
+    {
       title: 'Holidays',
       description: 'Manage school holidays and closures',
-      icon: Calendar,
+      icon: FileText,
       href: '/admin/holidays',
     },
     {

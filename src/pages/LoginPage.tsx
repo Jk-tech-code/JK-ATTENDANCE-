@@ -54,6 +54,8 @@ export default function LoginPage() {
         <title>Sign In — JK Attendance System</title>
         <meta name="description" content="Sign in to the JK Attendance System for Glorious Group of Schools" />
         <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="Sign In — JK Attendance System" />
+        <link rel="canonical" href="https://jk-attendance-system.netlify.app/login" />
       </Helmet>
       <AuthLayout title="JK Attendance" subtitle="Sign in to your account">
       <Card>
