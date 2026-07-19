@@ -233,7 +233,7 @@ export async function getAttendanceRecords(filters: AttendanceFilters = {}): Pro
     .range(from, to)
 
   if (error) throw new Error(error.message)
-  return { records: data as AttendanceWithTeacher[], total: count ?? 0, page, page_size }
+  return { records: (data ?? []) as unknown as AttendanceWithTeacher[], total: count ?? 0, page, page_size }
 }
 
 // ─── Teacher Delete ──────────────────────────────────────────

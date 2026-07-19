@@ -3,14 +3,16 @@ import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getAttendanceRecords, getTeachers, exportToCSV, exportToExcel, exportToPDF, exportAllAttendance } from '@/services/admin'
-import type { Attendance, Teacher } from '@/types'
+import type { Teacher } from '@/types'
+import type { AttendanceWithTeacher, AttendanceFilters } from '@/services/admin'
 import { ExportMenu } from '@/components/ExportMenu'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AttendanceRecordsPage() {
-  const [records, setRecords] = useState<Attendance[]>([])
+  const [records, setRecords] = useState<AttendanceWithTeacher[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
@@ -22,7 +24,7 @@ export default function AttendanceRecordsPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    const filters: any = { page, page_size: pageSize }
+    const filters: AttendanceFilters = { page, page_size: pageSize }
     if (dateFilter) filters.date = dateFilter
     if (statusFilter) filters.status = statusFilter
     if (teacherFilter) filters.teacher_id = teacherFilter
@@ -123,7 +125,11 @@ export default function AttendanceRecordsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-center text-muted-foreground py-8">Loading...</p>
+            <div className="space-y-3 py-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
           ) : records.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No records found.</p>
           ) : (
@@ -146,8 +152,8 @@ export default function AttendanceRecordsPage() {
                   <tbody>
                     {records.map((r) => (
                       <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50">
-                        <td className="py-2 font-medium">{(r as any).teacher?.full_name ?? '-'}</td>
-                        <td className="py-2 text-muted-foreground">{(r as any).teacher?.staff_number ?? '-'}</td>
+                        <td className="py-2 font-medium">{r.teacher?.full_name ?? '-'}</td>
+                        <td className="py-2 text-muted-foreground">{r.teacher?.staff_number ?? '-'}</td>
                         <td className="py-2">{r.attendance_date}</td>
                         <td className="py-2">{r.check_in ? new Date(r.check_in).toLocaleTimeString() : '-'}</td>
                         <td className="py-2">{r.check_out ? new Date(r.check_out).toLocaleTimeString() : '-'}</td>
