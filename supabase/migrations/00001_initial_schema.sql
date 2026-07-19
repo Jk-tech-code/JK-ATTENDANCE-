@@ -66,17 +66,11 @@ CREATE POLICY "Teachers read own profile"
   TO authenticated
   USING (id = auth.uid());
 
--- Admins can read all teachers (using a custom claim check)
+-- Admins can read all teachers (using JWT claim check)
 CREATE POLICY "Admins read all teachers"
   ON teachers FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM auth.users
-      WHERE id = auth.uid()
-      AND raw_user_meta_data->>'role' = 'admin'
-    )
-  );
+  USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
 
 -- Teachers can insert/update their own attendance
 CREATE POLICY "Teachers manage own attendance"
@@ -89,13 +83,7 @@ CREATE POLICY "Teachers manage own attendance"
 CREATE POLICY "Admins read all attendance"
   ON attendance FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM auth.users
-      WHERE id = auth.uid()
-      AND raw_user_meta_data->>'role' = 'admin'
-    )
-  );
+  USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
 
 -- School settings are readable by all authenticated users
 CREATE POLICY "Authenticated users read school settings"

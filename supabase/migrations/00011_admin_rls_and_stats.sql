@@ -12,28 +12,20 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins insert teachers') THEN
     CREATE POLICY "Admins insert teachers"
       ON teachers FOR INSERT TO authenticated
-      WITH CHECK (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-      );
+      WITH CHECK (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins update teachers') THEN
     CREATE POLICY "Admins update teachers"
       ON teachers FOR UPDATE TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-      )
-      WITH CHECK (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-      );
+      USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin')
+      WITH CHECK (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins delete teachers') THEN
     CREATE POLICY "Admins delete teachers"
       ON teachers FOR DELETE TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-      );
+      USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
   END IF;
 END $$;
 
@@ -61,9 +53,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins manage school holidays') THEN
     CREATE POLICY "Admins manage school holidays"
       ON school_holidays FOR ALL TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-      );
+      USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
   END IF;
 END $$;
 
