@@ -4,12 +4,15 @@ import { Helmet } from 'react-helmet-async'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminLayout } from '@/layouts/AdminLayout'
+import { RouteErrorBoundary } from '@/components/ui/ErrorPage'
 import { Loader2 } from 'lucide-react'
 
+const LandingPage = lazy(() => import('@/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const HelpPage = lazy(() => import('@/pages/HelpPage'))
 const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'))
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const TeachersPage = lazy(() => import('@/pages/admin/TeachersPage'))
@@ -30,7 +33,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return <RouteErrorBoundary>{children}</RouteErrorBoundary>
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -44,7 +47,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'admin') return <Navigate to="/dashboard" replace />
-  return <AdminLayout>{children}</AdminLayout>
+  return <AdminLayout><RouteErrorBoundary>{children}</RouteErrorBoundary></AdminLayout>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -57,7 +60,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (user) return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />
-  return <>{children}</>
+  return <RouteErrorBoundary>{children}</RouteErrorBoundary>
 }
 
 export default function App() {
@@ -70,10 +73,12 @@ export default function App() {
       </Helmet>
       <Toaster position="top-right" richColors />
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/admin" element={<AdminRoute><AdminOverviewPage /></AdminRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
         <Route path="/admin/teachers" element={<AdminRoute><TeachersPage /></AdminRoute>} />
@@ -82,7 +87,6 @@ export default function App() {
         <Route path="/admin/holidays" element={<AdminRoute><HolidayManagementPage /></AdminRoute>} />
         <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
         <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,7 @@
 import { StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import * as Sentry from '@sentry/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -9,6 +10,15 @@ import App from './App.tsx'
 import './index.css'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+
+if (import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    integrations: [Sentry.browserTracingIntegration()],
+    tracesSampleRate: 0.1,
+    environment: import.meta.env.MODE,
+  })
+}
 
 function Fallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
@@ -20,7 +30,11 @@ function Fallback({ error, resetErrorBoundary }: FallbackProps) {
   )
 }
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, staleTime: 30_000 },
+  },
+})
 
 function PageLoader() {
   return (

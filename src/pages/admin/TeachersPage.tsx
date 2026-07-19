@@ -9,7 +9,9 @@ import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useDebounce } from '@/hooks/useDebounce'
 import { getTeachers, createTeacher, updateTeacher, deleteTeacher, inviteTeacher } from '@/services/admin'
 import type { Teacher } from '@/types'
-import { Plus, Pencil, Trash2, Search, UserPlus } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, UserPlus, Users } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 
 export default function TeachersPage() {
@@ -169,9 +171,16 @@ export default function TeachersPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-center text-muted-foreground py-8">Loading...</p>
+            <div className="space-y-3 p-4">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No teachers found.</p>
+            <EmptyState
+              title={search ? "No matching teachers" : "No teachers yet"}
+              description={search ? "Try a different search term." : "Add your first teacher to get started."}
+              icon={<Users className="h-12 w-12" />}
+              action={search ? undefined : { label: "Add Teacher", onClick: openCreate }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

@@ -3,7 +3,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import sitemap from 'vite-plugin-sitemap'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'path'
+
+const requiredEnvVars = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.warn(`Warning: ${envVar} is not set. Build will proceed but app may not work at runtime.`)
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -21,16 +29,8 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         icons: [
-          {
-            src: '3_app_icon_ico.png',
-            sizes: '32x32',
-            type: 'image/png',
-          },
-          {
-            src: '1_full_color_version.png',
-            sizes: '128x128',
-            type: 'image/png',
-          },
+          { src: '3_app_icon_ico.png', sizes: '32x32', type: 'image/png' },
+          { src: '1_full_color_version.png', sizes: '128x128', type: 'image/png' },
         ],
       },
       workbox: {
@@ -48,24 +48,30 @@ export default defineConfig({
         ],
       },
     }),
-      sitemap({
+    sitemap({
       hostname: 'https://jk-attendance-system.netlify.app',
-      dynamicRoutes: ['/login', '/forgot-password'],
+      dynamicRoutes: ['/login', '/forgot-password', '/help'],
       exclude: ['/admin/*', '/dashboard', '/reset-password'],
       generateRobotsTxt: true,
     }),
+    ...(process.env.SENTRY_AUTH_TOKEN
+      ? [sentryVitePlugin({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          sourcemaps: { assets: ['./dist/assets/**'] },
+        })]
+      : []),
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: { '@': path.resolve(__dirname, './src') },
   },
   build: {
     reportCompressedSize: false,
     target: 'es2023',
     minify: 'esbuild',
     cssMinify: true,
-    sourcemap: false,
+    sourcemap: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
     rollupOptions: {
       output: {
         manualChunks(id: string) {
