@@ -114,14 +114,6 @@ Deno.serve(async (req: Request) => {
         if (insertErr) throw insertErr
       }
 
-      const { data: emailTeachers } = await supabase
-        .from("teachers")
-        .select("id, full_name, email")
-        .in(
-          "id",
-          teachersToNotify.map((t) => t.id)
-        )
-
       return jsonResponse({
         success: true,
         message: `${messages.length} notification(s) created`,

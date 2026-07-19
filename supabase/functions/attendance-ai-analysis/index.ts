@@ -57,8 +57,6 @@ Deno.serve(async (req: Request) => {
 
     if (tErr) throw tErr
 
-    const teacherMap = new Map((teachers ?? []).map((t) => [t.id, t]))
-
     const teacherAgg = new Map<
       string,
       {

@@ -28,7 +28,7 @@ export function useTodayAttendance() {
 export function useCheckOut() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const teacherId = user?.teacher?.id!
+  const teacherId = user!.teacher!.id
 
   return useMutation({
     mutationFn: (attendanceId: string) => checkOutService(attendanceId),
@@ -45,7 +45,7 @@ export function useCheckOut() {
 export function useUndoCheckOut() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const teacherId = user?.teacher?.id!
+  const teacherId = user!.teacher!.id
 
   return useMutation({
     mutationFn: (attendanceId: string) => undoCheckOutService(attendanceId),
