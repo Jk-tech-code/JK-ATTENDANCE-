@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import type { Attendance } from '@/types'
 
-const EDGE_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL?.replace('.co', '.functions.supabase.co') + '/functions/v1'
+const EDGE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
 
 async function getAuthToken(): Promise<string> {
   const { data } = await supabase.auth.getSession()
