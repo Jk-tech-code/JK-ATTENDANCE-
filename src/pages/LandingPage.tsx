@@ -9,11 +9,11 @@ export default function LandingPage() {
   return (
     <>
       <Helmet>
-        <title>JK Attendance System — GPS-Based Teacher Attendance Tracking</title>
-        <meta name="description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <title>JK Attendance System — School Attendance Management</title>
+        <meta name="description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
         <link rel="canonical" href={`${siteUrl}/`} />
-        <meta property="og:title" content="JK Attendance System — GPS Attendance Tracking" />
-        <meta property="og:description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <meta property="og:title" content="JK Attendance System — School Attendance Management" />
+        <meta property="og:description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
         <meta property="og:url" content={`${siteUrl}/`} />
         <meta property="og:image" content={`${siteUrl}/1_full_color_version.png`} />
         <meta property="og:image:width" content="1200" />
@@ -22,8 +22,8 @@ export default function LandingPage() {
         <meta property="og:site_name" content="JK Attendance System" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="JK Attendance System — GPS Attendance Tracking" />
-        <meta name="twitter:description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <meta name="twitter:title" content="JK Attendance System — School Attendance Management" />
+        <meta name="twitter:description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
         <meta name="twitter:image" content={`${siteUrl}/1_full_color_version.png`} />
         <script type="application/ld+json">
           {JSON.stringify({
