@@ -33,6 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_report_store_type_created
 ALTER TABLE public.report_store ENABLE ROW LEVEL SECURITY;
 
 -- Admins can read all stored reports
+DROP POLICY IF EXISTS "Admins read report_store" ON public.report_store;
 CREATE POLICY "Admins read report_store"
   ON public.report_store FOR SELECT
   TO authenticated
@@ -41,6 +42,7 @@ CREATE POLICY "Admins read report_store"
 -- Only the cron-report edge function (service_role) inserts;
 -- RLS is bypassed for service_role, so no INSERT policy needed.
 -- Block direct user inserts.
+DROP POLICY IF EXISTS "No insert for regular users" ON public.report_store;
 CREATE POLICY "No insert for regular users"
   ON public.report_store FOR INSERT
   TO authenticated
@@ -80,7 +82,7 @@ CREATE POLICY "No insert for regular users"
 -- ── Cron Schedule via pg_cron ────────────────────────────────
 -- Only attempt pg_cron if the extension is available.
 -- pg_cron requires the Supabase Pro plan (or higher).
-DO $$
+DO $cron$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
@@ -89,32 +91,32 @@ BEGIN
     PERFORM cron.schedule(
       'report-daily',
       '30 23 * * *',
-      $$SELECT net.http_post(
+      $func$SELECT net.http_post(
         url := current_setting('app.settings.cron_report_url'),
         headers := ARRAY[
           'Content-Type', 'application/json',
           'x-api-key', current_setting('app.settings.cron_secret', true)
         ],
         body := '{"type":"daily"}'::text
-      )$$
+      )$func$
     );
 
     -- Monthly report at 00:30 on the 1st of every month
     PERFORM cron.schedule(
       'report-monthly',
       '30 0 1 * *',
-      $$SELECT net.http_post(
+      $func$SELECT net.http_post(
         url := current_setting('app.settings.cron_report_url'),
         headers := ARRAY[
           'Content-Type', 'application/json',
           'x-api-key', current_setting('app.settings.cron_secret', true)
         ],
         body := '{"type":"monthly"}'::text
-      )$$
+      )$func$
     );
   END IF;
 END;
-$$;
+$cron$;
 
 -- ============================================
 -- PART 4: Verification Query
