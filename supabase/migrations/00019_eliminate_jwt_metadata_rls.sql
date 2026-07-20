@@ -196,77 +196,104 @@ COMMENT ON POLICY "Admins manage school holidays" ON school_holidays IS 'Replace
 -- ============================================
 -- PART 7: Rewrite ALL policies on `attendance_notifications`
 -- ============================================
+-- NOTE: Guarded with DO block because this table may not exist
+-- if migration 00012_edge_functions_support was not applied.
 
--- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
-DROP POLICY IF EXISTS "Admins read notifications" ON attendance_notifications;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'attendance_notifications') THEN
 
-CREATE POLICY "Admins read notifications"
-  ON attendance_notifications FOR SELECT
-  TO authenticated
-  USING (public.is_admin());
+    -- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+    DROP POLICY IF EXISTS "Admins read notifications" ON attendance_notifications;
 
-COMMENT ON POLICY "Admins read notifications" ON attendance_notifications IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+    CREATE POLICY "Admins read notifications"
+      ON attendance_notifications FOR SELECT
+      TO authenticated
+      USING (public.is_admin());
 
--- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
-DROP POLICY IF EXISTS "Admins insert notifications" ON attendance_notifications;
+    COMMENT ON POLICY "Admins read notifications" ON attendance_notifications IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
 
-CREATE POLICY "Admins insert notifications"
-  ON attendance_notifications FOR INSERT
-  TO authenticated
-  WITH CHECK (public.is_admin());
+    -- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+    DROP POLICY IF EXISTS "Admins insert notifications" ON attendance_notifications;
 
-COMMENT ON POLICY "Admins insert notifications" ON attendance_notifications IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+    CREATE POLICY "Admins insert notifications"
+      ON attendance_notifications FOR INSERT
+      TO authenticated
+      WITH CHECK (public.is_admin());
 
--- "Teachers read own notifications" uses teacher_id = auth.uid() — no issue.
--- Kept as-is.
+    COMMENT ON POLICY "Admins insert notifications" ON attendance_notifications IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+
+    -- "Teachers read own notifications" uses teacher_id = auth.uid() — no issue.
+    -- Kept as-is.
+
+  END IF;
+END $$;
 
 -- ============================================
 -- PART 8: Rewrite ALL policies on `school_calendar`
 -- ============================================
+-- NOTE: Guarded with DO block because this table may not exist
+-- if migration 00013_school_calendar was not applied.
 
--- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
-DROP POLICY IF EXISTS "Admins insert school_calendar" ON school_calendar;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'school_calendar') THEN
 
-CREATE POLICY "Admins insert school_calendar"
-  ON school_calendar FOR INSERT
-  TO authenticated
-  WITH CHECK (public.is_admin());
+    -- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+    DROP POLICY IF EXISTS "Admins insert school_calendar" ON school_calendar;
 
-COMMENT ON POLICY "Admins insert school_calendar" ON school_calendar IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+    CREATE POLICY "Admins insert school_calendar"
+      ON school_calendar FOR INSERT
+      TO authenticated
+      WITH CHECK (public.is_admin());
 
--- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
-DROP POLICY IF EXISTS "Admins update school_calendar" ON school_calendar;
+    COMMENT ON POLICY "Admins insert school_calendar" ON school_calendar IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
 
-CREATE POLICY "Admins update school_calendar"
-  ON school_calendar FOR UPDATE
-  TO authenticated
-  USING (public.is_admin());
+    -- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+    DROP POLICY IF EXISTS "Admins update school_calendar" ON school_calendar;
 
-COMMENT ON POLICY "Admins update school_calendar" ON school_calendar IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+    CREATE POLICY "Admins update school_calendar"
+      ON school_calendar FOR UPDATE
+      TO authenticated
+      USING (public.is_admin());
 
--- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
-DROP POLICY IF EXISTS "Admins delete school_calendar" ON school_calendar;
+    COMMENT ON POLICY "Admins update school_calendar" ON school_calendar IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
 
-CREATE POLICY "Admins delete school_calendar"
-  ON school_calendar FOR DELETE
-  TO authenticated
-  USING (public.is_admin());
+    -- INSECURE (old): EXISTS (SELECT 1 FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+    DROP POLICY IF EXISTS "Admins delete school_calendar" ON school_calendar;
 
-COMMENT ON POLICY "Admins delete school_calendar" ON school_calendar IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+    CREATE POLICY "Admins delete school_calendar"
+      ON school_calendar FOR DELETE
+      TO authenticated
+      USING (public.is_admin());
+
+    COMMENT ON POLICY "Admins delete school_calendar" ON school_calendar IS 'Replaced auth.users.raw_user_meta_data check with public.is_admin().';
+
+  END IF;
+END $$;
 
 -- ============================================
 -- PART 9: Rewrite ALL policies on `audit_logs`
 -- ============================================
+-- NOTE: Guarded with DO block because this table may not exist
+-- if migration 00015_audit_logs was not applied.
 
--- INSECURE (old): auth.jwt() -> 'user_metadata' ->> 'role' = 'admin'
-DROP POLICY IF EXISTS "Admins read audit logs" ON audit_logs;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audit_logs') THEN
 
-CREATE POLICY "Admins read audit logs"
-  ON audit_logs FOR SELECT
-  TO authenticated
-  USING (public.is_admin());
+    -- INSECURE (old): auth.jwt() -> 'user_metadata' ->> 'role' = 'admin'
+    DROP POLICY IF EXISTS "Admins read audit logs" ON audit_logs;
 
-COMMENT ON POLICY "Admins read audit logs" ON audit_logs IS 'Replaced auth.jwt() role check with public.is_admin().';
+    CREATE POLICY "Admins read audit logs"
+      ON audit_logs FOR SELECT
+      TO authenticated
+      USING (public.is_admin());
+
+    COMMENT ON POLICY "Admins read audit logs" ON audit_logs IS 'Replaced auth.jwt() role check with public.is_admin().';
+
+  END IF;
+END $$;
 
 -- ============================================
 -- PART 10: Verify the migration
@@ -274,7 +301,10 @@ COMMENT ON POLICY "Admins read audit logs" ON audit_logs IS 'Replaced auth.jwt()
 -- Run the following queries to verify:
 -- 1. SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
 --    FROM pg_policies
---    WHERE tablename IN ('teachers','attendance','school_holidays','school_settings','attendance_notifications','school_calendar','audit_logs')
+--    WHERE tablename IN ('teachers','attendance','school_holidays','school_settings')
+--       OR (SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'attendance_notifications') AND tablename = 'attendance_notifications')
+--       OR (SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'school_calendar') AND tablename = 'school_calendar')
+--       OR (SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audit_logs') AND tablename = 'audit_logs')
 --    ORDER BY tablename, policyname;
 -- 2. SELECT public.is_admin();  -- should return true for admin user, false for others
 -- 3. SELECT id, email, role, user_id, auth_user_id FROM teachers ORDER BY created_at;
