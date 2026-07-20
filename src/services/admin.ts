@@ -274,19 +274,34 @@ export async function inviteTeacher(input: {
   phone?: string
   reporting_time?: string
 }): Promise<{ teacher: Teacher; tempPassword: string }> {
-  const { error: invokeError, data } = await supabase.functions.invoke(
-    'invite-teacher',
-    { body: JSON.stringify(input) }
-  )
+  const { error: invokeError, data } = await supabase.functions.invoke<{
+    teacher: Teacher
+    tempPassword: string
+    error?: string
+  }>('invite-teacher', { body: JSON.stringify(input) })
 
   if (invokeError) {
-    const msg = invokeError.message === 'Failed to fetch'
-      ? 'Cannot reach server. Check that the invite-teacher edge function is deployed and CORS is configured.'
-      : invokeError.message
-    throw new Error(msg)
+    // FunctionsHttpError: server returned non-2xx — extract real message from context
+    if (typeof invokeError === 'object' && 'context' in invokeError) {
+      const ctx = (invokeError as Record<string, unknown>).context as Response | undefined
+      if (ctx?.body) {
+        try {
+          const body = await ctx.json()
+          const serverMsg = (body as Record<string, unknown>)?.error
+          if (serverMsg) throw new Error(String(serverMsg))
+        } catch { /* fall through to default message */ }
+      }
+    }
+    const isNetworkError = invokeError.message === 'Failed to fetch'
+    throw new Error(
+      isNetworkError
+        ? 'Cannot reach server. Check that the invite-teacher edge function is deployed and CORS is configured.'
+        : invokeError.message
+    )
   }
 
-  if (!data || data.error) throw new Error(data?.error ?? 'Failed to invite teacher')
+  if (!data) throw new Error('Empty response from server')
+  if (data.error) throw new Error(data.error)
 
   return data as { teacher: Teacher; tempPassword: string }
 }

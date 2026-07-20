@@ -1,15 +1,30 @@
 import { supabase } from './supabase'
 import type { AuthUser, Teacher } from '@/types'
 
-async function getTeacherProfile(userId: string): Promise<Teacher | null> {
-  console.log('[Auth] Querying teacher profile for userId:', userId)
-  const { data, error } = await supabase
+async function getTeacherProfile(userId: string, email?: string): Promise<Teacher | null> {
+  console.log('[Auth] Querying teacher profile for userId:', userId, 'email:', email)
+
+  // Try user_id first (the proper link column)
+  let { data, error } = await supabase
     .from('teachers')
     .select('*')
-    .eq('id', userId)
-    .single()
+    .eq('user_id', userId)
+    .maybeSingle()
 
-  console.log('[Auth] Teacher query result:', { data, error })
+  console.log('[Auth] Teacher query by user_id:', { data, error })
+
+  if (!data && !error) {
+    // Fall back to id column (legacy — teachers where id == auth.uid())
+    const result = await supabase
+      .from('teachers')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+
+    console.log('[Auth] Teacher query by id fallback:', { data: result.data, error: result.error })
+    data = result.data
+    error = result.error
+  }
 
   if (error) {
     console.error('[Auth] Failed to load teacher profile:', error.message)
@@ -36,7 +51,7 @@ export async function signIn(
   const authUser = data.user
   if (!authUser) return { user: null, error: 'No user returned' }
 
-  const teacher = await getTeacherProfile(authUser.id)
+  const teacher = await getTeacherProfile(authUser.id, authUser.email ?? undefined)
 
   return {
     user: {
@@ -68,7 +83,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   console.log('[Auth] getCurrentUser:', { data, error })
   if (error || !data.user) return null
 
-  const teacher = await getTeacherProfile(data.user.id)
+  const teacher = await getTeacherProfile(data.user.id, data.user.email ?? undefined)
   console.log('[Auth] Current user result:', {
     id: data.user.id,
     email: data.user.email,
