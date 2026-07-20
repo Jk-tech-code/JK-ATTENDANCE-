@@ -16,13 +16,13 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM school_settings LIMIT 1) THEN
     INSERT INTO school_settings (school_name, latitude, longitude, allowed_radius_meters, active)
-    VALUES ('Glorious Group of Schools', -1.51, 36.95, 100, TRUE);
+    VALUES ('Glorious Group of Schools', -1.472988, 36.960895, 100, TRUE);
   ELSE
     UPDATE school_settings
     SET
       school_name = 'Glorious Group of Schools',
-      latitude = -1.51,
-      longitude = 36.95,
+      latitude = -1.472988,
+      longitude = 36.960895,
       allowed_radius_meters = 100,
       active = TRUE
     WHERE id = (SELECT id FROM school_settings LIMIT 1);

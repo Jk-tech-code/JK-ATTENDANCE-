@@ -64,6 +64,10 @@ export function haversineDistance(
   return R * c
 }
 
+export function isWithinRadius(distance: number, radiusMeters: number): boolean {
+  return distance <= radiusMeters
+}
+
 export async function captureGpsPosition(): Promise<GpsResult> {
   const coords = await getCurrentPosition()
   return {

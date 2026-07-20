@@ -102,7 +102,7 @@ CREATE POLICY "Authenticated users read school settings"
 -- SEED DATA (Optional)
 -- ============================================
 -- INSERT INTO school_settings (school_name, latitude, longitude, allowed_radius, default_reporting_time)
--- VALUES ('JK School', 28.6139, 77.2090, 100, '07:20');
+-- VALUES ('JK School', -1.472988, 36.960895, 100, '07:20');
 
 -- INSERT INTO teachers (staff_number, full_name, email, department, phone, reporting_time)
 -- VALUES ('T001', 'John Doe', 'john@jkschool.com', 'Mathematics', '555-0100', '07:20');
