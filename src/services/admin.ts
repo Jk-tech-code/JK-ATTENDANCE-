@@ -278,7 +278,7 @@ export async function inviteTeacher(input: {
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
 
-  const url = '/.netlify/functions/invite-teacher'
+  const url = '/api/invite-teacher'
   console.log('[inviteTeacher] Calling:', url, { email: input.email })
 
   let res: Response
