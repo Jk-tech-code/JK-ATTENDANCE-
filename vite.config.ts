@@ -49,7 +49,7 @@ export default defineConfig({
       },
     }),
     sitemap({
-      hostname: process.env.VITE_SITE_URL ?? 'https://jk-attendance.netlify.app',
+      hostname: process.env.VITE_SITE_URL ?? 'https://jkattendance.vercel.app',
       dynamicRoutes: ['/login', '/forgot-password', '/help'],
       exclude: ['/admin/*', '/dashboard', '/reset-password'],
       generateRobotsTxt: false,

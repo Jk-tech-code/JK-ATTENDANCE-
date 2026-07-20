@@ -69,7 +69,7 @@ export default function App() {
       <Helmet>
         <html lang="en" />
         <title>JK Attendance System</title>
-        <meta name="description" content="GPS-based attendance tracking system for Glorious Group of Schools" />
+        <meta name="description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
       </Helmet>
       <Toaster position="top-right" richColors />
       <Routes>

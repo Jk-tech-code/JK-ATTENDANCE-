@@ -40,3 +40,6 @@ remote_schema.sql
 
 # Setup scripts
 scripts/
+
+.vercel
+.env*
