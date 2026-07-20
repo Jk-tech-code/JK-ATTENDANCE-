@@ -4,37 +4,24 @@ import type { AuthUser, Teacher } from '@/types'
 async function getTeacherProfile(userId: string, email?: string): Promise<Teacher | null> {
   console.log('[Auth] Querying teacher profile for userId:', userId, 'email:', email)
 
-  // Try user_id first (the proper link column)
-  let { data, error } = await supabase
-    .from('teachers')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  console.log('[Auth] Teacher query by user_id:', { data, error })
-
-  if (!data && !error) {
-    // Fall back to id column (legacy — teachers where id == auth.uid())
-    const result = await supabase
+  for (const field of ['auth_user_id', 'user_id', 'id'] as const) {
+    const { data, error } = await supabase
       .from('teachers')
       .select('*')
-      .eq('id', userId)
+      .eq(field, userId)
       .maybeSingle()
 
-    console.log('[Auth] Teacher query by id fallback:', { data: result.data, error: result.error })
-    data = result.data
-    error = result.error
+    console.log(`[Auth] Teacher query by ${field}:`, { data, error })
+
+    if (data) return data as Teacher
+    if (error) {
+      console.error(`[Auth] Error querying by ${field}:`, error.message)
+      return null
+    }
   }
 
-  if (error) {
-    console.error('[Auth] Failed to load teacher profile:', error.message)
-    return null
-  }
-  if (!data) {
-    console.warn('[Auth] No teacher record found for user:', userId)
-    return null
-  }
-  return data as Teacher
+  console.warn('[Auth] No teacher record found for user:', userId)
+  return null
 }
 
 export async function signIn(

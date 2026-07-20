@@ -1,17 +1,8 @@
 // Netlify serverless function — invite teacher
-// Bypasses Supabase Edge Function gateway CORS issue (always returns 500 for OPTIONS)
-// Runs server-to-server with service role key
+// Uses Supabase inviteUserByEmail to send an invitation email
+// Teacher sets their own password via the reset-password page
 
 const { createClient } = require('@supabase/supabase-js')
-
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'
-  let password = ''
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
-}
 
 exports.handler = async (event) => {
   const headers = {
@@ -33,7 +24,7 @@ exports.handler = async (event) => {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('[invite-teacher-proxy] Missing env vars')
+      console.error('[invite-teacher] Missing env vars')
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) }
     }
 
@@ -41,7 +32,6 @@ exports.handler = async (event) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Verify caller is authenticated and is admin
     const token = event.headers.authorization?.replace('Bearer ', '')
     if (!token) {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Not authenticated' }) }
@@ -55,63 +45,58 @@ exports.handler = async (event) => {
       return { statusCode: 403, headers, body: JSON.stringify({ error: 'Only admins can invite teachers' }) }
     }
 
-    // Parse input
     const input = JSON.parse(event.body)
     if (!input.staff_number || !input.full_name || !input.email) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'staff_number, full_name, and email are required' }) }
     }
 
-    // Create auth user
-    const tempPassword = generatePassword()
-    console.log('[invite-teacher-proxy] Creating auth user:', input.email)
+    const siteUrl = process.env.SITE_URL || 'https://jkattendance.vercel.app'
+    console.log('[invite-teacher] Inviting:', input.email, 'redirectTo:', `${siteUrl}/reset-password`)
 
-    const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
-      email: input.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { role: 'teacher', full_name: input.full_name },
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(input.email, {
+      redirectTo: `${siteUrl}/reset-password`,
     })
 
-    if (createError) {
-      console.error('[invite-teacher-proxy] createUser failed:', createError.message)
-      return { statusCode: 400, headers, body: JSON.stringify({ error: createError.message }) }
-    }
-    if (!authUser.user) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to create auth user' }) }
+    if (inviteError || !inviteData.user) {
+      console.error('[invite-teacher] inviteUserByEmail failed:', inviteError?.message)
+      return { statusCode: 400, headers, body: JSON.stringify({ error: inviteError?.message || 'Failed to send invitation' }) }
     }
 
-    // Insert teacher record
-    console.log('[invite-teacher-proxy] Creating teacher record:', authUser.user.id)
+    const authUserId = inviteData.user.id
+    console.log('[invite-teacher] Creating teacher record:', authUserId)
 
     const { data: teacher, error: insertError } = await supabase
       .from('teachers')
       .insert({
-        id: authUser.user.id,
-        user_id: authUser.user.id,
+        id: authUserId,
+        user_id: authUserId,
+        auth_user_id: authUserId,
         staff_number: input.staff_number,
         full_name: input.full_name,
         email: input.email,
         department: input.department || null,
         phone: input.phone || null,
         reporting_time: input.reporting_time || null,
+        invited_at: new Date().toISOString(),
+        invitation_sent: true,
       })
       .select()
       .single()
 
     if (insertError) {
-      console.error('[invite-teacher-proxy] Teacher insert failed, rolling back:', insertError.message)
-      await supabase.auth.admin.deleteUser(authUser.user.id).catch(() => {})
+      console.error('[invite-teacher] Insert failed, rolling back:', insertError.message)
+      await supabase.auth.admin.deleteUser(authUserId).catch(() => {})
       return { statusCode: 400, headers, body: JSON.stringify({ error: insertError.message }) }
     }
 
-    console.log('[invite-teacher-proxy] Success:', { teacher_id: teacher.id, email: input.email })
+    console.log('[invite-teacher] Success:', { teacher_id: teacher.id, email: input.email })
     return {
       statusCode: 201,
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ teacher, tempPassword }),
+      body: JSON.stringify({ teacher }),
     }
   } catch (err) {
-    console.error('[invite-teacher-proxy] Unhandled error:', err)
+    console.error('[invite-teacher] Unhandled error:', err)
     return {
       statusCode: 500,
       headers: { ...headers, 'Content-Type': 'application/json' },

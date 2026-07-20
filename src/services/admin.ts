@@ -265,7 +265,7 @@ export function exportToCSV(records: AttendanceWithTeacher[], filename: string) 
   URL.revokeObjectURL(url)
 }
 
-// ─── Invite teacher (via Netlify serverless function — same origin, no CORS) ─────
+// ─── Invite teacher (via platform serverless function — same origin, no CORS) ─────
 export async function inviteTeacher(input: {
   staff_number: string
   full_name: string
@@ -273,7 +273,7 @@ export async function inviteTeacher(input: {
   department?: string
   phone?: string
   reporting_time?: string
-}): Promise<{ teacher: Teacher; tempPassword: string }> {
+}): Promise<{ teacher: Teacher }> {
   const { data: session } = await supabase.auth.getSession()
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
@@ -301,7 +301,7 @@ export async function inviteTeacher(input: {
     )
   }
 
-  let body: { teacher?: Teacher; tempPassword?: string; error?: string }
+  let body: { teacher?: Teacher; error?: string }
   try {
     body = await res.json()
   } catch {
@@ -312,11 +312,11 @@ export async function inviteTeacher(input: {
     throw new Error(body?.error ?? `Request failed (${res.status})`)
   }
 
-  if (!body.teacher || !body.tempPassword) {
-    throw new Error('Server response missing teacher or tempPassword')
+  if (!body.teacher) {
+    throw new Error('Server response missing teacher record')
   }
 
-  return body as { teacher: Teacher; tempPassword: string }
+  return { teacher: body.teacher }
 }
 
 function rowFromRecord(r: AttendanceWithTeacher): string[] {

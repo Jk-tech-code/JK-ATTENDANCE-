@@ -8,6 +8,10 @@ export interface Teacher {
   reporting_time: string | null
   employment_status: string | null
   created_at: string
+  user_id?: string | null
+  auth_user_id?: string | null
+  invited_at?: string | null
+  invitation_sent?: boolean | null
 }
 
 export interface Attendance {

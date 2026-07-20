@@ -1,5 +1,10 @@
-import { createSupabaseAdmin, verifyAuth, isAdmin } from "../_shared/supabase.ts"
-import { handleCors, jsonResponse } from "../_shared/cors.ts"
+import { createClient } from "jsr:@supabase/supabase-js@2"
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": Deno.env.get("CORS_ORIGIN") ?? "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+}
 
 interface InviteInput {
   staff_number: string
@@ -10,95 +15,110 @@ interface InviteInput {
   reporting_time?: string
 }
 
-function generatePassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$"
-  let password = ""
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
+function createSupabaseAdmin() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
   }
-  return password
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+function errorResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  })
 }
 
 Deno.serve(async (req: Request) => {
   const start = Date.now()
-  console.log("[invite-teacher] Received request:", {
-    method: req.method,
-    origin: req.headers.get("origin"),
-    url: req.url,
-  })
+  console.log("[invite-teacher] Request:", { method: req.method, url: req.url, origin: req.headers.get("origin") })
 
-  const cors = handleCors(req)
-  if (cors) return cors
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders })
+  }
+
+  if (req.method !== "POST") {
+    return errorResponse({ error: "Method not allowed" }, 405)
+  }
 
   try {
     const authHeader = req.headers.get("Authorization")
-    console.log("[invite-teacher] Auth header present:", !!authHeader, "prefix:", authHeader?.slice(0, 20))
-
-    const auth = await verifyAuth(authHeader)
-    if (!auth.user) {
-      console.warn("[invite-teacher] Auth failed:", auth.error)
-      return jsonResponse({ error: auth.error }, 401, req)
+    if (!authHeader?.startsWith("Bearer ")) {
+      return errorResponse({ error: "Missing or invalid Authorization header" }, 401)
     }
-    if (!isAdmin(auth.user)) {
-      console.warn("[invite-teacher] Forbidden: user is not admin", auth.user.id)
-      return jsonResponse({ error: "Only admins can invite teachers" }, 403, req)
+
+    const supabase = createSupabaseAdmin()
+    const token = authHeader.slice(7)
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    if (userError || !user) {
+      return errorResponse({ error: "Invalid or expired token" }, 401)
+    }
+    if (user.user_metadata?.role !== "admin") {
+      return errorResponse({ error: "Only admins can invite teachers" }, 403)
     }
 
     const input: InviteInput = await req.json()
     console.log("[invite-teacher] Input:", { email: input.email, staff_number: input.staff_number, full_name: input.full_name })
 
     if (!input.staff_number || !input.full_name || !input.email) {
-      return jsonResponse({ error: "staff_number, full_name, and email are required" }, 400, req)
+      return errorResponse({ error: "staff_number, full_name, and email are required" }, 400)
     }
 
-    const supabase = createSupabaseAdmin()
-    const tempPassword = generatePassword()
+    const siteUrl = Deno.env.get("SITE_URL") ?? "https://jkattendance.vercel.app"
+    console.log("[invite-teacher] Inviting user via email:", input.email, "redirectTo:", `${siteUrl}/reset-password`)
 
-    console.log("[invite-teacher] Creating auth user for:", input.email)
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: input.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { role: "teacher", full_name: input.full_name },
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(input.email, {
+      redirectTo: `${siteUrl}/reset-password`,
     })
 
-    if (authError) {
-      console.error("[invite-teacher] Auth user creation failed:", authError.message)
-      return jsonResponse({ error: authError.message }, 400, req)
+    if (inviteError) {
+      console.error("[invite-teacher] inviteUserByEmail failed:", inviteError.message)
+      return errorResponse({ error: inviteError.message }, 400)
     }
-    if (!authUser.user) {
-      console.error("[invite-teacher] Auth user creation returned null")
-      return jsonResponse({ error: "Failed to create auth user" }, 500, req)
+    if (!inviteData.user) {
+      return errorResponse({ error: "Invitation failed — no user returned" }, 500)
     }
 
-    console.log("[invite-teacher] Auth user created:", authUser.user.id, ". Creating teacher record...")
+    const authUserId = inviteData.user.id
+    console.log("[invite-teacher] Auth user invited:", authUserId, ". Creating/linking teacher record...")
+
     const { data: teacher, error: teacherError } = await supabase
       .from("teachers")
       .insert({
-        id: authUser.user.id,
-        user_id: authUser.user.id,
+        id: authUserId,
+        user_id: authUserId,
+        auth_user_id: authUserId,
         staff_number: input.staff_number,
         full_name: input.full_name,
         email: input.email,
         department: input.department || null,
         phone: input.phone || null,
         reporting_time: input.reporting_time || null,
+        invited_at: new Date().toISOString(),
+        invitation_sent: true,
       })
       .select()
       .single()
 
     if (teacherError) {
-      console.error("[invite-teacher] Teacher insert failed, rolling back auth user:", teacherError.message)
-      await supabase.auth.admin.deleteUser(authUser.user.id)
-      return jsonResponse({ error: teacherError.message }, 400, req)
+      console.error("[invite-teacher] Teacher insert failed, rolling back:", teacherError.message)
+      await supabase.auth.admin.deleteUser(authUserId).catch(() => {})
+      return errorResponse({ error: teacherError.message }, 400)
     }
 
     const elapsed = Date.now() - start
     console.log("[invite-teacher] Success in", elapsed, "ms:", { teacher_id: teacher.id, email: input.email })
 
-    return jsonResponse({ teacher, tempPassword }, 201, req)
+    return new Response(JSON.stringify({ teacher }), {
+      status: 201,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (err) {
     console.error("[invite-teacher] Unhandled error:", err)
-    return jsonResponse({ error: `Internal error: ${err.message}` }, 500, req)
+    return errorResponse({ error: `Internal error: ${err.message}` }, 500)
   }
 })

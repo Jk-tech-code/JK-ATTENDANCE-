@@ -1,16 +1,8 @@
 // Vercel serverless function — invite teacher
-// Same-origin, no CORS preflight. Uses service role key server-to-server.
+// Uses Supabase inviteUserByEmail to send an invitation email
+// Teacher sets their own password via the reset-password page
 
 import { createClient } from '@supabase/supabase-js'
-
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'
-  let password = ''
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
-}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -56,46 +48,47 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'staff_number, full_name, and email are required' })
     }
 
-    const tempPassword = generatePassword()
-    console.log('[invite-teacher] Creating auth user:', input.email)
+    const siteUrl = process.env.SITE_URL || 'https://jkattendance.vercel.app'
+    console.log('[invite-teacher] Inviting:', input.email, 'redirectTo:', `${siteUrl}/reset-password`)
 
-    const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
-      email: input.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { role: 'teacher', full_name: input.full_name },
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(input.email, {
+      redirectTo: `${siteUrl}/reset-password`,
     })
 
-    if (createError || !authUser.user) {
-      console.error('[invite-teacher] createUser failed:', createError?.message)
-      return res.status(400).json({ error: createError?.message || 'Failed to create auth user' })
+    if (inviteError || !inviteData.user) {
+      console.error('[invite-teacher] inviteUserByEmail failed:', inviteError?.message)
+      return res.status(400).json({ error: inviteError?.message || 'Failed to send invitation' })
     }
 
-    console.log('[invite-teacher] Creating teacher record:', authUser.user.id)
+    const authUserId = inviteData.user.id
+    console.log('[invite-teacher] Creating teacher record:', authUserId)
 
     const { data: teacher, error: insertError } = await supabase
       .from('teachers')
       .insert({
-        id: authUser.user.id,
-        user_id: authUser.user.id,
+        id: authUserId,
+        user_id: authUserId,
+        auth_user_id: authUserId,
         staff_number: input.staff_number,
         full_name: input.full_name,
         email: input.email,
         department: input.department || null,
         phone: input.phone || null,
         reporting_time: input.reporting_time || null,
+        invited_at: new Date().toISOString(),
+        invitation_sent: true,
       })
       .select()
       .single()
 
     if (insertError) {
       console.error('[invite-teacher] Insert failed, rolling back:', insertError.message)
-      await supabase.auth.admin.deleteUser(authUser.user.id).catch(() => {})
+      await supabase.auth.admin.deleteUser(authUserId).catch(() => {})
       return res.status(400).json({ error: insertError.message })
     }
 
     console.log('[invite-teacher] Success:', { teacher_id: teacher.id, email: input.email })
-    return res.status(201).json({ teacher, tempPassword })
+    return res.status(201).json({ teacher })
   } catch (err) {
     console.error('[invite-teacher] Unhandled error:', err)
     return res.status(500).json({ error: err.message })

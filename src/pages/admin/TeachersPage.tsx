@@ -122,11 +122,11 @@ export default function TeachersPage() {
   const handleInvite = async () => {
     setInviting(true)
     try {
-      const { tempPassword } = await inviteTeacher(inviteForm)
+      const { teacher } = await inviteTeacher(inviteForm)
       setInviteOpen(false)
-      toast.success('Teacher invited successfully', {
-        description: `Email: ${inviteForm.email}\nTemporary password: ${tempPassword}`,
-        duration: 15000,
+      toast.success('Invitation email sent', {
+        description: `An invitation link has been sent to ${inviteForm.email}. The teacher will set their own password.`,
+        duration: 10000,
       })
       load()
     } catch (err: any) {
