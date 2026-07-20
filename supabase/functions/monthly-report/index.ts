@@ -12,7 +12,9 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: auth.error }, 401)
     }
 
-    if (!isAdmin(auth.user!)) {
+    const supabase = createSupabaseAdmin()
+
+    if (!(await isAdmin(supabase))) {
       return jsonResponse({ error: "Forbidden: Admin access required" }, 403)
     }
 

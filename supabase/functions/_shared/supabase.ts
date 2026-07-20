@@ -31,10 +31,20 @@ export async function verifyAuth(authHeader: string | null) {
   return { user: data.user, error: null }
 }
 
-export function isAdmin(user: { user_metadata?: Record<string, unknown> }): boolean {
-  return user.user_metadata?.role === "admin"
+/**
+ * Checks whether the authenticated user has admin role by querying
+ * the teachers table via the SECURITY DEFINER function is_admin().
+ * Never reads JWT user_metadata for authorization.
+ */
+export async function isAdmin(supabase: ReturnType<typeof createSupabaseAdmin>): Promise<boolean> {
+  const { data, error } = await supabase.rpc("is_admin")
+  if (error) {
+    console.error("[isAdmin] RPC call failed:", error.message)
+    return false
+  }
+  return data === true
 }
 
-export function getUserRole(user: { user_metadata?: Record<string, unknown> }): string {
-  return (user.user_metadata?.role as string) ?? "teacher"
+export function getUserRole(_user: { user_metadata?: Record<string, unknown> }): string {
+  return "teacher"
 }

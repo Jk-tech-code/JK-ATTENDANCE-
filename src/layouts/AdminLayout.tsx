@@ -15,8 +15,9 @@ import {
   Sun,
   Moon,
 } from 'lucide-react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
+import { NotificationBell } from '@/components/NotificationBell'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -46,6 +47,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-muted/30">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg">
+        Skip to main content
+      </a>
       <aside
         role="navigation"
         aria-label="Admin navigation"
@@ -82,9 +86,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           {navItems.map((item) => {
             const isActive = location.pathname === item.href
             return (
-              <button
+              <Link
                 key={item.href}
-                onClick={() => navigate(item.href)}
+                to={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                   isActive
@@ -95,7 +99,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
-              </button>
+              </Link>
             )
           })}
         </nav>
@@ -122,17 +126,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleTheme}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="relative text-muted-foreground hover:text-foreground"
-            >
-              <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={handleSignOut}
               aria-label="Sign out"
               title="Sign out"
@@ -144,9 +137,28 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </aside>
 
-      <main role="main" className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</div>
-      </main>
+      <div className="flex flex-1 flex-col overflow-auto">
+        <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 sm:px-6">
+          <NotificationBell />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+            <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+          </Button>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            {user?.teacher?.full_name ?? user?.email}
+          </span>
+        </header>
+        <main role="main" id="main-content" className="flex-1">
+          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</div>
+        </main>
+      </div>
     </div>
   )
 }

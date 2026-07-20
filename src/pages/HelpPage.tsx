@@ -8,7 +8,7 @@ const faqs = [
   { q: 'How does GPS check-in work?', a: 'When you tap "Check In" on the dashboard, the system records your GPS location. If you are within the school\'s allowed radius, check-in is accepted. Otherwise, it is flagged.' },
   { q: 'What if I forget to check out?', a: 'The system auto-checks you out at the end of the day. You can also manually undo a checkout within a short window.' },
   { q: 'How is my status determined?', a: 'Checked in before reporting time + grace period = Present. After grace period = Late. No check-in = Absent.' },
-  { q: 'Can I edit my profile?', a: 'Teachers can update their phone number and other details from the dashboard profile card.' },
+  { q: 'Can I edit my profile?', a: 'Contact your school administrator to update your profile details.' },
   { q: 'Who can see my attendance records?', a: 'You and school administrators. Your records are private to others.' },
   { q: 'How do I reset my password?', a: 'Click "Forgot Password" on the login page and follow the email instructions.' },
 ]

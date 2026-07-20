@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Search, UserPlus, Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -35,6 +36,7 @@ export default function TeachersPage() {
     reporting_time: '07:20',
     employment_status: 'active',
   })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [inviteForm, setInviteForm] = useState({
     staff_number: '',
     full_name: '',
@@ -43,6 +45,37 @@ export default function TeachersPage() {
     phone: '',
     reporting_time: '07:20',
   })
+  const [inviteFormErrors, setInviteFormErrors] = useState<Record<string, string>>({})
+
+  const validateTeacherForm = (values: typeof form): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!values.staff_number.trim()) errors.staff_number = 'Staff number is required'
+    if (!values.full_name.trim()) errors.full_name = 'Full name is required'
+    if (!values.email.trim()) {
+      errors.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      errors.email = 'Invalid email format'
+    }
+    if (values.phone && !/^[+]?[\d\s()-]{6,20}$/.test(values.phone)) {
+      errors.phone = 'Invalid phone number format'
+    }
+    return errors
+  }
+
+  const validateInviteForm = (values: typeof inviteForm): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!values.staff_number.trim()) errors.staff_number = 'Staff number is required'
+    if (!values.full_name.trim()) errors.full_name = 'Full name is required'
+    if (!values.email.trim()) {
+      errors.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      errors.email = 'Invalid email format'
+    }
+    if (values.phone && !/^[+]?[\d\s()-]{6,20}$/.test(values.phone)) {
+      errors.phone = 'Invalid phone number format'
+    }
+    return errors
+  }
 
   const load = () => {
     setLoading(true)
@@ -68,6 +101,7 @@ export default function TeachersPage() {
   const openCreate = () => {
     setEditing(null)
     setForm({ staff_number: '', full_name: '', email: '', department: '', phone: '', reporting_time: '07:20', employment_status: 'active' })
+    setFormErrors({})
     setOpen(true)
   }
 
@@ -82,10 +116,15 @@ export default function TeachersPage() {
       reporting_time: t.reporting_time ?? '07:20',
       employment_status: t.employment_status ?? 'active',
     })
+    setFormErrors({})
     setOpen(true)
   }
 
   const handleSave = async () => {
+    const errors = validateTeacherForm(form)
+    setFormErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setSaving(true)
     try {
       if (editing) {
@@ -120,6 +159,10 @@ export default function TeachersPage() {
   }
 
   const handleInvite = async () => {
+    const errors = validateInviteForm(inviteForm)
+    setInviteFormErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setInviting(true)
     try {
       const { teacher } = await inviteTeacher(inviteForm)
@@ -183,68 +226,33 @@ export default function TeachersPage() {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 font-medium">Staff No.</th>
-                    <th className="pb-2 font-medium">Name</th>
-                    <th className="pb-2 font-medium">Email</th>
-                    <th className="pb-2 font-medium">Department</th>
-                    <th className="pb-2 font-medium">Phone</th>
-                    <th className="pb-2 font-medium">Reporting</th>
-                    <th className="pb-2 font-medium">Status</th>
-                    <th className="pb-2 font-medium w-24">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((t) => (
-                    <tr key={t.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="py-2">{t.staff_number}</td>
-                      <td className="py-2 font-medium">{t.full_name}</td>
-                      <td className="py-2 text-muted-foreground">{t.email}</td>
-                      <td className="py-2 text-muted-foreground">{t.department ?? '-'}</td>
-                      <td className="py-2 text-muted-foreground">{t.phone ?? '-'}</td>
-                      <td className="py-2">{t.reporting_time ?? '07:20'}</td>
-                      <td className="py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          t.employment_status === 'active' ? 'bg-green-100 text-green-700' :
-                          t.employment_status === 'inactive' ? 'bg-gray-100 text-gray-600' :
-                          'bg-red-100 text-red-700'
-                        }`}>{t.employment_status}</span>
-                      </td>
-                      <td className="py-2">
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Edit">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(t)} title="Delete">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VirtualizedTeacherTable
+                teachers={filtered}
+                onEdit={openEdit}
+                onDelete={(t) => setDeleteTarget(t)}
+              />
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen} title={editing ? 'Edit Teacher' : 'Add Teacher'}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setFormErrors({}) }} title={editing ? 'Edit Teacher' : 'Add Teacher'}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Staff Number</Label>
-              <Input value={form.staff_number} onChange={e => setForm({ ...form, staff_number: e.target.value })} />
+              <Label>Staff Number <span className="text-destructive">*</span></Label>
+              <Input value={form.staff_number} onChange={e => { setForm({ ...form, staff_number: e.target.value }); setFormErrors({ ...formErrors, staff_number: '' })}} className={formErrors.staff_number ? 'border-destructive' : ''} />
+              {formErrors.staff_number && <p className="text-xs text-destructive">{formErrors.staff_number}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
+              <Label>Full Name <span className="text-destructive">*</span></Label>
+              <Input value={form.full_name} onChange={e => { setForm({ ...form, full_name: e.target.value }); setFormErrors({ ...formErrors, full_name: '' })}} className={formErrors.full_name ? 'border-destructive' : ''} />
+              {formErrors.full_name && <p className="text-xs text-destructive">{formErrors.full_name}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} disabled={!!editing} />
+              <Label>Email <span className="text-destructive">*</span></Label>
+              <Input type="email" value={form.email} onChange={e => { setForm({ ...form, email: e.target.value }); setFormErrors({ ...formErrors, email: '' })}} disabled={!!editing} className={formErrors.email ? 'border-destructive' : ''} />
+              {formErrors.email && <p className="text-xs text-destructive">{formErrors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label>Department</Label>
@@ -252,7 +260,8 @@ export default function TeachersPage() {
             </div>
             <div className="space-y-2">
               <Label>Phone</Label>
-              <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+              <Input value={form.phone} onChange={e => { setForm({ ...form, phone: e.target.value }); setFormErrors({ ...formErrors, phone: '' })}} className={formErrors.phone ? 'border-destructive' : ''} />
+              {formErrors.phone && <p className="text-xs text-destructive">{formErrors.phone}</p>}
             </div>
             <div className="space-y-2">
               <Label>Reporting Time</Label>
@@ -271,29 +280,32 @@ export default function TeachersPage() {
               </select>
             </div>
           </div>
-          <Button onClick={handleSave} className="w-full" loading={saving}>
+          <Button onClick={handleSave} className="w-full" loading={saving} disabled={Object.keys(formErrors).length > 0}>
             {editing ? 'Update' : 'Create'} Teacher
           </Button>
         </div>
       </Dialog>
 
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen} title="Invite Teacher">
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteFormErrors({}) }} title="Invite Teacher">
         <p className="text-sm text-muted-foreground mb-4">
           An auth user will be created and a temporary password generated. Share it with the teacher.
         </p>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Staff Number</Label>
-              <Input value={inviteForm.staff_number} onChange={e => setInviteForm({ ...inviteForm, staff_number: e.target.value })} />
+              <Label>Staff Number <span className="text-destructive">*</span></Label>
+              <Input value={inviteForm.staff_number} onChange={e => { setInviteForm({ ...inviteForm, staff_number: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, staff_number: '' })}} className={inviteFormErrors.staff_number ? 'border-destructive' : ''} />
+              {inviteFormErrors.staff_number && <p className="text-xs text-destructive">{inviteFormErrors.staff_number}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input value={inviteForm.full_name} onChange={e => setInviteForm({ ...inviteForm, full_name: e.target.value })} />
+              <Label>Full Name <span className="text-destructive">*</span></Label>
+              <Input value={inviteForm.full_name} onChange={e => { setInviteForm({ ...inviteForm, full_name: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, full_name: '' })}} className={inviteFormErrors.full_name ? 'border-destructive' : ''} />
+              {inviteFormErrors.full_name && <p className="text-xs text-destructive">{inviteFormErrors.full_name}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} />
+              <Label>Email <span className="text-destructive">*</span></Label>
+              <Input type="email" value={inviteForm.email} onChange={e => { setInviteForm({ ...inviteForm, email: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, email: '' })}} className={inviteFormErrors.email ? 'border-destructive' : ''} />
+              {inviteFormErrors.email && <p className="text-xs text-destructive">{inviteFormErrors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label>Department</Label>
@@ -301,14 +313,15 @@ export default function TeachersPage() {
             </div>
             <div className="space-y-2">
               <Label>Phone</Label>
-              <Input value={inviteForm.phone} onChange={e => setInviteForm({ ...inviteForm, phone: e.target.value })} />
+              <Input value={inviteForm.phone} onChange={e => { setInviteForm({ ...inviteForm, phone: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, phone: '' })}} className={inviteFormErrors.phone ? 'border-destructive' : ''} />
+              {inviteFormErrors.phone && <p className="text-xs text-destructive">{inviteFormErrors.phone}</p>}
             </div>
             <div className="space-y-2">
               <Label>Reporting Time</Label>
               <Input type="time" value={inviteForm.reporting_time} onChange={e => setInviteForm({ ...inviteForm, reporting_time: e.target.value })} />
             </div>
           </div>
-          <Button onClick={handleInvite} className="w-full" loading={inviting}>
+          <Button onClick={handleInvite} className="w-full" loading={inviting} disabled={Object.keys(inviteFormErrors).length > 0}>
             Invite & Create Account
           </Button>
         </div>
@@ -326,5 +339,89 @@ export default function TeachersPage() {
       />
     </div>
     </>
+  )
+}
+
+function VirtualizedTeacherTable({ teachers, onEdit, onDelete }: {
+  teachers: Teacher[]
+  onEdit: (t: Teacher) => void
+  onDelete: (t: Teacher) => void
+}) {
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  const virtualizer = useVirtualizer({
+    count: teachers.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 45,
+    overscan: 10,
+  })
+
+  const columnWidths = ['flex-[1.2]', 'flex-[2]', 'flex-[2]', 'flex-[1.5]', 'flex-[1.2]', 'flex-[0.9]', 'flex-[1]', 'w-24 shrink-0']
+
+  return (
+    <div>
+      {/* Fixed header — same flex layout as rows */}
+      <div className="flex items-center border-b pb-2 text-left text-xs font-medium text-muted-foreground">
+        <div className={`${columnWidths[0]} px-2`}>Staff No.</div>
+        <div className={`${columnWidths[1]} px-2`}>Name</div>
+        <div className={`${columnWidths[2]} px-2`}>Email</div>
+        <div className={`${columnWidths[3]} px-2`}>Department</div>
+        <div className={`${columnWidths[4]} px-2`}>Phone</div>
+        <div className={`${columnWidths[5]} px-2`}>Reporting</div>
+        <div className={`${columnWidths[6]} px-2`}>Status</div>
+        <div className={`${columnWidths[7]} px-2`}>Actions</div>
+      </div>
+      {/* Virtualized body */}
+      <div
+        ref={parentRef}
+        className="w-full"
+        style={{
+          height: Math.min(teachers.length * 45, 600),
+          overflow: 'auto',
+        }}
+      >
+        <div style={{ height: virtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const t = teachers[virtualItem.index]
+            return (
+              <div
+                key={t.id}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: virtualItem.size,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+                className="flex items-center border-b text-sm hover:bg-muted/50"
+              >
+                <div className={`${columnWidths[0]} min-w-0 px-2 py-2 truncate`}>{t.staff_number}</div>
+                <div className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}>{t.full_name}</div>
+                <div className={`${columnWidths[2]} min-w-0 px-2 py-2 truncate text-muted-foreground`}>{t.email}</div>
+                <div className={`${columnWidths[3]} min-w-0 px-2 py-2 truncate text-muted-foreground`}>{t.department ?? '-'}</div>
+                <div className={`${columnWidths[4]} min-w-0 px-2 py-2 truncate text-muted-foreground`}>{t.phone ?? '-'}</div>
+                <div className={`${columnWidths[5]} min-w-0 px-2 py-2 truncate`}>{t.reporting_time ?? '07:20'}</div>
+                <div className={`${columnWidths[6]} min-w-0 px-2 py-2`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    t.employment_status === 'active' ? 'bg-green-100 text-green-700' :
+                    t.employment_status === 'inactive' ? 'bg-gray-100 text-gray-600' :
+                    'bg-red-100 text-red-700'
+                  }`}>{t.employment_status}</span>
+                </div>
+                <div className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}>
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(t)} title="Edit">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onDelete(t)} title="Delete">
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }

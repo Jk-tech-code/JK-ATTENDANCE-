@@ -128,10 +128,10 @@ export default function AdminDashboardPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 font-medium">Staff No.</th>
-                    <th className="pb-2 font-medium">Name</th>
-                    <th className="pb-2 font-medium">Department</th>
-                    <th className="pb-2 font-medium">Status</th>
+                    <th scope="col" className="pb-2 font-medium">Staff No.</th>
+                    <th scope="col" className="pb-2 font-medium">Name</th>
+                    <th scope="col" className="pb-2 font-medium">Department</th>
+                    <th scope="col" className="pb-2 font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>

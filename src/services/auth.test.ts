@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mockFrom = vi.fn()
 const mockSelect = vi.fn()
 const mockEq = vi.fn()
-const mockSingle = vi.fn()
+const mockMaybeSingle = vi.fn()
 
 const mockSignInWithPassword = vi.fn()
 const mockGetUser = vi.fn()
@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockFrom.mockReturnValue({ select: mockSelect })
   mockSelect.mockReturnValue({ eq: mockEq })
-  mockEq.mockReturnValue({ single: mockSingle })
+  mockEq.mockReturnValue({ maybeSingle: mockMaybeSingle })
 })
 
 describe('signIn', () => {
@@ -42,7 +42,7 @@ describe('signIn', () => {
       error: null,
     })
 
-    mockSingle.mockResolvedValue({
+    mockMaybeSingle.mockResolvedValue({
       data: {
         id: 'user-1',
         full_name: 'Test Teacher',
@@ -103,7 +103,7 @@ describe('getCurrentUser', () => {
       error: null,
     })
 
-    mockSingle.mockResolvedValue({
+    mockMaybeSingle.mockResolvedValue({
       data: null,
       error: { message: 'No teacher found' },
     })

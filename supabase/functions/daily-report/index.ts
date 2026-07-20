@@ -12,7 +12,9 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: auth.error }, 401)
     }
 
-    if (!isAdmin(auth.user!)) {
+    const supabase = createSupabaseAdmin()
+
+    if (!(await isAdmin(supabase))) {
       return jsonResponse({ error: "Forbidden: Admin access required" }, 403)
     }
 
@@ -22,8 +24,6 @@ Deno.serve(async (req: Request) => {
 
     const url = new URL(req.url)
     const dateParam = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10)
-
-    const supabase = createSupabaseAdmin()
 
     const { data: present, error: presentErr } = await supabase
       .from("attendance")

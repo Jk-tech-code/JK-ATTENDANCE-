@@ -4,6 +4,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
 import { LogOut, User, Shield, Moon, Sun } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { NotificationBell } from '@/components/NotificationBell'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -22,13 +23,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-muted/30">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg">
+        Skip to main content
+      </a>
       <header role="banner" className="sticky top-0 z-10 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <img src="/4_transparent_background.png" alt="JK Attendance" loading="lazy" className="h-8 w-8 object-contain" />
             <span className="text-sm font-semibold">Attendance</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <NotificationBell />
             <Button
               variant="ghost"
               size="icon"
@@ -63,7 +68,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </header>
-      <main role="main" className="mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</main>
+      <main role="main" id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</main>
     </div>
   )
 }

@@ -39,7 +39,7 @@ describe('UndoWindowExpiredError', () => {
   it('has correct name and message', () => {
     const err = new UndoWindowExpiredError()
     expect(err.name).toBe('UndoWindowExpiredError')
-    expect(err.message).toContain('30 seconds')
+    expect(err.message).toContain('5 minutes')
   })
 })
 

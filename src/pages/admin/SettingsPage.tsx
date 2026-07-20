@@ -98,8 +98,46 @@ export default function SettingsPage() {
     setLoadingAttendance(false)
   }
 
+  function validateSettings(s: SchoolSettingsData): Record<string, string> {
+    const errors: Record<string, string> = {}
+    if (s.latitude == null || isNaN(s.latitude)) {
+      errors.latitude = 'Latitude is required'
+    } else if (s.latitude < -90 || s.latitude > 90) {
+      errors.latitude = 'Latitude must be between -90 and 90'
+    }
+    if (s.longitude == null || isNaN(s.longitude)) {
+      errors.longitude = 'Longitude is required'
+    } else if (s.longitude < -180 || s.longitude > 180) {
+      errors.longitude = 'Longitude must be between -180 and 180'
+    }
+    if (s.allowed_radius_meters == null || s.allowed_radius_meters < 1) {
+      errors.allowed_radius_meters = 'Radius must be at least 1 meter'
+    } else if (s.allowed_radius_meters > 10000) {
+      errors.allowed_radius_meters = 'Radius must be 10,000 meters or less'
+    }
+    if (s.grace_period_minutes == null || s.grace_period_minutes < 0) {
+      errors.grace_period_minutes = 'Grace period must be 0 or more'
+    } else if (s.grace_period_minutes > 120) {
+      errors.grace_period_minutes = 'Grace period must be 120 minutes or less'
+    }
+    if (!s.reporting_start_time) {
+      errors.reporting_start_time = 'Reporting start time is required'
+    }
+    if (!s.checkout_time) {
+      errors.checkout_time = 'Checkout time is required'
+    }
+    return errors
+  }
+
+  const [settingsErrors, setSettingsErrors] = useState<Record<string, string>>({})
+
   async function handleSave() {
     if (!settings) return
+
+    const errors = validateSettings(settings)
+    setSettingsErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setSaving(true)
     setSaveMsg(null)
     setSaveError(null)
@@ -223,43 +261,52 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Latitude</label>
+                <label className="text-sm font-medium">Latitude <span className="text-destructive">*</span></label>
                 <Input
                   type="number"
                   step="0.000001"
                   value={settings.latitude ?? ''}
-                  onChange={(e) =>
-                    setSettings({ ...settings, latitude: parseFloat(e.target.value) || 0 })
-                  }
+                  onChange={(e) => {
+                    setSettings({ ...settings, latitude: e.target.value ? parseFloat(e.target.value) : null })
+                    setSettingsErrors({ ...settingsErrors, latitude: '' })
+                  }}
+                  className={settingsErrors.latitude ? 'border-destructive' : ''}
                 />
+                {settingsErrors.latitude && <p className="text-xs text-destructive">{settingsErrors.latitude}</p>}
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Longitude</label>
+                <label className="text-sm font-medium">Longitude <span className="text-destructive">*</span></label>
                 <Input
                   type="number"
                   step="0.000001"
                   value={settings.longitude ?? ''}
-                  onChange={(e) =>
-                    setSettings({ ...settings, longitude: parseFloat(e.target.value) || 0 })
-                  }
+                  onChange={(e) => {
+                    setSettings({ ...settings, longitude: e.target.value ? parseFloat(e.target.value) : null })
+                    setSettingsErrors({ ...settingsErrors, longitude: '' })
+                  }}
+                  className={settingsErrors.longitude ? 'border-destructive' : ''}
                 />
+                {settingsErrors.longitude && <p className="text-xs text-destructive">{settingsErrors.longitude}</p>}
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Allowed Radius (meters)
+                Allowed Radius (meters) <span className="text-destructive">*</span>
               </label>
               <Input
                 type="number"
                 min={1}
-                value={settings.allowed_radius_meters ?? 100}
-                onChange={(e) =>
+                value={settings.allowed_radius_meters ?? ''}
+                onChange={(e) => {
                   setSettings({
                     ...settings,
-                    allowed_radius_meters: parseInt(e.target.value) || 100,
+                    allowed_radius_meters: e.target.value ? parseInt(e.target.value) : null,
                   })
-                }
+                  setSettingsErrors({ ...settingsErrors, allowed_radius_meters: '' })
+                }}
+                className={settingsErrors.allowed_radius_meters ? 'border-destructive' : ''}
               />
+              {settingsErrors.allowed_radius_meters && <p className="text-xs text-destructive">{settingsErrors.allowed_radius_meters}</p>}
               <p className="text-[10px] text-muted-foreground">
                 Current: {settings.school_name ?? 'School'} ({settings.latitude?.toFixed(4) ?? 'N/A'}, {settings.longitude?.toFixed(4) ?? 'N/A'}) &middot;{' '}
                 {settings.allowed_radius_meters ?? 100}m radius
@@ -325,32 +372,38 @@ export default function SettingsPage() {
               </p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Grace Period (minutes)</label>
+              <label className="text-sm font-medium">Grace Period (minutes) <span className="text-destructive">*</span></label>
               <Input
                 type="number"
                 min={0}
                 max={120}
-                value={settings.grace_period_minutes ?? 20}
-                onChange={(e) =>
+                value={settings.grace_period_minutes ?? ''}
+                onChange={(e) => {
                   setSettings({
                     ...settings,
-                    grace_period_minutes: parseInt(e.target.value) || 0,
+                    grace_period_minutes: e.target.value ? parseInt(e.target.value) : null,
                   })
-                }
+                  setSettingsErrors({ ...settingsErrors, grace_period_minutes: '' })
+                }}
+                className={settingsErrors.grace_period_minutes ? 'border-destructive' : ''}
               />
+              {settingsErrors.grace_period_minutes && <p className="text-xs text-destructive">{settingsErrors.grace_period_minutes}</p>}
               <p className="text-[10px] text-muted-foreground">
                 Allowed late window after reporting time (default: 20 min)
               </p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Official Checkout Time</label>
+              <label className="text-sm font-medium">Official Checkout Time <span className="text-destructive">*</span></label>
               <Input
                 type="time"
                 value={settings.checkout_time?.substring(0, 5) ?? '17:30'}
-                onChange={(e) =>
+                onChange={(e) => {
                   setSettings({ ...settings, checkout_time: e.target.value + ':00' })
-                }
+                  setSettingsErrors({ ...settingsErrors, checkout_time: '' })
+                }}
+                className={settingsErrors.checkout_time ? 'border-destructive' : ''}
               />
+              {settingsErrors.checkout_time && <p className="text-xs text-destructive">{settingsErrors.checkout_time}</p>}
               <p className="text-[10px] text-muted-foreground">
                 Departure time (default: 17:30 / 5:30 PM)
               </p>
@@ -482,13 +535,13 @@ export default function SettingsPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="px-2 py-1.5 text-left">Date</th>
-                    <th className="px-2 py-1.5 text-left">Check In</th>
-                    <th className="px-2 py-1.5 text-right">Distance</th>
-                    <th className="px-2 py-1.5 text-center">Status</th>
-                    <th className="px-2 py-1.5 text-left">Device</th>
-                    <th className="px-2 py-1.5 text-left">Browser</th>
-                    <th className="px-2 py-1.5 text-right">Accuracy</th>
+                    <th scope="col" className="px-2 py-1.5 text-left">Date</th>
+                    <th scope="col" className="px-2 py-1.5 text-left">Check In</th>
+                    <th scope="col" className="px-2 py-1.5 text-right">Distance</th>
+                    <th scope="col" className="px-2 py-1.5 text-center">Status</th>
+                    <th scope="col" className="px-2 py-1.5 text-left">Device</th>
+                    <th scope="col" className="px-2 py-1.5 text-left">Browser</th>
+                    <th scope="col" className="px-2 py-1.5 text-right">Accuracy</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -1,9 +1,7 @@
 import { supabase } from './supabase'
 import type { AuthUser, Teacher } from '@/types'
 
-async function getTeacherProfile(userId: string, email?: string): Promise<Teacher | null> {
-  console.log('[Auth] Querying teacher profile for userId:', userId, 'email:', email)
-
+async function getTeacherProfile(userId: string, _email?: string): Promise<Teacher | null> {
   for (const field of ['auth_user_id', 'user_id', 'id'] as const) {
     const { data, error } = await supabase
       .from('teachers')
@@ -11,16 +9,10 @@ async function getTeacherProfile(userId: string, email?: string): Promise<Teache
       .eq(field, userId)
       .maybeSingle()
 
-    console.log(`[Auth] Teacher query by ${field}:`, { data, error })
-
     if (data) return data as Teacher
-    if (error) {
-      console.error(`[Auth] Error querying by ${field}:`, error.message)
-      return null
-    }
+    if (error) return null
   }
 
-  console.warn('[Auth] No teacher record found for user:', userId)
   return null
 }
 
@@ -45,7 +37,7 @@ export async function signIn(
       id: authUser.id,
       email: authUser.email!,
       teacher,
-      role: authUser.user_metadata?.role as string | undefined,
+      role: teacher?.role ?? 'teacher',
     },
     error: null,
   }
@@ -67,20 +59,14 @@ export async function resetPassword(
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const { data, error } = await supabase.auth.getUser()
-  console.log('[Auth] getCurrentUser:', { data, error })
   if (error || !data.user) return null
 
   const teacher = await getTeacherProfile(data.user.id, data.user.email ?? undefined)
-  console.log('[Auth] Current user result:', {
-    id: data.user.id,
-    email: data.user.email,
-    hasTeacher: !!teacher,
-    role: data.user.user_metadata?.role,
-  })
+
   return {
     id: data.user.id,
     email: data.user.email!,
     teacher,
-    role: data.user.user_metadata?.role as string | undefined,
+    role: teacher?.role ?? 'teacher',
   }
 }

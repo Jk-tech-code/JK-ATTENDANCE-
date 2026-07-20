@@ -21,7 +21,7 @@ export class NoAttendanceRecordError extends Error {
 
 export class UndoWindowExpiredError extends Error {
   constructor() {
-    super('The undo window has expired (30 seconds).')
+    super('The undo window has expired (5 minutes).')
     this.name = 'UndoWindowExpiredError'
   }
 }

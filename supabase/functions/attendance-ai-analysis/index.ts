@@ -19,7 +19,9 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: auth.error }, 401)
     }
 
-    if (!isAdmin(auth.user!)) {
+    const supabase = createSupabaseAdmin()
+
+    if (!(await isAdmin(supabase))) {
       return jsonResponse({ error: "Forbidden: Admin access required" }, 403)
     }
 
@@ -31,8 +33,6 @@ Deno.serve(async (req: Request) => {
     const now = new Date()
     const year = body.year ?? now.getFullYear()
     const month = body.month ?? now.getMonth() + 1
-
-    const supabase = createSupabaseAdmin()
 
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`
     const endDate = new Date(year, month, 0).toISOString().slice(0, 10)

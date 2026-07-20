@@ -138,15 +138,15 @@ export default function AttendanceRecordsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="pb-2 font-medium">Teacher</th>
-                      <th className="pb-2 font-medium">Staff No.</th>
-                      <th className="pb-2 font-medium">Date</th>
-                      <th className="pb-2 font-medium">Check In</th>
-                      <th className="pb-2 font-medium">Check Out</th>
-                      <th className="pb-2 font-medium">Status</th>
-                      <th className="pb-2 font-medium">Late</th>
-                      <th className="pb-2 font-medium">Working</th>
-                      <th className="pb-2 font-medium">Location</th>
+                      <th scope="col" className="pb-2 font-medium">Teacher</th>
+                      <th scope="col" className="pb-2 font-medium">Staff No.</th>
+                      <th scope="col" className="pb-2 font-medium">Date</th>
+                      <th scope="col" className="pb-2 font-medium">Check In</th>
+                      <th scope="col" className="pb-2 font-medium">Check Out</th>
+                      <th scope="col" className="pb-2 font-medium">Status</th>
+                      <th scope="col" className="pb-2 font-medium">Late</th>
+                      <th scope="col" className="pb-2 font-medium">Working</th>
+                      <th scope="col" className="pb-2 font-medium">Location</th>
                     </tr>
                   </thead>
                   <tbody>

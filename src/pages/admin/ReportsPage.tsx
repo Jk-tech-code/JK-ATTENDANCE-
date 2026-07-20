@@ -260,9 +260,9 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
-                        <th className="pb-2 font-medium">Name</th>
-                        <th className="pb-2 font-medium">Late Count</th>
-                        <th className="pb-2 font-medium">Avg Late (min)</th>
+                        <th scope="col" className="pb-2 font-medium">Name</th>
+                        <th scope="col" className="pb-2 font-medium">Late Count</th>
+                        <th scope="col" className="pb-2 font-medium">Avg Late (min)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -286,8 +286,8 @@ export default function ReportsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
-                        <th className="pb-2 font-medium">Name</th>
-                        <th className="pb-2 font-medium">Absent Count</th>
+                        <th scope="col" className="pb-2 font-medium">Name</th>
+                        <th scope="col" className="pb-2 font-medium">Absent Count</th>
                       </tr>
                     </thead>
                     <tbody>

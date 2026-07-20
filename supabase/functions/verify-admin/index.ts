@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
-import { verifyAuth, isAdmin, getUserRole } from "../_shared/supabase.ts"
+import { createSupabaseAdmin, verifyAuth, isAdmin } from "../_shared/supabase.ts"
 
 Deno.serve(async (req: Request) => {
   const cors = handleCors(req)
@@ -15,14 +15,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const admin = isAdmin(auth.user!)
-    const role = getUserRole(auth.user!)
+    const supabase = createSupabaseAdmin()
+    const admin = await isAdmin(supabase)
 
     return jsonResponse({
       verified: admin,
       user_id: auth.user!.id,
       email: auth.user!.email,
-      role,
+      role: admin ? "admin" : "teacher",
       message: admin
         ? "Admin access verified"
         : "User is not an admin",

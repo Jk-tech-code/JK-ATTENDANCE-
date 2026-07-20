@@ -57,7 +57,8 @@ Deno.serve(async (req: Request) => {
     if (userError || !user) {
       return errorResponse({ error: "Invalid or expired token" }, 401)
     }
-    if (user.user_metadata?.role !== "admin") {
+    const { data: adminCheck } = await supabase.rpc("is_admin").single()
+    if (!adminCheck) {
       return errorResponse({ error: "Only admins can invite teachers" }, 403)
     }
 

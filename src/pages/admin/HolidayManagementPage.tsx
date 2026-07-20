@@ -35,6 +35,7 @@ export default function HolidayManagementPage() {
     title: '',
     description: '',
   })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const load = () => {
     setLoading(true)
@@ -52,6 +53,7 @@ export default function HolidayManagementPage() {
   const openCreate = () => {
     setEditing(null)
     setForm({ calendar_date: '', day_type: 'holiday', title: '', description: '' })
+    setFormErrors({})
     setOpen(true)
   }
 
@@ -63,14 +65,17 @@ export default function HolidayManagementPage() {
       title: e.title ?? '',
       description: e.description ?? '',
     })
+    setFormErrors({})
     setOpen(true)
   }
 
   const handleSave = async () => {
-    if (!form.calendar_date || !form.title) {
-      toast.error('Date and title are required')
-      return
-    }
+    const errors: Record<string, string> = {}
+    if (!form.calendar_date) errors.calendar_date = 'Date is required'
+    if (!form.title.trim()) errors.title = 'Title is required'
+    setFormErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setSaving(true)
     try {
       if (editing) {
@@ -205,11 +210,12 @@ export default function HolidayManagementPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen} title={editing ? 'Edit Entry' : 'Add Holiday/Event'}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setFormErrors({}) }} title={editing ? 'Edit Entry' : 'Add Holiday/Event'}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Date</Label>
-            <Input type="date" value={form.calendar_date} onChange={e => setForm({ ...form, calendar_date: e.target.value })} />
+            <Label>Date <span className="text-destructive">*</span></Label>
+            <Input type="date" value={form.calendar_date} onChange={e => { setForm({ ...form, calendar_date: e.target.value }); setFormErrors({ ...formErrors, calendar_date: '' })}} className={formErrors.calendar_date ? 'border-destructive' : ''} />
+            {formErrors.calendar_date && <p className="text-xs text-destructive">{formErrors.calendar_date}</p>}
           </div>
           <div className="space-y-2">
             <Label>Type</Label>
@@ -220,15 +226,16 @@ export default function HolidayManagementPage() {
             </select>
           </div>
           <div className="space-y-2">
-            <Label>Title</Label>
-            <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., National Holiday" />
+            <Label>Title <span className="text-destructive">*</span></Label>
+            <Input value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setFormErrors({ ...formErrors, title: '' })}} placeholder="e.g., National Holiday" className={formErrors.title ? 'border-destructive' : ''} />
+            {formErrors.title && <p className="text-xs text-destructive">{formErrors.title}</p>}
           </div>
           <div className="space-y-2">
             <Label>Description (optional)</Label>
             <textarea className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional description" />
           </div>
-          <Button onClick={handleSave} className="w-full" loading={saving}>
+          <Button onClick={handleSave} className="w-full" loading={saving} disabled={Object.keys(formErrors).length > 0}>
             {editing ? 'Update' : 'Create'} Entry
           </Button>
         </div>
