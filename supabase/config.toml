@@ -44,6 +44,11 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/deno.json"
 
+[functions.cron-report]
+enabled = true
+verify_jwt = false
+import_map = "./functions/deno.json"
+
 [functions.invite-teacher]
 enabled = true
 verify_jwt = true

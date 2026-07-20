@@ -10,7 +10,8 @@ import {
   useAiAnalysis,
 } from '@/hooks/useReports'
 import { exportToCSV, exportToExcel, exportToPDF } from '@/services/admin'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AttendanceBarChart } from '@/components/charts/AttendanceBarChart'
+import { PresentAbsentChart } from '@/components/charts/PresentAbsentChart'
 import { format } from 'date-fns'
 import { Download, Brain, Lightbulb, AlertTriangle, TrendingUp } from 'lucide-react'
 
@@ -165,19 +166,7 @@ export default function ReportsPage() {
         <Card>
           <CardHeader><CardTitle className="text-lg">Per-Teacher Attendance</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthly.teachers.slice(0, 20)}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="full_name" tick={{ fontSize: 10 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
-                  <Bar dataKey="late" fill="hsl(48, 96.5%, 53.5%)" name="Late" stackId="a" />
-                  <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <AttendanceBarChart data={monthly.teachers.slice(0, 20)} />
           </CardContent>
         </Card>
       )}
@@ -186,18 +175,7 @@ export default function ReportsPage() {
         <Card>
           <CardHeader><CardTitle className="text-lg">Present vs Absent (Monthly)</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthly.teachers.slice(0, 20)}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="full_name" tick={{ fontSize: 10 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
-                  <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <PresentAbsentChart data={monthly.teachers.slice(0, 20)} />
           </CardContent>
         </Card>
       )}
