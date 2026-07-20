@@ -28,11 +28,12 @@ export function useTodayAttendance() {
 export function useCheckOut() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const teacherId = user!.teacher!.id
 
   return useMutation({
     mutationFn: (attendanceId: string) => checkOutService(attendanceId),
     onSuccess: () => {
+      const teacherId = user?.teacher?.id
+      if (!teacherId) return
       queryClient.invalidateQueries({ queryKey: attendanceKeys.today(teacherId) })
       const now = new Date()
       queryClient.invalidateQueries({
@@ -45,11 +46,12 @@ export function useCheckOut() {
 export function useUndoCheckOut() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const teacherId = user!.teacher!.id
 
   return useMutation({
     mutationFn: (attendanceId: string) => undoCheckOutService(attendanceId),
     onSuccess: () => {
+      const teacherId = user?.teacher?.id
+      if (!teacherId) return
       queryClient.invalidateQueries({ queryKey: attendanceKeys.today(teacherId) })
       const now = new Date()
       queryClient.invalidateQueries({
