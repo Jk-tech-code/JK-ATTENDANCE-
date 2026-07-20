@@ -265,7 +265,7 @@ export function exportToCSV(records: AttendanceWithTeacher[], filename: string) 
   URL.revokeObjectURL(url)
 }
 
-// ─── Invite teacher (via Edge Function — no service role on client) ─────
+// ─── Invite teacher (via Netlify serverless function — same origin, no CORS) ─────
 export async function inviteTeacher(input: {
   staff_number: string
   full_name: string
@@ -278,7 +278,7 @@ export async function inviteTeacher(input: {
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
 
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-teacher`
+  const url = '/.netlify/functions/invite-teacher'
   console.log('[inviteTeacher] Calling:', url, { email: input.email })
 
   let res: Response
@@ -293,14 +293,10 @@ export async function inviteTeacher(input: {
     })
   } catch (fetchErr) {
     console.error('[inviteTeacher] Fetch failed:', fetchErr)
-    // Browser fetch TypeError — CORS blocked, DNS failed, or network down
-    const isNetworkError =
-      fetchErr instanceof TypeError ||
+    throw new Error(
       (fetchErr as Error)?.message?.includes('fetch') ||
       (fetchErr as Error)?.message?.includes('network')
-    throw new Error(
-      isNetworkError
-        ? 'Cannot reach server. Check that the invite-teacher edge function is deployed and CORS is configured.'
+        ? 'Cannot reach server. Check your internet connection.'
         : (fetchErr as Error).message
     )
   }
