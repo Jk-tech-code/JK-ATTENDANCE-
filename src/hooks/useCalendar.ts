@@ -5,7 +5,6 @@ import {
   updateCalendarEntry,
   deleteCalendarEntry,
 } from '@/services/calendar'
-import type { SchoolCalendarEntry } from '@/services/calendar'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const calendarKeys = {

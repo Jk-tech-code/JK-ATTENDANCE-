@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getAttendanceRecords, getTeachers } from '@/services/admin'
 import type { AttendanceFilters, AttendanceWithTeacher, PaginatedAttendance } from '@/services/admin'
-import type { Teacher } from '@/types'
 import { useMemo } from 'react'
 
 // ─── Query keys ──────────────────────────────────────────────

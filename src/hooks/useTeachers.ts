@@ -6,7 +6,6 @@ import {
   deleteTeacher,
   inviteTeacher,
 } from '@/services/admin'
-import type { Teacher } from '@/types'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const teacherKeys = {

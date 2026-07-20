@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabase'
-import type { SchoolSettings } from '@/types'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const schoolSettingsKeys = {

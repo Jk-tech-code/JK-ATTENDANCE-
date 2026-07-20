@@ -112,7 +112,10 @@ export default function TeachersPage() {
         toast.success('Teacher updated successfully')
       } else {
         await createMutation.mutateAsync(form)
-        toast.success('Teacher created successfully')
+        toast.success('Teacher created and invitation sent', {
+          description: `${form.email} will receive a link to create their password and sign in.`,
+          duration: 10000,
+        })
       }
       setOpen(false)
     } catch (err: any) {
@@ -267,7 +270,7 @@ export default function TeachersPage() {
 
       <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteFormErrors({}) }} title="Invite Teacher">
         <p className="text-sm text-muted-foreground mb-4">
-          An auth user will be created and a temporary password generated. Share it with the teacher.
+          An invitation email will be sent to the teacher with a secure link to create their password and activate their account.
         </p>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

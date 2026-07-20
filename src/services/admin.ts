@@ -86,22 +86,12 @@ export async function createTeacher(input: {
   reporting_time?: string
   employment_status?: string
 }): Promise<Teacher> {
-  const { data, error } = await supabase
-    .from('teachers')
-    .insert({
-      staff_number: input.staff_number,
-      full_name: input.full_name,
-      email: input.email,
-      department: input.department || null,
-      phone: input.phone || null,
-      reporting_time: input.reporting_time || null,
-      employment_status: input.employment_status || 'active',
-    })
-    .select()
-    .single()
-
-  if (error) throw new Error(error.message)
-  return data as Teacher
+  // Creates teacher via edge function which:
+  //   1. Checks for duplicate email/staff_number
+  //   2. Creates auth user via inviteUserByEmail (sends invitation email)
+  //   3. Creates teacher record linked to auth user
+  //   4. Rolls back on failure
+  return callInviteEdgeFunction(input)
 }
 
 export async function updateTeacher(
@@ -255,7 +245,7 @@ export async function deleteTeacher(id: string): Promise<void> {
       },
       body: JSON.stringify({ teacher_id: id }),
     })
-  } catch (fetchErr) {
+  } catch {
     throw new Error('Cannot reach server. Check your internet connection.')
   }
 
@@ -288,7 +278,7 @@ export function exportToCSV(records: AttendanceWithTeacher[], filename: string) 
   URL.revokeObjectURL(url)
 }
 
-// ─── Invite teacher (via platform serverless function — same origin, no CORS) ─────
+// ─── Invite teacher ──────────────────────────────────────────
 export async function inviteTeacher(input: {
   staff_number: string
   full_name: string
@@ -297,11 +287,25 @@ export async function inviteTeacher(input: {
   phone?: string
   reporting_time?: string
 }): Promise<{ teacher: Teacher }> {
+  const teacher = await callInviteEdgeFunction(input)
+  return { teacher }
+}
+
+// ─── Shared edge function caller ─────────────────────────────
+async function callInviteEdgeFunction(input: {
+  staff_number: string
+  full_name: string
+  email: string
+  department?: string
+  phone?: string
+  reporting_time?: string
+}): Promise<Teacher> {
   const { data: session } = await supabase.auth.getSession()
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
 
-  const url = '/api/invite-teacher'
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const url = `${supabaseUrl}/functions/v1/invite-teacher`
   console.log('[inviteTeacher] Calling:', url, { email: input.email })
 
   let res: Response
@@ -339,7 +343,7 @@ export async function inviteTeacher(input: {
     throw new Error('Server response missing teacher record')
   }
 
-  return { teacher: body.teacher }
+  return body.teacher
 }
 
 function rowFromRecord(r: AttendanceWithTeacher): string[] {

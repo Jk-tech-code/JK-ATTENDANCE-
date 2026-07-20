@@ -47,7 +47,7 @@ export default function ReportsPage() {
 
   const runAiAnalysis = async () => {
     try {
-      const result = await aiMutation.mutateAsync({ year, month })
+      await aiMutation.mutateAsync({ year, month })
       toast.success('AI analysis complete')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'AI analysis failed')

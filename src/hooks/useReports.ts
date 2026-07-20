@@ -1,6 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { getDailyReportEdge, getMonthlyReportEdge, getAttendanceAnalytics } from '@/services/attendanceApi'
-import type { DailyReport, MonthlyReportResult, AIAnalysisResult } from '@/services/attendanceApi'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const reportKeys = {
