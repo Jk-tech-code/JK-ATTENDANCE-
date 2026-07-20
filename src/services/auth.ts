@@ -8,7 +8,14 @@ async function getTeacherProfile(userId: string): Promise<Teacher | null> {
     .eq('id', userId)
     .single()
 
-  if (error || !data) return null
+  if (error) {
+    console.error('[Auth] Failed to load teacher profile:', error.message)
+    return null
+  }
+  if (!data) {
+    console.warn('[Auth] No teacher record found for user:', userId)
+    return null
+  }
   return data as Teacher
 }
 

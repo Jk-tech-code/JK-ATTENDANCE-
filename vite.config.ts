@@ -49,10 +49,10 @@ export default defineConfig({
       },
     }),
     sitemap({
-      hostname: 'https://jk-attendance-system.netlify.app',
+      hostname: process.env.VITE_SITE_URL ?? 'https://jk-attendance.netlify.app',
       dynamicRoutes: ['/login', '/forgot-password', '/help'],
       exclude: ['/admin/*', '/dashboard', '/reset-password'],
-      generateRobotsTxt: true,
+      generateRobotsTxt: false,
     }),
     ...(process.env.SENTRY_AUTH_TOKEN
       ? [sentryVitePlugin({

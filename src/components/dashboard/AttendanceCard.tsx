@@ -22,6 +22,7 @@ import {
   MapPin,
   Crosshair,
   Sun,
+  RefreshCw,
 } from 'lucide-react'
 import { minutesToHours } from '@/lib/format'
 
@@ -41,7 +42,7 @@ const statusConfig: Record<
 }
 
 export function AttendanceCard() {
-  const { user } = useAuth()
+  const { user, profileError, refreshProfile } = useAuth()
   const { data: attendance, isLoading, isError } = useTodayAttendance()
   const checkOutMutation = useCheckOut()
   const undoCheckOutMutation = useUndoCheckOut()
@@ -80,7 +81,26 @@ export function AttendanceCard() {
   }, [attendance?.check_out_expires_at])
 
   const teacher = user?.teacher
-  if (!teacher) return null
+  if (!teacher) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="font-medium">Profile not loaded</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {profileError || 'Your teacher profile could not be loaded. Please try again.'}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshProfile}>
+              <RefreshCw className="mr-1 h-4 w-4" /> Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const isCheckedIn = !!attendance?.check_in
   const isCheckedOut = !!attendance?.check_out

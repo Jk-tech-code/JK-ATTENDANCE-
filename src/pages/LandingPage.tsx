@@ -9,6 +9,11 @@ export default function LandingPage() {
       <Helmet>
         <title>JK Attendance System — GPS-Based Teacher Attendance Tracking</title>
         <meta name="description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <meta property="og:title" content="JK Attendance System — GPS Attendance Tracking" />
+        <meta property="og:description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <meta property="og:url" content={`${window.location.origin}/`} />
+        <meta name="twitter:title" content="JK Attendance System — GPS Attendance Tracking" />
+        <meta name="twitter:description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
       </Helmet>
       <div className="flex min-h-screen flex-col">
         <header className="border-b">

@@ -15,7 +15,7 @@ import { Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(1, 'Password is required').max(128, 'Password too long'),
 })
 
 type LoginForm = z.infer<typeof loginSchema>
@@ -55,7 +55,7 @@ export default function LoginPage() {
         <meta name="description" content="Sign in to the JK Attendance System for Glorious Group of Schools" />
         <meta name="robots" content="index, follow" />
         <meta property="og:title" content="Sign In — JK Attendance System" />
-        <link rel="canonical" href="https://jk-attendance-system.netlify.app/login" />
+        <link rel="canonical" href={`${window.location.origin}/login`} />
       </Helmet>
       <AuthLayout title="JK Attendance" subtitle="Sign in to your account">
       <Card>
@@ -67,6 +67,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="you@school.com"
+                autoComplete="email"
                 {...register('email')}
               />
               {errors.email && (
@@ -88,6 +89,7 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 {...register('password')}
               />
               {errors.password && (
