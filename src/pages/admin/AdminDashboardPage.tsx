@@ -1,36 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getDashboardStats, getTeachers } from '@/services/admin'
-import { getDailyReportEdge } from '@/services/attendanceApi'
-import type { DashboardStats } from '@/services/admin'
-import type { DailyReport } from '@/services/attendanceApi'
-import type { Teacher } from '@/types'
+import { useAdminDashboard } from '@/hooks/useAdminDashboard'
 import { Users, Clock, AlertTriangle, CheckCircle, LogOut, MapPin, Timer } from 'lucide-react'
-import { format } from 'date-fns'
 import { toast } from 'sonner'
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [daily, setDaily] = useState<DailyReport | null>(null)
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading, error } = useAdminDashboard()
+  const { stats, daily, teachers } = data
 
   useEffect(() => {
-    Promise.all([
-      getDashboardStats(),
-      getDailyReportEdge(format(new Date(), 'yyyy-MM-dd')),
-      getTeachers(),
-    ])
-      .then(([s, d, t]) => {
-        setStats(s)
-        setDaily(d)
-        setTeachers(t)
-      })
-      .catch(() => toast.error('Failed to load dashboard data'))
-      .finally(() => setLoading(false))
-  }, [])
+    if (error) toast.error(error.message)
+  }, [error])
 
   const cards = [
     { label: 'Total Teachers', value: stats?.total_teachers ?? 0, icon: Users, color: 'text-blue-600' },
@@ -60,7 +42,7 @@ export default function AdminDashboardPage() {
               <c.icon className={`h-4 w-4 ${c.color}`} />
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
                 <div className="text-2xl font-bold">{c.value}</div>
@@ -70,7 +52,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Card>
           <CardHeader><Skeleton className="h-6 w-40" /></CardHeader>
           <CardContent>
@@ -117,7 +99,7 @@ export default function AdminDashboardPage() {
           <CardTitle className="text-lg">Teachers</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-8 w-full" />

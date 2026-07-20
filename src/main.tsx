@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
+import { RealtimeProvider } from '@/contexts/RealtimeContext'
 import { ThemeProvider } from '@/hooks/useTheme'
 import App from './App.tsx'
 import './index.css'
@@ -52,11 +53,13 @@ createRoot(document.getElementById('root')!).render(
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <NotificationProvider>
+            <RealtimeProvider>
             <ThemeProvider>
               <Suspense fallback={<PageLoader />}>
                 <App />
               </Suspense>
             </ThemeProvider>
+            </RealtimeProvider>
             </NotificationProvider>
           </AuthProvider>
         </QueryClientProvider>

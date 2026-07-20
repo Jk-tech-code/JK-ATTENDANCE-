@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog } from '@/components/ui/dialog'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useDebounce } from '@/hooks/useDebounce'
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher, inviteTeacher } from '@/services/admin'
+import { useTeachers, useCreateTeacher, useUpdateTeacher, useDeleteTeacher, useInviteTeacher } from '@/hooks/useTeachers'
 import type { Teacher } from '@/types'
 import { Plus, Pencil, Trash2, Search, UserPlus, Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -15,79 +15,60 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
+const defaultForm = {
+  staff_number: '',
+  full_name: '',
+  email: '',
+  department: '',
+  phone: '',
+  reporting_time: '07:20',
+  employment_status: 'active',
+}
+
+const defaultInviteForm = {
+  staff_number: '',
+  full_name: '',
+  email: '',
+  department: '',
+  phone: '',
+  reporting_time: '07:20',
+}
+
+function validateForm(values: Record<string, string>): Record<string, string> {
+  const errors: Record<string, string> = {}
+  if (!values.staff_number.trim()) errors.staff_number = 'Staff number is required'
+  if (!values.full_name.trim()) errors.full_name = 'Full name is required'
+  if (!values.email.trim()) {
+    errors.email = 'Email is required'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    errors.email = 'Invalid email format'
+  }
+  if (values.phone && !/^[+]?[\d\s()-]{6,20}$/.test(values.phone)) {
+    errors.phone = 'Invalid phone number format'
+  }
+  return errors
+}
+
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: teachers, isLoading } = useTeachers()
+  const createMutation = useCreateTeacher()
+  const updateMutation = useUpdateTeacher()
+  const deleteMutation = useDeleteTeacher()
+  const inviteMutation = useInviteTeacher()
+
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
   const [editing, setEditing] = useState<Teacher | null>(null)
   const [open, setOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [inviting, setInviting] = useState(false)
-  const [form, setForm] = useState({
-    staff_number: '',
-    full_name: '',
-    email: '',
-    department: '',
-    phone: '',
-    reporting_time: '07:20',
-    employment_status: 'active',
-  })
+  const [form, setForm] = useState(defaultForm)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-  const [inviteForm, setInviteForm] = useState({
-    staff_number: '',
-    full_name: '',
-    email: '',
-    department: '',
-    phone: '',
-    reporting_time: '07:20',
-  })
+  const [inviteForm, setInviteForm] = useState(defaultInviteForm)
   const [inviteFormErrors, setInviteFormErrors] = useState<Record<string, string>>({})
 
-  const validateTeacherForm = (values: typeof form): Record<string, string> => {
-    const errors: Record<string, string> = {}
-    if (!values.staff_number.trim()) errors.staff_number = 'Staff number is required'
-    if (!values.full_name.trim()) errors.full_name = 'Full name is required'
-    if (!values.email.trim()) {
-      errors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-      errors.email = 'Invalid email format'
-    }
-    if (values.phone && !/^[+]?[\d\s()-]{6,20}$/.test(values.phone)) {
-      errors.phone = 'Invalid phone number format'
-    }
-    return errors
-  }
-
-  const validateInviteForm = (values: typeof inviteForm): Record<string, string> => {
-    const errors: Record<string, string> = {}
-    if (!values.staff_number.trim()) errors.staff_number = 'Staff number is required'
-    if (!values.full_name.trim()) errors.full_name = 'Full name is required'
-    if (!values.email.trim()) {
-      errors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-      errors.email = 'Invalid email format'
-    }
-    if (values.phone && !/^[+]?[\d\s()-]{6,20}$/.test(values.phone)) {
-      errors.phone = 'Invalid phone number format'
-    }
-    return errors
-  }
-
-  const load = () => {
-    setLoading(true)
-    getTeachers()
-      .then(setTeachers)
-      .catch(() => toast.error('Failed to load teachers'))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => { load() }, [])
-
   const filtered = useMemo(() => {
+    if (!teachers) return []
     if (!debouncedSearch.trim()) return teachers
     const q = debouncedSearch.toLowerCase()
     return teachers.filter(t =>
@@ -100,7 +81,7 @@ export default function TeachersPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ staff_number: '', full_name: '', email: '', department: '', phone: '', reporting_time: '07:20', employment_status: 'active' })
+    setForm(defaultForm)
     setFormErrors({})
     setOpen(true)
   }
@@ -121,63 +102,55 @@ export default function TeachersPage() {
   }
 
   const handleSave = async () => {
-    const errors = validateTeacherForm(form)
+    const errors = validateForm(form)
     setFormErrors(errors)
     if (Object.keys(errors).length > 0) return
 
-    setSaving(true)
     try {
       if (editing) {
-        await updateTeacher(editing.id, form)
+        await updateMutation.mutateAsync({ id: editing.id, input: form })
         toast.success('Teacher updated successfully')
       } else {
-        await createTeacher(form)
+        await createMutation.mutateAsync(form)
         toast.success('Teacher created successfully')
       }
       setOpen(false)
-      load()
     } catch (err: any) {
       toast.error(err.message)
-    } finally {
-      setSaving(false)
     }
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    setDeleting(true)
     try {
-      await deleteTeacher(deleteTarget.id)
+      await deleteMutation.mutateAsync(deleteTarget.id)
       toast.success('Teacher deleted successfully')
       setDeleteTarget(null)
-      load()
     } catch (err: any) {
       toast.error(err.message)
-    } finally {
-      setDeleting(false)
     }
   }
 
   const handleInvite = async () => {
-    const errors = validateInviteForm(inviteForm)
+    const errors = validateForm(inviteForm)
     setInviteFormErrors(errors)
     if (Object.keys(errors).length > 0) return
 
-    setInviting(true)
     try {
-      const { teacher } = await inviteTeacher(inviteForm)
+      await inviteMutation.mutateAsync(inviteForm)
       setInviteOpen(false)
       toast.success('Invitation email sent', {
         description: `${inviteForm.email} will receive a link to create their password and sign in.`,
         duration: 10000,
       })
-      load()
     } catch (err: any) {
       toast.error(err.message)
-    } finally {
-      setInviting(false)
     }
   }
+
+  const saving = createMutation.isPending || updateMutation.isPending
+  const deleting = deleteMutation.isPending
+  const inviting = inviteMutation.isPending
 
   return (
     <>
@@ -190,7 +163,7 @@ export default function TeachersPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Teachers</h1>
         <div className="flex gap-2">
-          <Button onClick={() => { setInviteForm({ staff_number: '', full_name: '', email: '', department: '', phone: '', reporting_time: '07:20' }); setInviteOpen(true) }}>
+          <Button onClick={() => { setInviteForm(defaultInviteForm); setInviteOpen(true) }}>
             <UserPlus className="mr-2 h-4 w-4" />Invite Teacher
           </Button>
           <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add Teacher</Button>
@@ -213,16 +186,22 @@ export default function TeachersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-3 p-4">
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
+          ) : !teachers || teachers.length === 0 ? (
+            <EmptyState
+              title="No teachers yet"
+              description="Add your first teacher to get started."
+              icon={<Users className="h-12 w-12" />}
+              action={{ label: "Add Teacher", onClick: openCreate }}
+            />
           ) : filtered.length === 0 ? (
             <EmptyState
-              title={search ? "No matching teachers" : "No teachers yet"}
-              description={search ? "Try a different search term." : "Add your first teacher to get started."}
-              icon={<Users className="h-12 w-12" />}
-              action={search ? undefined : { label: "Add Teacher", onClick: openCreate }}
+              title="No matching teachers"
+              description="Try a different search term."
+              icon={<Search className="h-12 w-12" />}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -360,7 +339,6 @@ function VirtualizedTeacherTable({ teachers, onEdit, onDelete }: {
 
   return (
     <div>
-      {/* Fixed header — same flex layout as rows */}
       <div className="flex items-center border-b pb-2 text-left text-xs font-medium text-muted-foreground">
         <div className={`${columnWidths[0]} px-2`}>Staff No.</div>
         <div className={`${columnWidths[1]} px-2`}>Name</div>
@@ -371,7 +349,6 @@ function VirtualizedTeacherTable({ teachers, onEdit, onDelete }: {
         <div className={`${columnWidths[6]} px-2`}>Status</div>
         <div className={`${columnWidths[7]} px-2`}>Actions</div>
       </div>
-      {/* Virtualized body */}
       <div
         ref={parentRef}
         className="w-full"
