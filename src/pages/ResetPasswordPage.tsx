@@ -70,16 +70,16 @@ export default function ResetPasswordPage() {
   return (
     <>
       <Helmet>
-        <title>Reset Password — JK Attendance System</title>
+        <title>Create Password — JK Attendance System</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <AuthLayout title="Reset password" subtitle="Enter your new password">
+      <AuthLayout title="Create your password" subtitle="Choose a password to activate your account">
         <Card>
           <CardContent className="pt-6">
             {done ? (
               <div className="space-y-4 text-center">
                 <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
-                <p className="text-sm text-muted-foreground">Password updated. Redirecting to login...</p>
+                <p className="text-sm text-muted-foreground">Password set. Redirecting to login...</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -95,12 +95,15 @@ export default function ResetPasswordPage() {
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : 'Reset password'}
+                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Setting...</> : 'Create password'}
                 </Button>
               </form>
             )}
           </CardContent>
         </Card>
+        <p className="text-center text-xs text-muted-foreground">
+          This link was sent to your email. Need a new one? Contact your administrator.
+        </p>
       </AuthLayout>
     </>
   )

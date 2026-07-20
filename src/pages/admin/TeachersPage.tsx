@@ -125,7 +125,7 @@ export default function TeachersPage() {
       const { teacher } = await inviteTeacher(inviteForm)
       setInviteOpen(false)
       toast.success('Invitation email sent', {
-        description: `An invitation link has been sent to ${inviteForm.email}. The teacher will set their own password.`,
+        description: `${inviteForm.email} will receive a link to create their password and sign in.`,
         duration: 10000,
       })
       load()
