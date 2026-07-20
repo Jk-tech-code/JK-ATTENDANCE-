@@ -235,7 +235,7 @@ export default function CalendarPage() {
                         if (!day) return <div key={di} className="min-h-[72px] rounded-md bg-muted/20" />
                         const isToday = day.date === today
                         const isSelected = day.date === selectedDate
-                        const dayNum = new Date(day.date + 'T12:00:00').getDate()
+                        const dayNum = day.date ? new Date(String(day.date) + 'T12:00:00').getDate() : null
 
                         return (
                           <button
@@ -245,7 +245,7 @@ export default function CalendarPage() {
                               isToday ? 'ring-2 ring-primary' : ''
                             } ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                           >
-                            <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>{dayNum}</span>
+                            <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>{dayNum ?? ''}</span>
                             {new Date(day.date) <= new Date() && (
                               <div className="mt-0.5 space-y-0.5">
                                 {day.day_type === 'working_day' && (
