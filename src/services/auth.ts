@@ -2,11 +2,14 @@ import { supabase } from './supabase'
 import type { AuthUser, Teacher } from '@/types'
 
 async function getTeacherProfile(userId: string): Promise<Teacher | null> {
+  console.log('[Auth] Querying teacher profile for userId:', userId)
   const { data, error } = await supabase
     .from('teachers')
     .select('*')
     .eq('id', userId)
     .single()
+
+  console.log('[Auth] Teacher query result:', { data, error })
 
   if (error) {
     console.error('[Auth] Failed to load teacher profile:', error.message)
@@ -62,9 +65,16 @@ export async function resetPassword(
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const { data, error } = await supabase.auth.getUser()
+  console.log('[Auth] getCurrentUser:', { data, error })
   if (error || !data.user) return null
 
   const teacher = await getTeacherProfile(data.user.id)
+  console.log('[Auth] Current user result:', {
+    id: data.user.id,
+    email: data.user.email,
+    hasTeacher: !!teacher,
+    role: data.user.user_metadata?.role,
+  })
   return {
     id: data.user.id,
     email: data.user.email!,
