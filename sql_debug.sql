@@ -1,83 +1,120 @@
--- ==============================================
--- STEP 1: INVESTIGATION — Run these queries in Supabase SQL Editor
--- ==============================================
+-- ============================================================
+-- JK ATTENDANCE — Diagnostic & Repair SQL
+-- Run each section in order in Supabase SQL Editor
+-- ============================================================
 
--- 1a. Find your auth user and its metadata
-SELECT id, email, raw_user_meta_data, raw_app_meta_data, created_at
+-- ============================================================
+-- STEP 1: DIAGNOSE
+-- ============================================================
+
+-- 1a. Who is the logged-in user?
+SELECT id, email, raw_user_meta_data->>'role' as role, created_at
 FROM auth.users
-WHERE email = 'kipkemoijared855@gmail.com';
+ORDER BY created_at;
 
--- 1b. Check all teacher records
-SELECT id, staff_number, full_name, email, employment_status
+-- 1b. What's in the teachers table?
+SELECT id, user_id, staff_number, full_name, email, employment_status
 FROM teachers
 ORDER BY created_at;
 
--- 1c. Check if ANY teacher row matches your auth UID
--- (copy the id from 1a and paste below)
-SELECT * FROM teachers WHERE id = '<paste-auth-uid-here>';
+-- 1c. Which teachers are linked to auth users?
+SELECT
+  t.id AS teacher_id,
+  t.user_id,
+  t.full_name,
+  t.email AS teacher_email,
+  u.id AS auth_user_id,
+  u.email AS auth_email
+FROM teachers t
+LEFT JOIN auth.users u ON t.email = u.email OR t.user_id = u.id
+ORDER BY t.created_at;
 
--- 1d. Check RLS policies on teachers table
+-- 1d. Which auth users have NO teacher profile?
+SELECT u.id, u.email
+FROM auth.users u
+LEFT JOIN teachers t ON t.id = u.id OR t.user_id = u.id
+WHERE t.id IS NULL;
+
+-- 1e. Check RLS policies on teachers
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
 FROM pg_policies
-WHERE tablename = 'teachers';
+WHERE tablename = 'teachers'
+ORDER BY policyname;
 
--- ==============================================
--- STEP 2: FIX (choose ONE option below)
--- ==============================================
+-- 1f. Check the user_id column exists
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'teachers' AND column_name = 'user_id';
 
--- OPTION A: If you want ADMIN access (/admin dashboard)
--- This sets your user_metadata.role so LoginPage redirects you to /admin
-UPDATE auth.users
-SET raw_user_meta_data = 
-  CASE 
-    WHEN raw_user_meta_data IS NULL OR raw_user_meta_data = '{}'::jsonb 
-    THEN '{"role":"admin"}'::jsonb
-    ELSE raw_user_meta_data || '{"role":"admin"}'::jsonb
-  END
-WHERE email = 'kipkemoijared855@gmail.com';
+-- ============================================================
+-- STEP 2: RUN MIGRATION 00017 (if not already applied)
+-- ============================================================
 
--- Verify the update
-SELECT id, email, raw_user_meta_data->>'role' as role
-FROM auth.users
-WHERE email = 'kipkemoijared855@gmail.com';
+BEGIN;
 
--- OPTION B: If you need a TEACHER PROFILE for dashboard
--- Replace <auth-uid> with the id from query 1a
-INSERT INTO teachers (id, staff_number, full_name, email, department, phone, reporting_time, employment_status)
-VALUES ('<auth-uid>', 'ADMIN-001', 'System Admin', 'kipkemoijared855@gmail.com', 'Administration', '+254700000000', '07:20', 'active')
-ON CONFLICT (id) DO UPDATE SET
-  email = EXCLUDED.email,
-  full_name = EXCLUDED.full_name;
-
--- Verify the insert
-SELECT * FROM teachers WHERE email = 'kipkemoijared855@gmail.com';
-
--- OPTION C: If existing teachers have random UUIDs in id column
--- (they were created without setting id = auth.uid())
--- You need to either:
---   C1: Update each teacher's id to match their auth user id
---   C2: Or add a user_id column
--- C2 is safer (doesn't break FK references):
-
+-- 2a. Add user_id column
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+CREATE INDEX IF NOT EXISTS idx_teachers_user_id ON teachers(user_id);
 
--- Update user_id for existing teachers (match by email)
+-- 2b. Backfill: link existing teachers to auth users by email
 UPDATE teachers t
 SET user_id = u.id
 FROM auth.users u
-WHERE t.email = u.email;
+WHERE t.email = u.email
+  AND t.user_id IS NULL;
 
--- Update RLS to use user_id instead of id
+-- 2c. Create teacher profile for the admin (if missing)
+DO $$
+DECLARE
+  v_admin_id UUID;
+  v_exists  INTEGER;
+BEGIN
+  SELECT id INTO v_admin_id FROM auth.users WHERE email = 'kipkemoijared855@gmail.com';
+  IF v_admin_id IS NOT NULL THEN
+    SELECT COUNT(*) INTO v_exists FROM teachers WHERE user_id = v_admin_id OR id = v_admin_id;
+    IF v_exists = 0 THEN
+      INSERT INTO teachers (id, user_id, staff_number, full_name, email, department, phone, reporting_time, employment_status)
+      VALUES (v_admin_id, v_admin_id, 'ADMIN-001', 'System Admin', 'kipkemoijared855@gmail.com', 'Administration', '+254700000000', '07:20', 'active')
+      ON CONFLICT (id) DO NOTHING;
+    END IF;
+  END IF;
+END $$;
+
+-- 2d. Update RLS: drop old, create new that checks both id and user_id
 DROP POLICY IF EXISTS "Teachers read own profile" ON teachers;
 CREATE POLICY "Teachers read own profile"
   ON teachers FOR SELECT
   TO authenticated
+  USING (id = auth.uid() OR user_id = auth.uid());
+
+-- 2e. Update attendance RLS for teachers
+DROP POLICY IF EXISTS "Teachers manage own attendance" ON attendance;
+CREATE POLICY "Teachers manage own attendance"
+  ON attendance FOR ALL
+  TO authenticated
   USING (
-    id = auth.uid() OR user_id = auth.uid()
+    teacher_id IN (SELECT id FROM teachers WHERE id = auth.uid() OR user_id = auth.uid())
+  )
+  WITH CHECK (
+    teacher_id IN (SELECT id FROM teachers WHERE id = auth.uid() OR user_id = auth.uid())
   );
 
--- Verify
-SELECT t.id, t.user_id, t.staff_number, t.full_name, t.email
-FROM teachers t
-LEFT JOIN auth.users u ON t.email = u.email
-ORDER BY t.created_at;
+COMMIT;
+
+-- ============================================================
+-- STEP 3: VERIFY REPAIRS
+-- ============================================================
+
+-- 3a. Confirm admin has a teacher profile
+SELECT id, user_id, staff_number, full_name, email
+FROM teachers
+WHERE email = 'kipkemoijared855@gmail.com';
+
+-- 3b. Test the query as the admin user
+-- (run this with the admin's auth token or use the Supabase dashboard SQL editor as authenticated user)
+-- SELECT * FROM teachers WHERE user_id = auth.uid() OR id = auth.uid();
+
+-- 3c. Check all teachers now have user_id where possible
+SELECT id, user_id, staff_number, full_name, email
+FROM teachers
+ORDER BY created_at;
