@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getDailyReportEdge, getMonthlyReportEdge, getAttendanceAnalytics } from '@/services/attendanceApi'
-import type { DailyReport, MonthlyReportResult, AIAnalysisResult } from '@/services/attendanceApi'
+import {
+  useDailyReport,
+  useMonthlyReport,
+  useAiAnalysis,
+} from '@/hooks/useReports'
 import { exportToCSV, exportToExcel, exportToPDF } from '@/services/admin'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { format } from 'date-fns'
 import { Download, Brain, Lightbulb, AlertTriangle, TrendingUp } from 'lucide-react'
-import { toast } from 'sonner'
 
 const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i)
@@ -19,37 +22,34 @@ export default function ReportsPage() {
   const [year, setYear] = useState(currentYear)
   const [month, setMonth] = useState(new Date().getMonth() + 1)
 
-  const [daily, setDaily] = useState<DailyReport | null>(null)
-  const [monthly, setMonthly] = useState<MonthlyReportResult | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [aiData, setAiData] = useState<AIAnalysisResult | null>(null)
-  const [aiLoading, setAiLoading] = useState(false)
+  const {
+    data: daily,
+    isLoading: dailyLoading,
+    error: dailyError,
+  } = useDailyReport(today)
+  const {
+    data: monthly,
+    isLoading: monthlyLoading,
+    error: monthlyError,
+  } = useMonthlyReport(year, month)
+  const aiMutation = useAiAnalysis()
+
+  const loading = dailyLoading || monthlyLoading
 
   useEffect(() => {
-    setLoading(true)
+    if (dailyError) toast.error(dailyError.message)
+  }, [dailyError])
 
-    Promise.all([
-      getDailyReportEdge(today),
-      getMonthlyReportEdge(year, month),
-    ])
-      .then(([dailyResult, monthlyResult]) => {
-        setDaily(dailyResult)
-        setMonthly(monthlyResult)
-      })
-      .catch(() => toast.error('Failed to load reports'))
-      .finally(() => setLoading(false))
-  }, [today, year, month])
+  useEffect(() => {
+    if (monthlyError) toast.error(monthlyError.message)
+  }, [monthlyError])
 
   const runAiAnalysis = async () => {
-    setAiLoading(true)
     try {
-      const result = await getAttendanceAnalytics({ year, month })
-      setAiData(result)
+      const result = await aiMutation.mutateAsync({ year, month })
       toast.success('AI analysis complete')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'AI analysis failed')
-    } finally {
-      setAiLoading(false)
     }
   }
 
@@ -63,6 +63,9 @@ export default function ReportsPage() {
     else exportToPDF(records, filename)
     toast.success(`Report exported as ${format.toUpperCase()}`)
   }
+
+  const aiData = aiMutation.data ?? null
+  const aiLoading = aiMutation.isPending
 
   if (loading) {
     return (
@@ -139,6 +142,7 @@ export default function ReportsPage() {
                 </select>
                 <select className="h-8 rounded border px-2 text-sm" value={year} onChange={e => setYear(Number(e.target.value))}>
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
+
                 </select>
               </span>
             </CardTitle>
