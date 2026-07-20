@@ -31,7 +31,10 @@ Deno.serve(async (req: Request) => {
   if (cors) return cors
 
   try {
-    const auth = await verifyAuth(req.headers.get("Authorization"))
+    const authHeader = req.headers.get("Authorization")
+    console.log("[invite-teacher] Auth header present:", !!authHeader, "prefix:", authHeader?.slice(0, 20))
+
+    const auth = await verifyAuth(authHeader)
     if (!auth.user) {
       console.warn("[invite-teacher] Auth failed:", auth.error)
       return jsonResponse({ error: auth.error }, 401, req)

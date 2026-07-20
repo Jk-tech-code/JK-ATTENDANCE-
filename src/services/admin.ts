@@ -274,36 +274,53 @@ export async function inviteTeacher(input: {
   phone?: string
   reporting_time?: string
 }): Promise<{ teacher: Teacher; tempPassword: string }> {
-  const { error: invokeError, data } = await supabase.functions.invoke<{
-    teacher: Teacher
-    tempPassword: string
-    error?: string
-  }>('invite-teacher', { body: JSON.stringify(input) })
+  const { data: session } = await supabase.auth.getSession()
+  const token = session?.session?.access_token
+  if (!token) throw new Error('Not authenticated')
 
-  if (invokeError) {
-    // FunctionsHttpError: server returned non-2xx — extract real message from context
-    if (typeof invokeError === 'object' && 'context' in invokeError) {
-      const ctx = (invokeError as Record<string, unknown>).context as Response | undefined
-      if (ctx?.body) {
-        try {
-          const body = await ctx.json()
-          const serverMsg = (body as Record<string, unknown>)?.error
-          if (serverMsg) throw new Error(String(serverMsg))
-        } catch { /* fall through to default message */ }
-      }
-    }
-    const isNetworkError = invokeError.message === 'Failed to fetch'
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-teacher`
+  console.log('[inviteTeacher] Calling:', url, { email: input.email })
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+    })
+  } catch (fetchErr) {
+    console.error('[inviteTeacher] Fetch failed:', fetchErr)
+    // Browser fetch TypeError — CORS blocked, DNS failed, or network down
+    const isNetworkError =
+      fetchErr instanceof TypeError ||
+      (fetchErr as Error)?.message?.includes('fetch') ||
+      (fetchErr as Error)?.message?.includes('network')
     throw new Error(
       isNetworkError
         ? 'Cannot reach server. Check that the invite-teacher edge function is deployed and CORS is configured.'
-        : invokeError.message
+        : (fetchErr as Error).message
     )
   }
 
-  if (!data) throw new Error('Empty response from server')
-  if (data.error) throw new Error(data.error)
+  let body: { teacher?: Teacher; tempPassword?: string; error?: string }
+  try {
+    body = await res.json()
+  } catch {
+    throw new Error(`Server returned ${res.status} with no JSON body`)
+  }
 
-  return data as { teacher: Teacher; tempPassword: string }
+  if (!res.ok) {
+    throw new Error(body?.error ?? `Request failed (${res.status})`)
+  }
+
+  if (!body.teacher || !body.tempPassword) {
+    throw new Error('Server response missing teacher or tempPassword')
+  }
+
+  return body as { teacher: Teacher; tempPassword: string }
 }
 
 function rowFromRecord(r: AttendanceWithTeacher): string[] {
