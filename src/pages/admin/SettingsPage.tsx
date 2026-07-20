@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { supabase } from '@/services/supabase'
 import { captureGpsPosition, haversineDistance } from '@/services/location'
 import { detectDevice, detectBrowser } from '@/lib/device'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  useSchoolSettings,
+  useAttendanceGpsRecords,
+  useUpdateSchoolSettings,
+  type SchoolSettingsFormData,
+} from '@/hooks/useSchoolSettings'
 import {
   Loader2,
   MapPin,
@@ -22,39 +27,13 @@ import {
   Timer,
 } from 'lucide-react'
 
-interface SchoolSettingsData {
-  id: string
-  school_name: string | null
-  latitude: number | null
-  longitude: number | null
-  allowed_radius_meters: number | null
-  active: boolean | null
-  reporting_start_time: string | null
-  grace_period_minutes: number | null
-  checkout_time: string | null
-  weekend_working_days: string | null
-}
-
-interface AttendanceGpsRecord {
-  id: string
-  teacher_id: string
-  attendance_date: string
-  check_in: string | null
-  teacher_latitude: number | null
-  teacher_longitude: number | null
-  distance_from_school: number | null
-  location_status: string | null
-  device: string | null
-  browser: string | null
-  gps_accuracy: number | null
-}
-
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<SchoolSettingsData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saveMsg, setSaveMsg] = useState<string | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const { data: settingsData, isLoading } = useSchoolSettings()
+  const updateMutation = useUpdateSchoolSettings()
+  const { data: attendanceWithGps = [], isLoading: loadingAttendance } = useAttendanceGpsRecords()
+
+  const [settings, setSettings] = useState<SchoolSettingsFormData | null>(null)
+  const [settingsErrors, setSettingsErrors] = useState<Record<string, string>>({})
 
   const [testLat, setTestLat] = useState<number | null>(null)
   const [testLng, setTestLng] = useState<number | null>(null)
@@ -67,38 +46,14 @@ export default function SettingsPage() {
     browser: detectBrowser(),
   }))
 
-  const [attendanceWithGps, setAttendanceWithGps] = useState<AttendanceGpsRecord[]>([])
-  const [loadingAttendance, setLoadingAttendance] = useState(false)
-
+  // Sync fetched settings into local form state
   useEffect(() => {
-    loadSettings()
-    loadAttendanceWithGps()
-  }, [])
+    if (settingsData) {
+      setSettings(settingsData)
+    }
+  }, [settingsData])
 
-  async function loadSettings() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('school_settings')
-      .select('*')
-      .limit(1)
-      .single()
-    setSettings(data as SchoolSettingsData)
-    setLoading(false)
-  }
-
-  async function loadAttendanceWithGps() {
-    setLoadingAttendance(true)
-    const { data } = await supabase
-      .from('attendance')
-      .select('id, teacher_id, attendance_date, check_in, teacher_latitude, teacher_longitude, distance_from_school, location_status, device, browser, gps_accuracy')
-      .not('teacher_latitude', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setAttendanceWithGps(data ?? [])
-    setLoadingAttendance(false)
-  }
-
-  function validateSettings(s: SchoolSettingsData): Record<string, string> {
+  function validateSettings(s: SchoolSettingsFormData): Record<string, string> {
     const errors: Record<string, string> = {}
     if (s.latitude == null || isNaN(s.latitude)) {
       errors.latitude = 'Latitude is required'
@@ -129,8 +84,6 @@ export default function SettingsPage() {
     return errors
   }
 
-  const [settingsErrors, setSettingsErrors] = useState<Record<string, string>>({})
-
   async function handleSave() {
     if (!settings) return
 
@@ -138,30 +91,11 @@ export default function SettingsPage() {
     setSettingsErrors(errors)
     if (Object.keys(errors).length > 0) return
 
-    setSaving(true)
-    setSaveMsg(null)
-    setSaveError(null)
-
-    const { error } = await supabase
-      .from('school_settings')
-      .update({
-        school_name: settings.school_name,
-        latitude: settings.latitude,
-        longitude: settings.longitude,
-        allowed_radius_meters: settings.allowed_radius_meters,
-        active: settings.active,
-        reporting_start_time: settings.reporting_start_time,
-        grace_period_minutes: settings.grace_period_minutes,
-        checkout_time: settings.checkout_time,
-      })
-      .eq('id', settings.id)
-
-    if (error) {
-      setSaveError(error.message)
-    } else {
-      setSaveMsg('Settings saved successfully.')
+    try {
+      await updateMutation.mutateAsync(settings)
+    } catch {
+      // error is surfaced via mutation.error below
     }
-    setSaving(false)
   }
 
   async function handleTestLocation() {
@@ -187,7 +121,7 @@ export default function SettingsPage() {
         gps.latitude,
         gps.longitude,
         schoolLat,
-        schoolLng
+        schoolLng,
       )
       setTestDist(Math.round(dist))
 
@@ -202,7 +136,7 @@ export default function SettingsPage() {
     setTesting(false)
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -222,6 +156,8 @@ export default function SettingsPage() {
       </div>
     )
   }
+
+  const saving = updateMutation.isPending
 
   return (
     <>
@@ -335,16 +271,16 @@ export default function SettingsPage() {
               Save Settings
             </Button>
 
-            {saveMsg && (
+            {updateMutation.isSuccess && (
               <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
-                {saveMsg}
+                Settings saved successfully.
               </div>
             )}
-            {saveError && (
+            {updateMutation.error && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                {saveError}
+                {(updateMutation.error as Error).message}
               </div>
             )}
           </CardContent>

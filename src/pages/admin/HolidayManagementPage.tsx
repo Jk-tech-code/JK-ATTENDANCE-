@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,11 +7,11 @@ import { Label } from '@/components/ui/label'
 import { Dialog } from '@/components/ui/dialog'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import {
-  getCalendarEntries,
-  createCalendarEntry,
-  updateCalendarEntry,
-  deleteCalendarEntry,
-} from '@/services/calendar'
+  useCalendarEntries,
+  useCreateCalendarEntry,
+  useUpdateCalendarEntry,
+  useDeleteCalendarEntry,
+} from '@/hooks/useCalendar'
 import type { SchoolCalendarEntry } from '@/services/calendar'
 import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,14 +21,10 @@ const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 5 }, (_, i) => currentYear - 1 + i)
 
 export default function HolidayManagementPage() {
-  const [entries, setEntries] = useState<SchoolCalendarEntry[]>([])
-  const [loading, setLoading] = useState(true)
   const [year, setYear] = useState(currentYear)
   const [editing, setEditing] = useState<SchoolCalendarEntry | null>(null)
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<SchoolCalendarEntry | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [form, setForm] = useState({
     calendar_date: '',
     day_type: 'holiday' as 'holiday' | 'event',
@@ -37,18 +33,21 @@ export default function HolidayManagementPage() {
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
-  const load = () => {
-    setLoading(true)
-    const start = `${year}-01-01`
-    const end = `${year}-12-31`
+  const startDate = `${year}-01-01`
+  const endDate = `${year}-12-31`
 
-    getCalendarEntries(start, end)
-      .then(setEntries)
-      .catch(() => toast.error('Failed to load calendar entries'))
-      .finally(() => setLoading(false))
-  }
+  const { data: entries, isLoading } = useCalendarEntries(startDate, endDate)
+  const createMutation = useCreateCalendarEntry()
+  const updateMutation = useUpdateCalendarEntry()
+  const deleteMutation = useDeleteCalendarEntry()
 
-  useEffect(() => { load() }, [year]) // eslint-disable-line react-hooks/exhaustive-deps
+  const saving = createMutation.isPending || updateMutation.isPending
+  const deleting = deleteMutation.isPending
+
+  const holidays = useMemo(
+    () => (entries ?? []).filter(e => e.day_type === 'holiday' || e.day_type === 'event'),
+    [entries],
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -76,40 +75,30 @@ export default function HolidayManagementPage() {
     setFormErrors(errors)
     if (Object.keys(errors).length > 0) return
 
-    setSaving(true)
     try {
       if (editing) {
-        await updateCalendarEntry(editing.id, form)
+        await updateMutation.mutateAsync({ id: editing.id, input: form })
         toast.success('Entry updated')
       } else {
-        await createCalendarEntry(form)
+        await createMutation.mutateAsync(form)
         toast.success('Entry created')
       }
       setOpen(false)
-      load()
     } catch (err: any) {
       toast.error(err.message)
-    } finally {
-      setSaving(false)
     }
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    setDeleting(true)
     try {
-      await deleteCalendarEntry(deleteTarget.id)
+      await deleteMutation.mutateAsync(deleteTarget.id)
       toast.success('Entry deleted')
       setDeleteTarget(null)
-      load()
     } catch (err: any) {
       toast.error(err.message)
-    } finally {
-      setDeleting(false)
     }
   }
-
-  const holidays = entries.filter(e => e.day_type === 'holiday' || e.day_type === 'event')
 
   return (
     <>
@@ -133,7 +122,7 @@ export default function HolidayManagementPage() {
         <Card>
           <CardHeader><CardTitle className="text-lg">Holidays & Events</CardTitle></CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <p className="text-center text-muted-foreground py-8">Loading...</p>
             ) : holidays.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No holidays or events for {year}</p>

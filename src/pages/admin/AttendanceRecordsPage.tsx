@@ -1,50 +1,37 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getAttendanceRecords, getTeachers, exportToCSV, exportToExcel, exportToPDF, exportAllAttendance } from '@/services/admin'
-import type { Teacher } from '@/types'
-import type { AttendanceWithTeacher, AttendanceFilters } from '@/services/admin'
+import {
+  useAttendanceRecordsWithFilters,
+  useAttendanceTeachers,
+} from '@/hooks/useAttendanceRecords'
+import { exportToCSV, exportToExcel, exportToPDF, exportAllAttendance } from '@/services/admin'
+import type { AttendanceFilters } from '@/services/admin'
 import { ExportMenu } from '@/components/ExportMenu'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AttendanceRecordsPage() {
-  const [records, setRecords] = useState<AttendanceWithTeacher[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
-  const [loading, setLoading] = useState(true)
-  const [teachers, setTeachers] = useState<Teacher[]>([])
   const [dateFilter, setDateFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [teacherFilter, setTeacherFilter] = useState('')
 
-  const load = useCallback(() => {
-    setLoading(true)
-    const filters: AttendanceFilters = { page, page_size: pageSize }
-    if (dateFilter) filters.date = dateFilter
-    if (statusFilter) filters.status = statusFilter
-    if (teacherFilter) filters.teacher_id = teacherFilter
+  const filters: AttendanceFilters = { page, page_size: pageSize }
+  if (dateFilter) filters.date = dateFilter
+  if (statusFilter) filters.status = statusFilter
+  if (teacherFilter) filters.teacher_id = teacherFilter
 
-    Promise.all([
-      getAttendanceRecords(filters),
-      getTeachers(),
-    ])
-      .then(([r, t]) => {
-        setRecords(r.records)
-        setTotal(r.total)
-        setTeachers(t)
-      })
-      .catch(() => toast.error('Failed to load attendance records'))
-      .finally(() => setLoading(false))
-  }, [dateFilter, statusFilter, teacherFilter, page, pageSize])
+  const { records, total, totalPages, isLoading, error } = useAttendanceRecordsWithFilters(filters)
 
-  useEffect(() => { load() }, [load])
-
-  const totalPages = Math.ceil(total / pageSize)
+  useEffect(() => {
+    if (error) toast.error(error.message)
+  }, [error])
+  const { data: teachers } = useAttendanceTeachers()
 
   const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
     const filename = `attendance_${new Date().toISOString().slice(0, 10)}`
@@ -116,7 +103,7 @@ export default function AttendanceRecordsPage() {
                 onChange={e => { setTeacherFilter(e.target.value); setPage(1) }}
               >
                 <option value="">All Teachers</option>
-                {teachers.map(t => (
+                {(teachers ?? []).map(t => (
                   <option key={t.id} value={t.id}>{t.full_name} ({t.staff_number})</option>
                 ))}
               </select>
@@ -124,7 +111,7 @@ export default function AttendanceRecordsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-3 py-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-8 w-full" />

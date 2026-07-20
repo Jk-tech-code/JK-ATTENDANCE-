@@ -27,6 +27,14 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         { event: '*', schema: 'public', table: 'attendance' },
         () => {
           queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'school_calendar' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['calendar'] })
         },
       )
       .subscribe()
