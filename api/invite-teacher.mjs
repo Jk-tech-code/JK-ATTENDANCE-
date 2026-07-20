@@ -48,11 +48,29 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'staff_number, full_name, and email are required' })
     }
 
+    // Duplicate checks
+    const { data: existingAuth, error: listErr } = await supabase.auth.admin.listUsers()
+    if (!listErr && existingAuth?.users?.some(u => u.email === input.email)) {
+      return res.status(409).json({ error: 'A user with this email already exists' })
+    }
+
+    const { data: existingTeacher } = await supabase
+      .from('teachers')
+      .select('id')
+      .or(`email.eq.${input.email},staff_number.eq.${input.staff_number}`)
+      .maybeSingle()
+
+    if (existingTeacher) {
+      return res.status(409).json({ error: 'A teacher with this email or staff number already exists' })
+    }
+
+    // Send invitation
     const siteUrl = process.env.SITE_URL || 'https://jkattendance.vercel.app'
     console.log('[invite-teacher] Inviting:', input.email, 'redirectTo:', `${siteUrl}/reset-password`)
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(input.email, {
       redirectTo: `${siteUrl}/reset-password`,
+      data: { role: 'teacher', full_name: input.full_name },
     })
 
     if (inviteError || !inviteData.user) {
@@ -61,8 +79,8 @@ export default async function handler(req, res) {
     }
 
     const authUserId = inviteData.user.id
-    console.log('[invite-teacher] Creating teacher record:', authUserId)
 
+    // Create teacher record
     const { data: teacher, error: insertError } = await supabase
       .from('teachers')
       .insert({

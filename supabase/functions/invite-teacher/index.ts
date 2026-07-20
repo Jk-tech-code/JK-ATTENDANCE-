@@ -68,11 +68,30 @@ Deno.serve(async (req: Request) => {
       return errorResponse({ error: "staff_number, full_name, and email are required" }, 400)
     }
 
+    // Duplicate check: auth user, teacher email, staff number
+    const { data: existingAuth } = await supabase.auth.admin.listUsers()
+    const emailTaken = existingAuth?.users?.some(u => u.email === input.email)
+    if (emailTaken) {
+      return errorResponse({ error: "A user with this email already exists" }, 409)
+    }
+
+    const { data: existingTeacher } = await supabase
+      .from("teachers")
+      .select("id")
+      .or(`email.eq.${input.email},staff_number.eq.${input.staff_number}`)
+      .maybeSingle()
+
+    if (existingTeacher) {
+      return errorResponse({ error: "A teacher with this email or staff number already exists" }, 409)
+    }
+
+    // Create auth user via inviteUserByEmail
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://jkattendance.vercel.app"
-    console.log("[invite-teacher] Inviting user via email:", input.email, "redirectTo:", `${siteUrl}/reset-password`)
+    console.log("[invite-teacher] Inviting:", input.email, "redirectTo:", `${siteUrl}/reset-password`)
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(input.email, {
       redirectTo: `${siteUrl}/reset-password`,
+      data: { role: "teacher", full_name: input.full_name },
     })
 
     if (inviteError) {
@@ -84,8 +103,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const authUserId = inviteData.user.id
-    console.log("[invite-teacher] Auth user invited:", authUserId, ". Creating/linking teacher record...")
 
+    // Create teacher record
     const { data: teacher, error: teacherError } = await supabase
       .from("teachers")
       .insert({

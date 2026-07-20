@@ -238,8 +238,31 @@ export async function getAttendanceRecords(filters: AttendanceFilters = {}): Pro
 
 // ─── Teacher Delete ──────────────────────────────────────────
 export async function deleteTeacher(id: string): Promise<void> {
-  const { error } = await supabase.from('teachers').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  const { data: session } = await supabase.auth.getSession()
+  const token = session?.session?.access_token
+  if (!token) throw new Error('Not authenticated')
+
+  const url = '/api/delete-teacher'
+  console.log('[deleteTeacher] Calling:', url, { teacher_id: id })
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ teacher_id: id }),
+    })
+  } catch (fetchErr) {
+    throw new Error('Cannot reach server. Check your internet connection.')
+  }
+
+  const body = await res.json()
+  if (!res.ok || !body.success) {
+    throw new Error(body?.error ?? 'Failed to delete teacher')
+  }
 }
 
 // ─── Export helpers ──────────────────────────────────────────
