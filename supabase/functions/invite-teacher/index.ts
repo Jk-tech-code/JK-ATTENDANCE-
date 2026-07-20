@@ -26,15 +26,15 @@ Deno.serve(async (req: Request) => {
   try {
     const auth = await verifyAuth(req.headers.get("Authorization"))
     if (!auth.user) {
-      return jsonResponse({ error: auth.error }, 401)
+      return jsonResponse({ error: auth.error }, 401, req)
     }
     if (!isAdmin(auth.user)) {
-      return jsonResponse({ error: "Only admins can invite teachers" }, 403)
+      return jsonResponse({ error: "Only admins can invite teachers" }, 403, req)
     }
 
     const input: InviteInput = await req.json()
     if (!input.staff_number || !input.full_name || !input.email) {
-      return jsonResponse({ error: "staff_number, full_name, and email are required" }, 400)
+      return jsonResponse({ error: "staff_number, full_name, and email are required" }, 400, req)
     }
 
     const supabase = createSupabaseAdmin()
@@ -48,10 +48,10 @@ Deno.serve(async (req: Request) => {
     })
 
     if (authError) {
-      return jsonResponse({ error: authError.message }, 400)
+      return jsonResponse({ error: authError.message }, 400, req)
     }
     if (!authUser.user) {
-      return jsonResponse({ error: "Failed to create auth user" }, 500)
+      return jsonResponse({ error: "Failed to create auth user" }, 500, req)
     }
 
     const { data: teacher, error: teacherError } = await supabase
@@ -70,11 +70,11 @@ Deno.serve(async (req: Request) => {
 
     if (teacherError) {
       await supabase.auth.admin.deleteUser(authUser.user.id)
-      return jsonResponse({ error: teacherError.message }, 400)
+      return jsonResponse({ error: teacherError.message }, 400, req)
     }
 
-    return jsonResponse({ teacher, tempPassword }, 201)
+    return jsonResponse({ teacher, tempPassword }, 201, req)
   } catch (err) {
-    return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
+    return jsonResponse({ error: `Internal error: ${err.message}` }, 500, req)
   }
 })

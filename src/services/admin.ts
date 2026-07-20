@@ -274,20 +274,21 @@ export async function inviteTeacher(input: {
   phone?: string
   reporting_time?: string
 }): Promise<{ teacher: Teacher; tempPassword: string }> {
-  const token = (await supabase.auth.getSession()).data.session?.access_token
-  if (!token) throw new Error('Not authenticated')
+  const { error: invokeError, data } = await supabase.functions.invoke(
+    'invite-teacher',
+    { body: JSON.stringify(input) }
+  )
 
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-teacher`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
+  if (invokeError) {
+    const msg = invokeError.message === 'Failed to fetch'
+      ? 'Cannot reach server. Check that the invite-teacher edge function is deployed and CORS is configured.'
+      : invokeError.message
+    throw new Error(msg)
+  }
 
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error ?? 'Failed to invite teacher')
+  if (!data || data.error) throw new Error(data?.error ?? 'Failed to invite teacher')
 
-  return data
+  return data as { teacher: Teacher; tempPassword: string }
 }
 
 function rowFromRecord(r: AttendanceWithTeacher): string[] {
