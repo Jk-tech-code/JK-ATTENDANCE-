@@ -1,8 +1,11 @@
 User-agent: *
+Crawl-delay: 10
 Disallow: /admin/
 Disallow: /dashboard/
+Disallow: /reset-password
 Disallow: /forgot-password
 Allow: /login
+Allow: /help
 Allow: /$
 
-Sitemap: /sitemap.xml
+Sitemap: https://jkattendance.vercel.app/sitemap.xml

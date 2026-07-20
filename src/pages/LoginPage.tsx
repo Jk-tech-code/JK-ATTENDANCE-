@@ -54,8 +54,13 @@ export default function LoginPage() {
         <title>Sign In — JK Attendance System</title>
         <meta name="description" content="Sign in to the JK Attendance System for Glorious Group of Schools" />
         <meta name="robots" content="index, follow" />
-        <meta property="og:title" content="Sign In — JK Attendance System" />
         <link rel="canonical" href={`${window.location.origin}/login`} />
+        <meta property="og:title" content="Sign In — JK Attendance System" />
+        <meta property="og:description" content="Sign in to the JK Attendance System for Glorious Group of Schools" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content={`${window.location.origin}/1_full_color_version.png`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Sign In — JK Attendance System" />
       </Helmet>
       <AuthLayout title="JK Attendance" subtitle="Sign in to your account">
       <Card>

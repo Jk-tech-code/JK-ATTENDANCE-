@@ -46,6 +46,7 @@ export default function ForgotPasswordPage() {
         <title>Forgot Password — JK Attendance System</title>
         <meta name="description" content="Reset your JK Attendance System password" />
         <meta name="robots" content="noindex, follow" />
+        <link rel="canonical" href={`${window.location.origin}/forgot-password`} />
       </Helmet>
       <AuthLayout
         title="Reset password"

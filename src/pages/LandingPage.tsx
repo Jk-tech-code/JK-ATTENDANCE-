@@ -3,17 +3,40 @@ import { Helmet } from 'react-helmet-async'
 import { Button } from '@/components/ui/button'
 import { MapPin, ClipboardCheck, BarChart, Shield } from 'lucide-react'
 
+const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
+
 export default function LandingPage() {
   return (
     <>
       <Helmet>
         <title>JK Attendance System — GPS-Based Teacher Attendance Tracking</title>
         <meta name="description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <link rel="canonical" href={`${siteUrl}/`} />
         <meta property="og:title" content="JK Attendance System — GPS Attendance Tracking" />
         <meta property="og:description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
-        <meta property="og:url" content={`${window.location.origin}/`} />
+        <meta property="og:url" content={`${siteUrl}/`} />
+        <meta property="og:image" content={`${siteUrl}/1_full_color_version.png`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:site_name" content="JK Attendance System" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="JK Attendance System — GPS Attendance Tracking" />
         <meta name="twitter:description" content="GPS-based attendance tracking system for schools. Real-time check-in/out, geofencing, AI-powered reports, and admin dashboard." />
+        <meta name="twitter:image" content={`${siteUrl}/1_full_color_version.png`} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Glorious Group of Schools",
+            "url": siteUrl,
+            "logo": `${siteUrl}/1_full_color_version.png`,
+            "description": "JK Attendance System — GPS-based teacher attendance tracking for Glorious Group of Schools",
+            "foundingDate": "2025",
+            "knowsAbout": ["School Management", "Attendance Tracking", "GPS Geofencing"],
+          })}
+        </script>
       </Helmet>
       <div className="flex min-h-screen flex-col">
         <header className="border-b">

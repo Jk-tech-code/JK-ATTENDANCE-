@@ -18,7 +18,12 @@ export default function HelpPage() {
     <>
       <Helmet>
         <title>Help — JK Attendance System</title>
-        <meta name="description" content="Frequently asked questions about JK Attendance System" />
+        <meta name="description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={`${window.location.origin}/help`} />
+        <meta property="og:title" content="Help & FAQ — JK Attendance System" />
+        <meta property="og:description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta property="og:type" content="website" />
       </Helmet>
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
         <div className="flex items-center gap-4">
