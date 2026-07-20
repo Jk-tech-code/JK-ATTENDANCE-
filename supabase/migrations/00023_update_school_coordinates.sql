@@ -16,9 +16,12 @@ ALTER TABLE public.school_settings
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
 -- ============================================
--- 2. ADD TRIGGER FUNCTION to auto-set updated_at
+-- 2. ADD TRIGGER to auto-set updated_at
+-- Uses the generic set_updated_at() function
+-- (defined in a later migration if not yet created)
 -- ============================================
-CREATE OR REPLACE FUNCTION set_school_settings_updated_at()
+-- Create the generic function if it doesn't exist yet
+CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
@@ -32,7 +35,7 @@ DROP TRIGGER IF EXISTS trg_school_settings_updated_at ON public.school_settings;
 CREATE TRIGGER trg_school_settings_updated_at
   BEFORE UPDATE ON public.school_settings
   FOR EACH ROW
-  EXECUTE FUNCTION set_school_settings_updated_at();
+  EXECUTE FUNCTION set_updated_at();
 
 -- ============================================
 -- 3. UPDATE school_settings WITH NEW COORDINATES
