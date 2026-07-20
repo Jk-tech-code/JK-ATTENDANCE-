@@ -53,6 +53,7 @@ export function useSchoolSettings() {
     queryKey: schoolSettingsKeys.settings(),
     queryFn: fetchSchoolSettings,
     staleTime: 60_000,
+    gcTime: 300_000,
   })
 }
 
@@ -76,6 +77,7 @@ export function useAttendanceGpsRecords() {
     queryKey: schoolSettingsKeys.gpsRecords(),
     queryFn: fetchAttendanceGpsRecords,
     staleTime: 30_000,
+    gcTime: 300_000,
   })
 }
 

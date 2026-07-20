@@ -15,6 +15,7 @@ export function useDailyReport(date: string) {
     queryKey: reportKeys.daily(date),
     queryFn: () => getDailyReportEdge(date),
     staleTime: 30_000,
+    gcTime: 300_000,
     enabled: !!date,
   })
 }
@@ -25,6 +26,7 @@ export function useMonthlyReport(year: number, month: number) {
     queryKey: reportKeys.monthly(year, month),
     queryFn: () => getMonthlyReportEdge(year, month),
     staleTime: 30_000,
+    gcTime: 300_000,
   })
 }
 

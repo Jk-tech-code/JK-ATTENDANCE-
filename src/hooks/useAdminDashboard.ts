@@ -28,6 +28,7 @@ export function useAdminDashboard() {
     queryKey: dashboardKeys.stats(),
     queryFn: () => getDashboardStats(),
     staleTime: 15_000,
+    gcTime: 120_000,
     refetchInterval: 30_000,
   })
 
@@ -35,6 +36,7 @@ export function useAdminDashboard() {
     queryKey: dashboardKeys.daily(today),
     queryFn: () => getDailyReportEdge(today),
     staleTime: 15_000,
+    gcTime: 180_000,
     refetchInterval: 60_000,
   })
 
@@ -42,6 +44,7 @@ export function useAdminDashboard() {
     queryKey: dashboardKeys.teachers(),
     queryFn: () => getTeachers(),
     staleTime: 30_000,
+    gcTime: 300_000,
     refetchInterval: 60_000,
   })
 

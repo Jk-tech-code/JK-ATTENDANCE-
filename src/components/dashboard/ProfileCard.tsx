@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent } from '@/components/ui/card'
 import { BadgeCheck, Building2, Hash, RefreshCw, AlertCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'

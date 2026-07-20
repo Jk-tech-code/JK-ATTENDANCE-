@@ -19,6 +19,7 @@ export function useCalendarEntries(startDate: string, endDate: string) {
     queryKey: calendarKeys.list(startDate, endDate),
     queryFn: () => getCalendarEntries(startDate, endDate),
     staleTime: 30_000,
+    gcTime: 300_000,
     enabled: !!startDate && !!endDate,
   })
 }

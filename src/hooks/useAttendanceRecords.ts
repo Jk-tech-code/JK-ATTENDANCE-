@@ -17,6 +17,7 @@ export function useAttendanceRecords(filters: AttendanceFilters) {
     queryKey: attendanceRecordsKeys.list(filters),
     queryFn: () => getAttendanceRecords(filters),
     staleTime: 15_000,
+    gcTime: 300_000,
     placeholderData: (previousData) => previousData,
   })
 }
@@ -27,6 +28,7 @@ export function useAttendanceTeachers() {
     queryKey: attendanceRecordsKeys.teachers(),
     queryFn: () => getTeachers(),
     staleTime: 60_000,
+    gcTime: 300_000,
   })
 }
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
 import { LogOut, User, Shield, Moon, Sun } from 'lucide-react'

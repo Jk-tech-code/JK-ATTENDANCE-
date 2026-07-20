@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNotifications } from '@/contexts/NotificationContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { Button } from '@/components/ui/button'
 import { Bell, CheckCheck, Info, CheckCircle2, AlertTriangle, AlertCircle, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'

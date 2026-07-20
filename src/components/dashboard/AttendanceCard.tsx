@@ -5,7 +5,7 @@ import {
   useUndoCheckOut,
 } from '@/hooks/useAttendance'
 import { useLocationAttendance } from '@/hooks/useLocationAttendance'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {

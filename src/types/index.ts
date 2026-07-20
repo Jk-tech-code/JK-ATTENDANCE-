@@ -7,6 +7,7 @@ export interface Teacher {
   phone: string | null
   reporting_time: string | null
   employment_status: string | null
+  role: string | null
   created_at: string
   user_id?: string | null
   auth_user_id?: string | null

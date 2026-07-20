@@ -5,7 +5,7 @@ import { ProfileCard } from '@/components/dashboard/ProfileCard'
 import { AttendanceCard } from '@/components/dashboard/AttendanceCard'
 import { SummaryCard } from '@/components/dashboard/SummaryCard'
 import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalendarWidget'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function DashboardPage() {
   const { user } = useAuth()

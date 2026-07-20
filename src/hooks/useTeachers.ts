@@ -19,6 +19,7 @@ export function useTeachers() {
     queryKey: teacherKeys.list(),
     queryFn: getTeachers,
     staleTime: 30_000,
+    gcTime: 300_000,
   })
 }
 

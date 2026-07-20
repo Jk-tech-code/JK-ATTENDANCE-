@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useState, useCallback, type ReactNode } from 'react'
 
 export interface Notification {
   id: string
@@ -19,7 +19,8 @@ interface NotificationContextType {
   clearNotifications: () => void
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
+// oxlint-disable-next-line react/only-export-components
+export const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
 let notifCounter = 0
 
@@ -60,10 +61,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       {children}
     </NotificationContext.Provider>
   )
-}
-
-export function useNotifications() {
-  const context = useContext(NotificationContext)
-  if (!context) throw new Error('useNotifications must be used within a NotificationProvider')
-  return context
 }
