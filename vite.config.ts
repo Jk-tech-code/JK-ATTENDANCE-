@@ -20,7 +20,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png'],
+      includeAssets: ['favicon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'JK Attendance System',
         short_name: 'JK Attendance',
@@ -29,8 +29,25 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
+        start_url: '/',
+        id: '/',
+        scope: '/',
+        categories: ['education', 'productivity'],
+        prefer_related_applications: false,
         icons: [
           { src: 'favicon.png', sizes: '32x32', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        screenshots: [
+          {
+            src: 'og-image.png',
+            sizes: '1200x630',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'JK Attendance System Dashboard',
+          },
         ],
       },
       workbox: {
