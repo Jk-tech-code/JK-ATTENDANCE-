@@ -78,8 +78,10 @@ DROP POLICY IF EXISTS "No insert for regular users" ON report_store;
 -- ============================================
 -- 2. REBUILD is_teacher_owner() FUNCTION
 -- Checks id/user_id/auth_user_id for flexibility
+-- Must DROP first because param name changed from check_teacher_id
 -- ============================================
-CREATE OR REPLACE FUNCTION public.is_teacher_owner(p_teacher_id UUID)
+DROP FUNCTION IF EXISTS public.is_teacher_owner(UUID);
+CREATE FUNCTION public.is_teacher_owner(p_teacher_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
