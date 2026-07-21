@@ -86,7 +86,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
-SET search_path = ''
+SET search_path = 'public, auth'
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM teachers
