@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { useInstallPWA } from '@/hooks/useInstallPWA'
 import {
   useSchoolSettings,
   useAttendanceGpsRecords,
@@ -25,6 +26,8 @@ import {
   Monitor,
   Clock,
   Timer,
+  Download,
+  SmartphoneCharging,
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -45,6 +48,8 @@ export default function SettingsPage() {
     device: detectDevice(),
     browser: detectBrowser(),
   }))
+
+  const { canInstall, isInstalled, install } = useInstallPWA()
 
   // Sync fetched settings into local form state
   useEffect(() => {
@@ -447,6 +452,32 @@ export default function SettingsPage() {
               Browser: <span className="font-medium text-foreground">{deviceInfo.browser}</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <SmartphoneCharging className="h-4 w-4" />
+            Install App
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isInstalled ? (
+            <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              App is installed and ready to use offline.
+            </div>
+          ) : canInstall ? (
+            <Button onClick={install} className="w-full">
+              <Download className="mr-2 h-4 w-4" />
+              Install App
+            </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Open this site in Chrome and use the browser menu to add it to your home screen.
+            </p>
+          )}
         </CardContent>
       </Card>
 
