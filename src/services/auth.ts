@@ -2,6 +2,8 @@ import { supabase } from './supabase'
 import type { AuthUser, Teacher } from '@/types'
 
 async function getTeacherProfile(userId: string, email?: string): Promise<Teacher | null> {
+  let lastError: string | null = null
+
   for (const field of ['auth_user_id', 'user_id', 'id'] as const) {
     const { data, error } = await supabase
       .from('teachers')
@@ -11,19 +13,27 @@ async function getTeacherProfile(userId: string, email?: string): Promise<Teache
 
     if (data) return data as Teacher
     if (error) {
-      console.error(`[getTeacherProfile] Query by ${field}=${userId} failed:`, error.message)
-      return null
+      lastError = `Query by ${field}=${userId} failed: ${error.message}`
+      console.error(`[getTeacherProfile] ${lastError}`)
     }
   }
 
   // Fallback: try by email
   if (email) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('teachers')
       .select('*')
       .eq('email', email)
       .maybeSingle()
     if (data) return data as Teacher
+    if (error) {
+      lastError = `Query by email=${email} failed: ${error.message}`
+      console.error(`[getTeacherProfile] ${lastError}`)
+    }
+  }
+
+  if (lastError) {
+    console.warn(`[getTeacherProfile] All lookups failed. Last error: ${lastError}`)
   }
 
   return null

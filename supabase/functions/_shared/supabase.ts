@@ -50,8 +50,8 @@ export async function isAdmin(
     .maybeSingle()
 
   if (error) {
-    console.error("[isAdmin] Query failed:", error.message)
-    return false
+    console.error("[isAdmin] Direct query failed:", error.message)
+    return isAdminViaRpc(supabase)
   }
   return data !== null
 }
