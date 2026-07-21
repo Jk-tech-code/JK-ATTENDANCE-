@@ -4,6 +4,32 @@
 -- ============================================
 
 -- ============================================
+-- 0. ENSURE ALL TABLES EXIST FIRST
+-- ============================================
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id UUID NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE')),
+  target_type TEXT NOT NULL,
+  target_id UUID NOT NULL,
+  old_data JSONB,
+  new_data JSONB,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS report_store (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_type TEXT NOT NULL,
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  data JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE report_store ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
 -- 1. DROP ALL EXISTING POLICIES (clean slate)
 -- ============================================
 DROP POLICY IF EXISTS "Teachers read own profile" ON teachers;
@@ -229,4 +255,8 @@ CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance(status);
 CREATE INDEX IF NOT EXISTS idx_attendance_teacher_date ON attendance(teacher_id, attendance_date);
 CREATE INDEX IF NOT EXISTS idx_notifications_teacher_id ON attendance_notifications(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON audit_logs(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_school_calendar_date ON school_calendar(calendar_date);
+CREATE INDEX IF NOT EXISTS idx_report_store_type ON report_store(report_type);
+CREATE INDEX IF NOT EXISTS idx_report_store_period ON report_store(period_start, period_end);
