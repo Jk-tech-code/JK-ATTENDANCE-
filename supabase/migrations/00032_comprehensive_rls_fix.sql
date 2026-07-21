@@ -86,10 +86,9 @@ RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
-SET search_path = 'public, auth'
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM teachers
+    SELECT 1 FROM public.teachers
     WHERE id = p_teacher_id
       AND (id = auth.uid() OR user_id = auth.uid() OR auth_user_id = auth.uid())
     LIMIT 1
