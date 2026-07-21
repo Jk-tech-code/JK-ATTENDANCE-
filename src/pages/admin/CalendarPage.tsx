@@ -19,11 +19,13 @@ const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 3 + i)
 
 function getDayColor(day: MonthCalendar['calendar'][0]): string {
-  if (day.day_type === 'weekend') return 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-  if (day.day_type === 'holiday' || day.day_type === 'event') return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
-  if (day.day_type === 'working_day') {
-    if (day.present > 0) return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
-    if (day.absent > 0 && day.present === 0 && day.late === 0) return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+  if (!day || !day.day_type) return 'bg-card border-border'
+  const dt = day.day_type
+  if (dt === 'weekend') return 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+  if (dt === 'holiday' || dt === 'event') return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
+  if (dt === 'working_day') {
+    if ((day.present ?? 0) > 0) return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+    if ((day.absent ?? 0) > 0 && !day.present && !day.late) return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
   }
   return 'bg-card border-border'
 }
@@ -171,12 +173,15 @@ export default function CalendarPage() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Present Rate</CardTitle></CardHeader>
           <CardContent>
-            {loading ? <Skeleton className="h-8 w-20" /> : (
+              {loading ? <Skeleton className="h-8 w-20" /> : (
               <>
-                <p className={`text-2xl font-bold ${(data?.calendar.reduce((s, d) => s + d.present + d.late, 0) ?? 0) > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  {data ? data.calendar.length > 0
-                    ? Math.round(data.calendar.reduce((s, d) => s + d.present + d.late, 0) / data.calendar.reduce((s, d) => s + d.total || 1, 1) * 100)
-                    : 0 : 0}%
+                <p className={`text-2xl font-bold ${(data?.calendar.reduce((s, d) => s + (d.present ?? 0) + (d.late ?? 0), 0) ?? 0) > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  {(() => {
+                    if (!data || !data.calendar?.length) return '0'
+                    const attended = data.calendar.reduce((s, d) => s + (d.present ?? 0) + (d.late ?? 0), 0)
+                    const total = data.calendar.reduce((s, d) => s + (d.total ?? 0), 0)
+                    return total > 0 ? Math.round((attended / total) * 100) : 0
+                  })()}%
                 </p>
               </>
             )}
@@ -233,9 +238,9 @@ export default function CalendarPage() {
                     <div key={wi} className="grid grid-cols-7 gap-px">
                       {week.map((day, di) => {
                         if (!day) return <div key={di} className="min-h-[72px] rounded-md bg-muted/20" />
-                        // date is always a 'YYYY-MM-DD' string from the RPC (never null after migration 00029)
-                        const dateStr = day.date || null
-                        const dayNum = dateStr ? parseInt(dateStr.slice(8, 10), 10) : null
+                        const dateStr = typeof day.date === 'string' && day.date.length === 10 ? day.date : null
+                        const dayNum = dateStr ? Number(dateStr.slice(8, 10)) : null
+                        const numDay = Number.isFinite(dayNum) ? dayNum : null
                         const isToday = dateStr === today
                         const isSelected = dateStr === selectedDate
                         const isPast = dateStr ? dateStr <= today : false
@@ -248,7 +253,7 @@ export default function CalendarPage() {
                               isToday ? 'ring-2 ring-primary' : ''
                             } ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                           >
-                            <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>{dayNum ?? ''}</span>
+                            <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>{numDay ?? '?'}</span>
                             {isPast && (
                               <div className="mt-0.5 space-y-0.5">
                                 {day.day_type === 'working_day' && (
@@ -312,7 +317,12 @@ export default function CalendarPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <CalendarDays className="h-4 w-4" />
-                  {new Date(dayDetail.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  {(() => {
+                    const d = new Date(dayDetail.date + 'T12:00:00')
+                    return Number.isFinite(d.getTime())
+                      ? d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+                      : dayDetail.date
+                  })()}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground capitalize">{dayDetail.day_type.replace('_', ' ')}{dayDetail.title ? ` - ${dayDetail.title}` : ''}</p>
               </CardHeader>

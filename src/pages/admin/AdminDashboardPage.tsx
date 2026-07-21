@@ -7,17 +7,17 @@ import { Users, Clock, AlertTriangle, CheckCircle, LogOut, MapPin, Timer } from 
 import { toast } from 'sonner'
 
 export default function AdminDashboardPage() {
-  const { data, isLoading, error } = useAdminDashboard()
+  const { data, isLoading, errors } = useAdminDashboard()
   const stats = data?.stats ?? null
   const daily = data?.daily ?? null
   const teachers = data?.teachers ?? []
 
   useEffect(() => {
-    if (error) {
-      console.error('[AdminDashboard] Error:', error.message)
-      toast.error(error.message, { duration: 5000 })
+    for (const err of errors) {
+      console.error('[AdminDashboard] Error:', err.message)
+      toast.error(err.message, { duration: 5000 })
     }
-  }, [error])
+  }, [errors])
 
   const cards = [
     { label: 'Total Teachers', value: stats?.total_teachers ?? 0, icon: Users, color: 'text-blue-600' },
@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {isLoading ? (
+      {isLoading && !daily ? (
         <Card>
           <CardHeader><Skeleton className="h-6 w-40" /></CardHeader>
           <CardContent>
@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      ) : daily && (
+      ) : daily ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Today's Report</CardTitle>
@@ -95,6 +95,14 @@ export default function AdminDashboardPage() {
                 <p className="text-xl font-bold">{daily.total_teachers}</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!isLoading && !daily && errors.length > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/10">
+          <CardContent className="p-4 text-sm text-yellow-800 dark:text-yellow-200">
+            Daily report unavailable — some dashboard data may be delayed.
           </CardContent>
         </Card>
       )}

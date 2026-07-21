@@ -6,7 +6,6 @@ import type { DashboardStats } from '@/services/admin'
 import type { DailyReport } from '@/services/attendanceApi'
 import type { Teacher } from '@/types'
 
-// ─── Query keys ──────────────────────────────────────────────
 export const dashboardKeys = {
   all: ['dashboard'] as const,
   stats: () => [...dashboardKeys.all, 'stats'] as const,
@@ -20,7 +19,6 @@ export interface AdminDashboardData {
   teachers: Teacher[]
 }
 
-// ─── Query ───────────────────────────────────────────────────
 export function useAdminDashboard() {
   const today = format(new Date(), 'yyyy-MM-dd')
 
@@ -30,6 +28,7 @@ export function useAdminDashboard() {
     staleTime: 15_000,
     gcTime: 120_000,
     refetchInterval: 30_000,
+    retry: 2,
   })
 
   const dailyQuery = useQuery({
@@ -38,6 +37,7 @@ export function useAdminDashboard() {
     staleTime: 15_000,
     gcTime: 180_000,
     refetchInterval: 60_000,
+    retry: 2,
   })
 
   const teachersQuery = useQuery({
@@ -46,10 +46,15 @@ export function useAdminDashboard() {
     staleTime: 30_000,
     gcTime: 300_000,
     refetchInterval: 60_000,
+    retry: 2,
   })
 
   const isLoading = statsQuery.isLoading || dailyQuery.isLoading || teachersQuery.isLoading
-  const error = statsQuery.error ?? dailyQuery.error ?? teachersQuery.error ?? null
+
+  const errors: Error[] = []
+  if (statsQuery.error) errors.push(statsQuery.error as Error)
+  if (dailyQuery.error) errors.push(dailyQuery.error as Error)
+  if (teachersQuery.error) errors.push(teachersQuery.error as Error)
 
   return {
     data: {
@@ -58,6 +63,6 @@ export function useAdminDashboard() {
       teachers: teachersQuery.data ?? [],
     } satisfies AdminDashboardData,
     isLoading,
-    error: error as Error | null,
+    errors,
   }
 }
