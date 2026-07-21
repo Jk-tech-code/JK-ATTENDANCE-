@@ -77,10 +77,13 @@ export default function HolidayManagementPage() {
 
     try {
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, input: form })
+        await updateMutation.mutateAsync({
+          id: editing.id,
+          input: { calendar_date: form.calendar_date, day_type: form.day_type, title: form.title.trim(), description: form.description },
+        })
         toast.success('Entry updated')
       } else {
-        await createMutation.mutateAsync(form)
+        await createMutation.mutateAsync({ ...form, title: form.title.trim() })
         toast.success('Entry created')
       }
       setOpen(false)

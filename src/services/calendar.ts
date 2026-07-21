@@ -95,6 +95,9 @@ export async function createCalendarEntry(input: {
   title: string
   description?: string
 }): Promise<SchoolCalendarEntry> {
+  const { data: user, error: userErr } = await supabase.auth.getUser()
+  if (userErr || !user?.user) throw new Error('Authentication required')
+
   const { data, error } = await supabase
     .from('school_calendar')
     .insert({
@@ -102,18 +105,22 @@ export async function createCalendarEntry(input: {
       day_type: input.day_type,
       title: input.title,
       description: input.description || null,
-      created_by: (await supabase.auth.getUser()).data.user?.id,
+      created_by: user.user.id,
     })
     .select()
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (error.code === '23505') throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
+    throw new Error(error.message)
+  }
   return data as SchoolCalendarEntry
 }
 
 export async function updateCalendarEntry(
   id: string,
   input: Partial<{
+    calendar_date: string
     day_type: 'working_day' | 'weekend' | 'holiday' | 'event'
     title: string
     description: string
@@ -126,7 +133,10 @@ export async function updateCalendarEntry(
     .select()
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (error.code === '23505') throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
+    throw new Error(error.message)
+  }
   return data as SchoolCalendarEntry
 }
 

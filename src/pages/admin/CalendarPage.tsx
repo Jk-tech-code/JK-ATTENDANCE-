@@ -24,8 +24,8 @@ function getDayColor(day: MonthCalendar['calendar'][0]): string {
   if (dt === 'weekend') return 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
   if (dt === 'holiday' || dt === 'event') return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
   if (dt === 'working_day') {
-    if ((day.present ?? 0) > 0) return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
-    if ((day.absent ?? 0) > 0 && !day.present && !day.late) return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+    if ((day.present ?? 0) > 0 || (day.late ?? 0) > 0) return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+    if ((day.absent ?? 0) > 0 && !(day.present ?? 0) && !(day.late ?? 0)) return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
   }
   return 'bg-card border-border'
 }
@@ -238,9 +238,10 @@ export default function CalendarPage() {
                     <div key={wi} className="grid grid-cols-7 gap-px">
                       {week.map((day, di) => {
                         if (!day) return <div key={di} className="min-h-[72px] rounded-md bg-muted/20" />
-                        const dateStr = typeof day.date === 'string' && day.date.length === 10 ? day.date : null
-                        const dayNum = dateStr ? Number(dateStr.slice(8, 10)) : null
-                        const numDay = Number.isFinite(dayNum) ? dayNum : null
+                        const rawDate = typeof day.date === 'string' ? day.date : null
+                        const dateStr = rawDate?.length === 10 ? rawDate : null
+                        const parsedNum = dateStr ? Number(dateStr.slice(8, 10)) : NaN
+                        const numDay = Number.isFinite(parsedNum) && parsedNum >= 1 && parsedNum <= 31 ? parsedNum : null
                         const isToday = dateStr === today
                         const isSelected = dateStr === selectedDate
                         const isPast = dateStr ? dateStr <= today : false
