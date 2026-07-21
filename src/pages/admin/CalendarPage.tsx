@@ -3,15 +3,19 @@ import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getMonthCalendar, getDayAttendanceDetail, generateMonthlyReport } from '@/services/calendar'
-import type { MonthCalendar, DayAttendance } from '@/services/calendar'
+import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { getMonthCalendar, getDayAttendanceDetail, generateMonthlyReport, getHolidayEntries } from '@/services/calendar'
+import { useCreateCalendarEntry } from '@/hooks/useCalendar'
+import type { MonthCalendar, DayAttendance, HolidayEntry } from '@/services/calendar'
 import {
   ChevronLeft, ChevronRight, CalendarDays,
   CheckCircle2, XCircle,
-  Clock, Download,
+  Clock, Download, Umbrella, Star,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { format, parse, getDate } from 'date-fns'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -22,7 +26,8 @@ function getDayColor(day: MonthCalendar['calendar'][0]): string {
   if (!day || !day.day_type) return 'bg-card border-border'
   const dt = day.day_type
   if (dt === 'weekend') return 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-  if (dt === 'holiday' || dt === 'event') return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
+  if (dt === 'holiday') return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800'
+  if (dt === 'event') return 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800'
   if (dt === 'working_day') {
     if ((day.present ?? 0) > 0 || (day.late ?? 0) > 0) return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
     if ((day.absent ?? 0) > 0 && !(day.present ?? 0) && !(day.late ?? 0)) return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
@@ -40,6 +45,17 @@ export default function CalendarPage() {
   const [dayDetail, setDayDetail] = useState<DayAttendance | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [holidayEntries, setHolidayEntries] = useState<HolidayEntry[]>([])
+  const [holidayListLoading, setHolidayListLoading] = useState(false)
+
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [addForm, setAddForm] = useState({
+    calendar_date: '',
+    day_type: 'holiday' as 'holiday' | 'event',
+    title: '',
+    description: '',
+  })
+  const createMutation = useCreateCalendarEntry()
 
   useEffect(() => {
     setLoading(true)
@@ -48,6 +64,19 @@ export default function CalendarPage() {
       .catch(() => toast.error('Failed to load calendar'))
       .finally(() => setLoading(false))
   }, [year, month])
+
+  useEffect(() => {
+    if (!selectedDate) { setHolidayEntries([]); return }
+    setHolidayListLoading(true)
+    getHolidayEntries(selectedDate)
+      .then(entries => {
+        setHolidayEntries(entries)
+        setDetailLoading(true)
+        return getDayAttendanceDetail(selectedDate).then(setDayDetail).catch(() => setDayDetail(null))
+      })
+      .catch(() => toast.error('Failed to load date details'))
+      .finally(() => { setDetailLoading(false); setHolidayListLoading(false) })
+  }, [selectedDate])
 
   const calendarGrid = useMemo(() => {
     if (!data) return []
@@ -84,21 +113,8 @@ export default function CalendarPage() {
     setDayDetail(null)
   }
 
-  const handleDateClick = async (date: string) => {
-    if (new Date(date) > new Date()) {
-      toast.info('Future date - no attendance data available')
-      return
-    }
+  const handleDateClick = (date: string) => {
     setSelectedDate(date)
-    setDetailLoading(true)
-    try {
-      const detail = await getDayAttendanceDetail(date)
-      setDayDetail(detail)
-    } catch (err: any) {
-      toast.error(err.message)
-    } finally {
-      setDetailLoading(false)
-    }
   }
 
   const handleGenerateReport = async () => {
@@ -138,6 +154,34 @@ export default function CalendarPage() {
     }
   }
 
+  const openAddDialog = (dayType: 'holiday' | 'event', date?: string) => {
+    setAddForm({
+      calendar_date: date || '',
+      day_type: dayType,
+      title: '',
+      description: '',
+    })
+    setAddDialogOpen(true)
+  }
+
+  const handleAddSave = async () => {
+    if (!addForm.calendar_date) { toast.error('Date is required'); return }
+    if (!addForm.title.trim()) { toast.error('Title is required'); return }
+    try {
+      await createMutation.mutateAsync({
+        calendar_date: addForm.calendar_date,
+        day_type: addForm.day_type,
+        title: addForm.title.trim(),
+        description: addForm.description || undefined,
+      })
+      toast.success(addForm.day_type === 'holiday' ? 'Holiday added' : 'Event added')
+      setAddDialogOpen(false)
+      getMonthCalendar(year, month).then(setData).catch(() => {})
+    } catch (err: any) {
+      toast.error(err.message)
+    }
+  }
+
   const today = format(now, 'yyyy-MM-dd')
   const workingDays = data?.calendar.filter(d => d.day_type === 'working_day') ?? []
   const totalWorking = workingDays.length
@@ -153,9 +197,17 @@ export default function CalendarPage() {
       <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Attendance Calendar</h1>
-        <Button variant="outline" size="sm" onClick={handleGenerateReport} loading={generating}>
-          <Download className="mr-2 h-4 w-4" />Generate Monthly Report
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => openAddDialog('holiday')}>
+            <Umbrella className="mr-2 h-4 w-4" />Holiday
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => openAddDialog('event')}>
+            <Star className="mr-2 h-4 w-4" />Event
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleGenerateReport} loading={generating}>
+            <Download className="mr-2 h-4 w-4" />Generate Report
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -238,10 +290,10 @@ export default function CalendarPage() {
                     <div key={wi} className="grid grid-cols-7 gap-px">
                       {week.map((day, di) => {
                         if (!day) return <div key={di} className="min-h-[72px] rounded-md bg-muted/20" />
-                        const rawDate = typeof day.date === 'string' ? day.date : null
-                        const dateStr = rawDate?.length === 10 ? rawDate : null
-                        const parsedNum = dateStr ? Number(dateStr.slice(8, 10)) : NaN
-                        const numDay = Number.isFinite(parsedNum) && parsedNum >= 1 && parsedNum <= 31 ? parsedNum : null
+                        const dateStr = day.date ?? null
+                        const numDay = dateStr
+                          ? getDate(parse(dateStr, 'yyyy-MM-dd', new Date()))
+                          : null
                         const isToday = dateStr === today
                         const isSelected = dateStr === selectedDate
                         const isPast = dateStr ? dateStr <= today : false
@@ -254,7 +306,9 @@ export default function CalendarPage() {
                               isToday ? 'ring-2 ring-primary' : ''
                             } ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                           >
-                            <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>{numDay ?? '?'}</span>
+                            <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>
+                              {numDay ?? '?'}
+                            </span>
                             {isPast && (
                               <div className="mt-0.5 space-y-0.5">
                                 {day.day_type === 'working_day' && (
@@ -300,7 +354,10 @@ export default function CalendarPage() {
                   <span className="inline-block h-3 w-3 rounded-sm bg-red-50 border border-red-200" /> Missing
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="inline-block h-3 w-3 rounded-sm bg-yellow-50 border border-yellow-200" /> Holiday/Event
+                  <span className="inline-block h-3 w-3 rounded-sm bg-yellow-50 border border-yellow-200" /> Holiday
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-3 w-3 rounded-sm bg-purple-50 border border-purple-200" /> Event
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="inline-block h-3 w-3 rounded-sm bg-blue-50 border border-blue-200" /> Weekend
@@ -311,72 +368,111 @@ export default function CalendarPage() {
         </div>
 
         <div>
-          {detailLoading ? (
+          {holidayListLoading || detailLoading ? (
             <Card><CardContent className="p-6 space-y-3"><Skeleton className="h-6 w-32" />{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
-          ) : dayDetail ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarDays className="h-4 w-4" />
-                  {(() => {
-                    const d = new Date(dayDetail.date + 'T12:00:00')
-                    return Number.isFinite(d.getTime())
-                      ? d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-                      : dayDetail.date
-                  })()}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground capitalize">{dayDetail.day_type.replace('_', ' ')}{dayDetail.title ? ` - ${dayDetail.title}` : ''}</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-green-600">{dayDetail.summary.present}</p>
-                    <p className="text-xs text-muted-foreground">Present</p>
-                  </div>
-                  <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-yellow-600">{dayDetail.summary.late}</p>
-                    <p className="text-xs text-muted-foreground">Late</p>
-                  </div>
-                  <div className="rounded-lg bg-red-50 dark:bg-red-950/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-red-600">{dayDetail.summary.absent}</p>
-                    <p className="text-xs text-muted-foreground">Absent</p>
-                  </div>
-                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-blue-600">{dayDetail.summary.attendance_rate}%</p>
-                    <p className="text-xs text-muted-foreground">Rate</p>
-                  </div>
-                </div>
+          ) : selectedDate ? (
+            <div className="space-y-4">
+              {holidayEntries.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      {holidayEntries[0].type === 'holiday' ? <Umbrella className="h-4 w-4 text-yellow-600" /> : <Star className="h-4 w-4 text-purple-600" />}
+                      {holidayEntries[0].type === 'holiday' ? 'Holidays' : 'Events'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {holidayEntries.map(h => (
+                      <div key={h.id} className={`rounded-lg p-3 text-sm ${
+                        h.type === 'holiday' ? 'bg-yellow-50 dark:bg-yellow-950/20' : 'bg-purple-50 dark:bg-purple-950/20'
+                      }`}>
+                        <p className="font-medium">{h.title}</p>
+                        {h.description && <p className="text-xs text-muted-foreground mt-1">{h.description}</p>}
+                        <p className={`text-xs mt-1 font-medium ${
+                          h.type === 'holiday' ? 'text-yellow-700' : 'text-purple-700'
+                        }`}>{h.type}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
-                {dayDetail.day_type === 'working_day' && dayDetail.records.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Attendance Records</h4>
-                    <div className="max-h-64 overflow-y-auto space-y-1">
-                      {dayDetail.records.map(r => (
-                        <div key={r.id} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-xs">
-                          <div>
-                            <p className="font-medium">{(r as any).teacher?.full_name ?? 'Unknown'}</p>
-                            <p className="text-muted-foreground">{(r as any).teacher?.staff_number ?? ''}</p>
-                          </div>
-                          <div className="text-right">
-                            <p>{r.check_in ? new Date(r.check_in).toLocaleTimeString() : '-'} {r.check_out ? `- ${new Date(r.check_out).toLocaleTimeString()}` : ''}</p>
-                            <span className={`text-[10px] font-medium ${
-                              r.status === 'present' ? 'text-green-600' :
-                              r.status === 'late' ? 'text-yellow-600' :
-                              r.status === 'absent' ? 'text-red-600' :
-                              'text-blue-600'
-                            }`}>{r.status}</span>
-                          </div>
-                        </div>
-                      ))}
+              {dayDetail ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <CalendarDays className="h-4 w-4" />
+                      {(() => {
+                        const d = parse(dayDetail.date, 'yyyy-MM-dd', new Date())
+                        return Number.isFinite(d.getTime())
+                          ? d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+                          : dayDetail.date
+                      })()}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground capitalize">{dayDetail.day_type.replace('_', ' ')}{dayDetail.title ? ` - ${dayDetail.title}` : ''}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-3 text-center">
+                        <p className="text-2xl font-bold text-green-600">{dayDetail.summary.present}</p>
+                        <p className="text-xs text-muted-foreground">Present</p>
+                      </div>
+                      <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950/20 p-3 text-center">
+                        <p className="text-2xl font-bold text-yellow-600">{dayDetail.summary.late}</p>
+                        <p className="text-xs text-muted-foreground">Late</p>
+                      </div>
+                      <div className="rounded-lg bg-red-50 dark:bg-red-950/20 p-3 text-center">
+                        <p className="text-2xl font-bold text-red-600">{dayDetail.summary.absent}</p>
+                        <p className="text-xs text-muted-foreground">Absent</p>
+                      </div>
+                      <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-3 text-center">
+                        <p className="text-2xl font-bold text-blue-600">{dayDetail.summary.attendance_rate}%</p>
+                        <p className="text-xs text-muted-foreground">Rate</p>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                {dayDetail.day_type === 'working_day' && dayDetail.records.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No attendance records for this date</p>
-                )}
-              </CardContent>
-            </Card>
+                    {dayDetail.day_type === 'working_day' && dayDetail.records.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Attendance Records</h4>
+                        <div className="max-h-64 overflow-y-auto space-y-1">
+                          {dayDetail.records.map(r => (
+                            <div key={r.id} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-xs">
+                              <div>
+                                <p className="font-medium">{(r as any).teacher?.full_name ?? 'Unknown'}</p>
+                                <p className="text-muted-foreground">{(r as any).teacher?.staff_number ?? ''}</p>
+                              </div>
+                              <div className="text-right">
+                                <p>{r.check_in ? new Date(r.check_in).toLocaleTimeString() : '-'} {r.check_out ? `- ${new Date(r.check_out).toLocaleTimeString()}` : ''}</p>
+                                <span className={`text-[10px] font-medium ${
+                                  r.status === 'present' ? 'text-green-600' :
+                                  r.status === 'late' ? 'text-yellow-600' :
+                                  r.status === 'absent' ? 'text-red-600' :
+                                  'text-blue-600'
+                                }`}>{r.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {dayDetail.day_type === 'working_day' && dayDetail.records.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No attendance records for this date</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center text-muted-foreground">
+                    {holidayEntries.length === 0 && (
+                      <>
+                        <CalendarDays className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                        <p className="text-sm">Select a date to view details</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           ) : (
             <Card>
               <CardContent className="p-12 text-center text-muted-foreground">
@@ -387,6 +483,27 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={addDialogOpen} onOpenChange={o => { setAddDialogOpen(o) }} title={addForm.day_type === 'holiday' ? 'Add Holiday' : 'Add Event'}>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Date <span className="text-destructive">*</span></Label>
+            <Input type="date" value={addForm.calendar_date} onChange={e => setAddForm({ ...addForm, calendar_date: e.target.value })} />
+          </div>
+          <div className="space-y-2">
+            <Label>Title <span className="text-destructive">*</span></Label>
+            <Input value={addForm.title} onChange={e => setAddForm({ ...addForm, title: e.target.value })} placeholder={addForm.day_type === 'holiday' ? 'e.g., National Holiday' : 'e.g., Sports Day'} />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <textarea className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={addForm.description} onChange={e => setAddForm({ ...addForm, description: e.target.value })} placeholder="Optional description" />
+          </div>
+          <Button onClick={handleAddSave} className="w-full" loading={createMutation.isPending}>
+            Add {addForm.day_type === 'holiday' ? 'Holiday' : 'Event'}
+          </Button>
+        </div>
+      </Dialog>
     </div>
     </>
   )

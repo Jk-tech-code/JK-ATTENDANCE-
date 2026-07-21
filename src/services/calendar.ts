@@ -29,6 +29,15 @@ export interface MonthCalendar {
   calendar: CalendarDay[]
 }
 
+export interface HolidayEntry {
+  id: string
+  title: string
+  description: string | null
+  holiday_date: string
+  type: 'holiday' | 'event'
+  created_at: string
+}
+
 export interface DateCheckResult {
   date: string
   day_type: string
@@ -51,6 +60,37 @@ export interface DayAttendance {
     total: number
     attendance_rate: number
   }
+}
+
+// ─── Holiday entries ─────────────────────────────────────────
+
+export async function getHolidayEntries(date: string): Promise<HolidayEntry[]> {
+  const { data, error } = await supabase
+    .from('holidays')
+    .select('*')
+    .eq('holiday_date', date)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (error.code === '42P01') return []
+    throw new Error(error.message)
+  }
+  return data as HolidayEntry[]
+}
+
+export async function getHolidayRange(startDate: string, endDate: string): Promise<HolidayEntry[]> {
+  const { data, error } = await supabase
+    .from('holidays')
+    .select('*')
+    .gte('holiday_date', startDate)
+    .lte('holiday_date', endDate)
+    .order('holiday_date', { ascending: true })
+
+  if (error) {
+    if (error.code === '42P01') return []
+    throw new Error(error.message)
+  }
+  return data as HolidayEntry[]
 }
 
 // ─── CRUD operations ─────────────────────────────────────────

@@ -13,7 +13,7 @@ import {
   useDeleteCalendarEntry,
 } from '@/hooks/useCalendar'
 import type { SchoolCalendarEntry } from '@/services/calendar'
-import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
+import { Pencil, Trash2, Umbrella, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 
@@ -25,6 +25,7 @@ export default function HolidayManagementPage() {
   const [editing, setEditing] = useState<SchoolCalendarEntry | null>(null)
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<SchoolCalendarEntry | null>(null)
+  const [filter, setFilter] = useState<'all' | 'holiday' | 'event'>('all')
   const [form, setForm] = useState({
     calendar_date: '',
     day_type: 'holiday' as 'holiday' | 'event',
@@ -49,9 +50,14 @@ export default function HolidayManagementPage() {
     [entries],
   )
 
-  const openCreate = () => {
+  const filtered = useMemo(() => {
+    if (filter === 'all') return holidays
+    return holidays.filter(e => e.day_type === filter)
+  }, [holidays, filter])
+
+  const openCreate = (dayType: 'holiday' | 'event') => {
     setEditing(null)
-    setForm({ calendar_date: '', day_type: 'holiday', title: '', description: '' })
+    setForm({ calendar_date: '', day_type: dayType, title: '', description: '' })
     setFormErrors({})
     setOpen(true)
   }
@@ -84,7 +90,7 @@ export default function HolidayManagementPage() {
         toast.success('Entry updated')
       } else {
         await createMutation.mutateAsync({ ...form, title: form.title.trim() })
-        toast.success('Entry created')
+        toast.success(form.day_type === 'holiday' ? 'Holiday created' : 'Event created')
       }
       setOpen(false)
     } catch (err: any) {
@@ -103,6 +109,13 @@ export default function HolidayManagementPage() {
     }
   }
 
+  const quickAdd = (dayType: 'holiday' | 'event', date: Date, title: string) => {
+    setEditing(null)
+    setForm({ calendar_date: format(date, 'yyyy-MM-dd'), day_type: dayType, title, description: '' })
+    setFormErrors({})
+    setOpen(true)
+  }
+
   return (
     <>
       <Helmet>
@@ -117,27 +130,36 @@ export default function HolidayManagementPage() {
           <select className="h-9 rounded-md border px-3 text-sm" value={year} onChange={e => setYear(Number(e.target.value))}>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add Holiday/Event</Button>
+          <Button onClick={() => openCreate('holiday')}><Umbrella className="mr-2 h-4 w-4" />Add Holiday</Button>
+          <Button variant="outline" onClick={() => openCreate('event')}><Star className="mr-2 h-4 w-4" />Add Event</Button>
         </div>
+      </div>
+
+      <div className="flex gap-2">
+        {(['all', 'holiday', 'event'] as const).map(f => (
+          <Button key={f} variant={filter === f ? 'default' : 'outline'} size="sm" onClick={() => setFilter(f)} className="capitalize">
+            {f === 'all' ? 'All' : f === 'holiday' ? <><Umbrella className="mr-1 h-3.5 w-3.5" />Holidays</> : <><Star className="mr-1 h-3.5 w-3.5" />Events</>}
+          </Button>
+        ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-lg">Holidays & Events</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{filter === 'all' ? 'All Entries' : filter === 'holiday' ? 'Holidays' : 'Events'}</CardTitle></CardHeader>
           <CardContent>
             {isLoading ? (
               <p className="text-center text-muted-foreground py-8">Loading...</p>
-            ) : holidays.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No holidays or events for {year}</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No {filter === 'all' ? 'holidays or events' : filter + 's'} for {year}</p>
             ) : (
               <div className="space-y-2">
-                {holidays.sort((a, b) => a.calendar_date.localeCompare(b.calendar_date)).map(e => (
+                {filtered.sort((a, b) => a.calendar_date.localeCompare(b.calendar_date)).map(e => (
                   <div key={e.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/50">
                     <div className="flex items-start gap-3">
                       <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
                         e.day_type === 'holiday' ? 'bg-yellow-100 text-yellow-700' : 'bg-purple-100 text-purple-700'
                       }`}>
-                        <Calendar className="h-4 w-4" />
+                        {e.day_type === 'holiday' ? <Umbrella className="h-4 w-4" /> : <Star className="h-4 w-4" />}
                       </div>
                       <div>
                         <p className="text-sm font-medium">{e.title}</p>
@@ -167,12 +189,10 @@ export default function HolidayManagementPage() {
               onClick={() => {
                 const nextWeek = new Date()
                 nextWeek.setDate(nextWeek.getDate() + (11 - nextWeek.getDay()) % 7 + 1)
-                setEditing(null)
-                setForm({ calendar_date: format(nextWeek, 'yyyy-MM-dd'), day_type: 'holiday', title: 'Mid-Term Break', description: '' })
-                setOpen(true)
+                quickAdd('holiday', nextWeek, 'Mid-Term Break')
               }}
             >
-              <Calendar className="mr-2 h-4 w-4" />Mid-Term Break
+              <Umbrella className="mr-2 h-4 w-4 text-yellow-600" />Mid-Term Break (Holiday)
             </Button>
             <Button
               variant="outline"
@@ -180,29 +200,36 @@ export default function HolidayManagementPage() {
               onClick={() => {
                 const endYear = new Date()
                 endYear.setMonth(11, 1)
-                setEditing(null)
-                setForm({ calendar_date: format(endYear, 'yyyy-MM-dd'), day_type: 'event', title: 'School Closing Day', description: '' })
-                setOpen(true)
+                quickAdd('event', endYear, 'School Closing Day')
               }}
             >
-              <Calendar className="mr-2 h-4 w-4" />School Closing Day
+              <Star className="mr-2 h-4 w-4 text-purple-600" />School Closing Day (Event)
             </Button>
             <Button
               variant="outline"
               className="w-full justify-start"
               onClick={() => {
-                setEditing(null)
-                setForm({ calendar_date: '', day_type: 'holiday', title: 'National Holiday', description: '' })
-                setOpen(true)
+                const d = new Date()
+                quickAdd('holiday', d, 'National Holiday')
               }}
             >
-              <Calendar className="mr-2 h-4 w-4" />National Holiday
+              <Umbrella className="mr-2 h-4 w-4 text-yellow-600" />National Holiday
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => {
+                const d = new Date()
+                quickAdd('event', d, 'School Event')
+              }}
+            >
+              <Star className="mr-2 h-4 w-4 text-purple-600" />Custom Event
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setFormErrors({}) }} title={editing ? 'Edit Entry' : 'Add Holiday/Event'}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setFormErrors({}) }} title={editing ? 'Edit Entry' : form.day_type === 'holiday' ? 'Add Holiday' : 'Add Event'}>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Date <span className="text-destructive">*</span></Label>
@@ -219,7 +246,7 @@ export default function HolidayManagementPage() {
           </div>
           <div className="space-y-2">
             <Label>Title <span className="text-destructive">*</span></Label>
-            <Input value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setFormErrors({ ...formErrors, title: '' })}} placeholder="e.g., National Holiday" className={formErrors.title ? 'border-destructive' : ''} />
+            <Input value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setFormErrors({ ...formErrors, title: '' })}} placeholder={form.day_type === 'holiday' ? 'e.g., National Holiday' : 'e.g., Sports Day'} className={formErrors.title ? 'border-destructive' : ''} />
             {formErrors.title && <p className="text-xs text-destructive">{formErrors.title}</p>}
           </div>
           <div className="space-y-2">
@@ -228,7 +255,7 @@ export default function HolidayManagementPage() {
               value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional description" />
           </div>
           <Button onClick={handleSave} className="w-full" loading={saving} disabled={Object.keys(formErrors).length > 0}>
-            {editing ? 'Update' : 'Create'} Entry
+            {editing ? 'Update' : 'Create'} {form.day_type === 'holiday' ? 'Holiday' : 'Event'}
           </Button>
         </div>
       </Dialog>
