@@ -74,10 +74,9 @@ CREATE INDEX IF NOT EXISTS idx_holidays_type ON holidays(type);
 -- field was NULL for most days, causing "?" in UI.
 --
 -- Fix: use d.calendar_date from generate_series
--- (never NULL). Pass DATE directly to
--- jsonb_build_object (always produces ISO 8601
--- YYYY-MM-DD) instead of ::TEXT cast (which
--- depends on DateStyle setting).
+-- (never NULL). Use to_char() with explicit format
+-- 'YYYY-MM-DD' to guarantee 10-char output
+-- regardless of PostgreSQL version or DateStyle.
 -- ============================================
 CREATE OR REPLACE FUNCTION get_month_calendar(
   p_year INTEGER,
@@ -98,6 +97,7 @@ BEGIN
   WITH calendar_entries AS (
     SELECT
       d.calendar_date,
+      to_char(d.calendar_date, 'YYYY-MM-DD') AS date_str,
       COALESCE(sc.day_type,
         CASE WHEN EXTRACT(DOW FROM d.calendar_date) IN (0, 6) THEN 'weekend' ELSE 'working_day' END
       ) AS day_type,
@@ -132,7 +132,7 @@ BEGIN
     'calendar', COALESCE(
       (SELECT jsonb_agg(
         jsonb_build_object(
-          'date', ce.calendar_date,
+          'date', ce.date_str,
           'day_type', ce.day_type,
           'title', COALESCE(ce.holiday_title, ce.title),
           'description', ce.description,
@@ -141,7 +141,7 @@ BEGIN
           'absent', COALESCE(as2.absent_count, 0),
           'total', COALESCE(as2.total_count, 0)
         )
-        ORDER BY ce.calendar_date
+        ORDER BY ce.date_str
       )
       FROM calendar_entries ce
       LEFT JOIN attendance_summary as2 ON as2.attendance_date = ce.calendar_date),
