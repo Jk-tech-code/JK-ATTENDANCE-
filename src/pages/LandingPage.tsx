@@ -11,11 +11,12 @@ export default function LandingPage() {
       <Helmet>
         <title>JK Attendance System — School Attendance Management</title>
         <meta name="description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
+        <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`${siteUrl}/`} />
         <meta property="og:title" content="JK Attendance System — School Attendance Management" />
         <meta property="og:description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
         <meta property="og:url" content={`${siteUrl}/`} />
-        <meta property="og:image" content={`${siteUrl}/1_full_color_version.png`} />
+        <meta property="og:image" content={`${siteUrl}/og-image.png`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:locale" content="en_US" />
@@ -24,14 +25,14 @@ export default function LandingPage() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="JK Attendance System — School Attendance Management" />
         <meta name="twitter:description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
-        <meta name="twitter:image" content={`${siteUrl}/1_full_color_version.png`} />
+        <meta name="twitter:image" content={`${siteUrl}/og-image.png`} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "Glorious Group of Schools",
             "url": siteUrl,
-            "logo": `${siteUrl}/1_full_color_version.png`,
+            "logo": `${siteUrl}/og-image.png`,
             "description": "JK Attendance System — GPS-based teacher attendance tracking for Glorious Group of Schools",
             "foundingDate": "2025",
             "knowsAbout": ["School Management", "Attendance Tracking", "GPS Geofencing"],

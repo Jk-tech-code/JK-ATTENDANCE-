@@ -23,7 +23,12 @@ export default function HelpPage() {
         <link rel="canonical" href={`${window.location.origin}/help`} />
         <meta property="og:title" content="Help & FAQ — JK Attendance System" />
         <meta property="og:description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta property="og:image" content={`${window.location.origin}/og-image.png`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={`${window.location.origin}/og-image.png`} />
       </Helmet>
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
         <div className="flex items-center gap-4">

@@ -50,7 +50,7 @@ export default defineConfig({
     }),
     sitemap({
       hostname: process.env.VITE_SITE_URL ?? 'https://jkattendance.vercel.app',
-      dynamicRoutes: ['/login', '/forgot-password', '/help'],
+      dynamicRoutes: ['/login', '/help'],
       exclude: ['/admin/*', '/dashboard', '/reset-password'],
       generateRobotsTxt: false,
     }),
