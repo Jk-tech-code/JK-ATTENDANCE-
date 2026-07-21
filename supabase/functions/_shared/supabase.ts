@@ -56,6 +56,22 @@ export async function isAdmin(
   return data !== null
 }
 
+/**
+ * Fallback: checks admin status via the public.is_admin() SQL function.
+ * Use this when the service_role client cannot read teachers.role directly
+ * (e.g. if the role column query fails).
+ */
+export async function isAdminViaRpc(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("is_admin")
+  if (error) {
+    console.error("[isAdminViaRpc] RPC failed:", error.message)
+    return false
+  }
+  return data === true
+}
+
 export function getUserRole(_user: { user_metadata?: Record<string, unknown> }): string {
   return "teacher"
 }

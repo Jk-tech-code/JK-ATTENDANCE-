@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import type { AuthUser, Teacher } from '@/types'
 
-async function getTeacherProfile(userId: string, _email?: string): Promise<Teacher | null> {
+async function getTeacherProfile(userId: string, email?: string): Promise<Teacher | null> {
   for (const field of ['auth_user_id', 'user_id', 'id'] as const) {
     const { data, error } = await supabase
       .from('teachers')
@@ -10,7 +10,20 @@ async function getTeacherProfile(userId: string, _email?: string): Promise<Teach
       .maybeSingle()
 
     if (data) return data as Teacher
-    if (error) return null
+    if (error) {
+      console.error(`[getTeacherProfile] Query by ${field}=${userId} failed:`, error.message)
+      return null
+    }
+  }
+
+  // Fallback: try by email
+  if (email) {
+    const { data } = await supabase
+      .from('teachers')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle()
+    if (data) return data as Teacher
   }
 
   return null

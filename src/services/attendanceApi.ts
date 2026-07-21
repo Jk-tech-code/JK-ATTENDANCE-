@@ -4,9 +4,10 @@ import type { Attendance } from '@/types'
 const EDGE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
 
 async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession()
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw new Error('Failed to get session: ' + error.message)
   const token = data.session?.access_token
-  if (!token) throw new Error('Not authenticated')
+  if (!token) throw new Error('Session expired. Please log in again.')
   return token
 }
 
@@ -27,18 +28,34 @@ async function callFunction<T>(
     })
   }
 
-  const response = await fetch(url.toString(), {
-    method: options.method ?? 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+  let response: Response
+  try {
+    response = await fetch(url.toString(), {
+      method: options.method ?? 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    })
+  } catch (fetchErr) {
+    const msg = (fetchErr as Error)?.message ?? ''
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network')) {
+      throw new Error('Server unavailable. Check your internet connection or the function may not be deployed.')
+    }
+    throw fetchErr as Error
+  }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }))
-    throw new Error(error.error ?? `Edge Function error: ${response.status}`)
+    const errorBody = await response.json().catch(() => ({ error: response.statusText }))
+    const statusMsg = response.status === 401
+      ? 'Session expired. Please log in again.'
+      : response.status === 403
+        ? 'Permission denied. You do not have access to this resource.'
+        : response.status === 404
+          ? `Function not found. The edge function '${name}' may not be deployed.`
+          : errorBody.error ?? `Edge Function error: ${response.status}`
+    throw new Error(statusMsg)
   }
 
   return response.json()

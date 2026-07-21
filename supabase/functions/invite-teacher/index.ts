@@ -125,6 +125,7 @@ Deno.serve(async (req: Request) => {
         department: input.department || null,
         phone: input.phone || null,
         reporting_time: input.reporting_time || null,
+        role: 'teacher',
         invited_at: new Date().toISOString(),
         invitation_sent: true,
       })

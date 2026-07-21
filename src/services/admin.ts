@@ -169,10 +169,20 @@ export async function updateSchoolSettings(
     default_reporting_time: string
   }>
 ): Promise<SchoolSettings> {
+  // Fetch current settings ID first
+  const current = await supabase
+    .from('school_settings')
+    .select('id')
+    .limit(1)
+    .maybeSingle()
+
+  const settingsId = current.data?.id
+  if (!settingsId) throw new Error('School settings not found')
+
   const { data, error } = await supabase
     .from('school_settings')
     .update(input)
-    .eq('id', (await getSchoolSettings())?.id ?? '')
+    .eq('id', settingsId)
     .select()
     .single()
 
@@ -232,7 +242,8 @@ export async function deleteTeacher(id: string): Promise<void> {
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
 
-  const url = '/api/delete-teacher'
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const url = `${supabaseUrl}/functions/v1/delete-teacher`
   console.log('[deleteTeacher] Calling:', url, { teacher_id: id })
 
   let res: Response

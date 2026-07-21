@@ -8,10 +8,15 @@ import { toast } from 'sonner'
 
 export default function AdminDashboardPage() {
   const { data, isLoading, error } = useAdminDashboard()
-  const { stats, daily, teachers } = data
+  const stats = data?.stats ?? null
+  const daily = data?.daily ?? null
+  const teachers = data?.teachers ?? []
 
   useEffect(() => {
-    if (error) toast.error(error.message)
+    if (error) {
+      console.error('[AdminDashboard] Error:', error.message)
+      toast.error(error.message, { duration: 5000 })
+    }
   }, [error])
 
   const cards = [
