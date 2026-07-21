@@ -12,7 +12,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-4 text-center">
           <img
-            src="/1_full_color_version.png"
+            src="/4_transparent_background.png"
             alt="JK Attendance"
             loading="lazy"
             className="mx-auto h-16 w-16 object-contain"
