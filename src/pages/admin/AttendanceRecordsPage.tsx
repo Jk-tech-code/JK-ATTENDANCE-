@@ -33,12 +33,16 @@ export default function AttendanceRecordsPage() {
   }, [error])
   const { data: teachers } = useAttendanceTeachers()
 
-  const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
-    const filename = `attendance_${new Date().toISOString().slice(0, 10)}`
-    if (format === 'csv') exportToCSV(records, filename)
-    else if (format === 'xlsx') exportToExcel(records, filename)
-    else exportToPDF(records, filename)
-    toast.success(`Exported as ${format.toUpperCase()}`)
+  const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
+    try {
+      const filename = `attendance_${new Date().toISOString().slice(0, 10)}`
+      if (format === 'csv') exportToCSV(records, filename)
+      else if (format === 'xlsx') await exportToExcel(records, filename)
+      else await exportToPDF(records, filename)
+      toast.success(`Exported as ${format.toUpperCase()}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed')
+    }
   }
 
   const handleExportAll = (format: 'csv' | 'xlsx' | 'pdf') => {

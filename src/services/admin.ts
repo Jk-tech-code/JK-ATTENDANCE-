@@ -371,53 +371,45 @@ function rowFromRecord(r: AttendanceWithTeacher): string[] {
 }
 
 // ─── Excel export ────────────────────────────────────────────
-export function exportToExcel(records: AttendanceWithTeacher[], filename: string) {
+export async function exportToExcel(records: AttendanceWithTeacher[], filename: string): Promise<void> {
   const headers = [['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']]
   const rows = records.map(r => rowFromRecord(r))
   const wsData = [...headers, ...rows]
 
-  import('xlsx').then((XLSX) => {
-    const wb = XLSX.utils.book_new()
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance')
-    XLSX.writeFile(wb, `${filename}.xlsx`)
-  })
+  const XLSX = await import('xlsx')
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet(wsData)
+  XLSX.utils.book_append_sheet(wb, ws, 'Attendance')
+  XLSX.writeFile(wb, `${filename}.xlsx`)
 }
 
 // ─── PDF export ──────────────────────────────────────────────
-export function exportToPDF(records: AttendanceWithTeacher[], filename: string) {
+export async function exportToPDF(records: AttendanceWithTeacher[], filename: string): Promise<void> {
   const headers = [['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']]
   const rows = records.map(r => rowFromRecord(r))
 
-  import('jspdf').then(async ({ default: jsPDF }) => {
-    await import('jspdf-autotable')
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }) as unknown as {
-      text: (text: string, x: number, y: number) => void
-      autoTable: (options: {
-        startY: number
-        head: string[][]
-        body: string[][]
-        styles?: Record<string, unknown>
-        headStyles?: Record<string, unknown>
-      }) => void
-      save: (filename: string) => void
-    }
-    doc.text(`Attendance Report - ${filename}`, 14, 15)
-    doc.autoTable({
-      startY: 22,
-      head: [headers[0]],
-      body: rows,
-      styles: { fontSize: 7 },
-      headStyles: { fillColor: [59, 130, 246] },
-    })
-    doc.save(`${filename}.pdf`)
+  const [{ default: jsPDF }, _autoTable] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
+
+  const doc: any = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  doc.setFontSize(11)
+  doc.text(`Attendance Report - ${filename}`, 14, 15)
+  doc.autoTable({
+    startY: 22,
+    head: [headers[0]],
+    body: rows,
+    styles: { fontSize: 7 },
+    headStyles: { fillColor: [59, 130, 246] },
   })
+  doc.save(`${filename}.pdf`)
 }
 
 // ─── Export all pages ────────────────────────────────────────
-export async function exportAllAttendance(format: 'csv' | 'xlsx' | 'pdf', filename: string) {
+export async function exportAllAttendance(format: 'csv' | 'xlsx' | 'pdf', filename: string): Promise<void> {
   const { records } = await getAttendanceRecords({ page: 1, page_size: 10000 })
   if (format === 'csv') exportToCSV(records, filename)
-  else if (format === 'xlsx') exportToExcel(records, filename)
-  else exportToPDF(records, filename)
+  else if (format === 'xlsx') await exportToExcel(records, filename)
+  else await exportToPDF(records, filename)
 }

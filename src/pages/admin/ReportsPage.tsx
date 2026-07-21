@@ -55,14 +55,18 @@ export default function ReportsPage() {
   }
 
   const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
-    const { records } = await import('@/services/admin').then(m =>
-      m.getAttendanceRecords({ date: `${year}-${String(month).padStart(2, '0')}-01`, page_size: 500 })
-    )
-    const filename = `monthly_report_${year}_${month}`
-    if (format === 'csv') exportToCSV(records, filename)
-    else if (format === 'xlsx') exportToExcel(records, filename)
-    else exportToPDF(records, filename)
-    toast.success(`Report exported as ${format.toUpperCase()}`)
+    try {
+      const { records } = await import('@/services/admin').then(m =>
+        m.getAttendanceRecords({ date: `${year}-${String(month).padStart(2, '0')}-01`, page_size: 500 })
+      )
+      const filename = `monthly_report_${year}_${month}`
+      if (format === 'csv') exportToCSV(records, filename)
+      else if (format === 'xlsx') await exportToExcel(records, filename)
+      else await exportToPDF(records, filename)
+      toast.success(`Report exported as ${format.toUpperCase()}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export failed')
+    }
   }
 
   const aiData = aiMutation.data ?? null
