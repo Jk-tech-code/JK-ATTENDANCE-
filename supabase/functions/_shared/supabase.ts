@@ -32,17 +32,28 @@ export async function verifyAuth(authHeader: string | null) {
 }
 
 /**
- * Checks whether the authenticated user has admin role by querying
- * the teachers table via the SECURITY DEFINER function is_admin().
+ * Checks whether the authenticated user has admin role by querying the
+ * teachers table directly via the service_role client (bypasses RLS).
+ * Does NOT use the is_admin() DB RPC because service_role clients have
+ * no auth.uid() context, causing is_admin() to always return false.
  * Never reads JWT user_metadata for authorization.
  */
-export async function isAdmin(supabase: ReturnType<typeof createSupabaseAdmin>): Promise<boolean> {
-  const { data, error } = await supabase.rpc("is_admin")
+export async function isAdmin(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("teachers")
+    .select("id")
+    .or(`id.eq.${userId},user_id.eq.${userId},auth_user_id.eq.${userId}`)
+    .eq("role", "admin")
+    .maybeSingle()
+
   if (error) {
-    console.error("[isAdmin] RPC call failed:", error.message)
+    console.error("[isAdmin] Query failed:", error.message)
     return false
   }
-  return data === true
+  return data !== null
 }
 
 export function getUserRole(_user: { user_metadata?: Record<string, unknown> }): string {

@@ -233,20 +233,23 @@ export default function CalendarPage() {
                     <div key={wi} className="grid grid-cols-7 gap-px">
                       {week.map((day, di) => {
                         if (!day) return <div key={di} className="min-h-[72px] rounded-md bg-muted/20" />
-                        const isToday = day.date === today
-                        const isSelected = day.date === selectedDate
-                        const dayNum = day.date ? new Date(String(day.date) + 'T12:00:00').getDate() : null
+                        // date is always a 'YYYY-MM-DD' string from the RPC (never null after migration 00029)
+                        const dateStr = day.date || null
+                        const dayNum = dateStr ? parseInt(dateStr.slice(8, 10), 10) : null
+                        const isToday = dateStr === today
+                        const isSelected = dateStr === selectedDate
+                        const isPast = dateStr ? dateStr <= today : false
 
                         return (
                           <button
-                            key={day.date}
-                            onClick={() => handleDateClick(day.date)}
+                            key={dateStr ?? `empty-${di}`}
+                            onClick={() => dateStr && handleDateClick(dateStr)}
                             className={`min-h-[72px] rounded-md border p-1.5 text-left text-xs transition-colors hover:ring-2 hover:ring-primary/30 ${getDayColor(day)} ${
                               isToday ? 'ring-2 ring-primary' : ''
                             } ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                           >
                             <span className={`font-semibold text-sm ${isToday ? 'text-primary' : ''}`}>{dayNum ?? ''}</span>
-                            {new Date(day.date) <= new Date() && (
+                            {isPast && (
                               <div className="mt-0.5 space-y-0.5">
                                 {day.day_type === 'working_day' && (
                                   <div className="flex gap-0.5">

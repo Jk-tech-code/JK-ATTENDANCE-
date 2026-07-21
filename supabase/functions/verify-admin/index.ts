@@ -16,7 +16,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createSupabaseAdmin()
-    const admin = await isAdmin(supabase)
+    const admin = await isAdmin(supabase, auth.user!.id)
 
     return jsonResponse({
       verified: admin,
