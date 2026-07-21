@@ -12,7 +12,7 @@ export function handleCors(req: Request): Response | null {
   }
 
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers })
+    return new Response(null, { status: 204, headers })
   }
 
   return null
