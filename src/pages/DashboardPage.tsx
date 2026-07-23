@@ -9,7 +9,11 @@ import { useAuth } from '@/hooks/useAuth'
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const teacher = user?.teacher
+  const displayName = user?.teacher?.full_name?.split(' ')[0]
+    ?? user?.profile?.full_name?.split(' ')[0]
+    ?? 'Teacher'
+  const department = user?.teacher?.department ?? 'All Departments'
+  const staffNumber = user?.teacher?.staff_number ?? 'N/A'
 
   return (
     <>
@@ -23,10 +27,10 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold">
-              Welcome, {teacher?.full_name?.split(' ')[0] ?? 'Teacher'}
+              Welcome, {displayName}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {teacher?.department ?? 'All Departments'} &middot; Staff #{teacher?.staff_number ?? 'N/A'}
+              {department}{user?.teacher ? <> &middot; Staff #{staffNumber}</> : null}
             </p>
           </div>
           <ClockWidget />

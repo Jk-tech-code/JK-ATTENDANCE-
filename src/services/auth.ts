@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { AuthUser, Teacher } from '@/types'
+import type { AuthUser, Teacher, Profile } from '@/types'
 
 async function getTeacherProfile(userId: string, email?: string): Promise<Teacher | null> {
   let lastError: string | null = null
@@ -18,7 +18,6 @@ async function getTeacherProfile(userId: string, email?: string): Promise<Teache
     }
   }
 
-  // Fallback: try by email
   if (email) {
     const { data, error } = await supabase
       .from('teachers')
@@ -39,6 +38,48 @@ async function getTeacherProfile(userId: string, email?: string): Promise<Teache
   return null
 }
 
+async function getOrCreateProfile(userId: string, email?: string): Promise<Profile | null> {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (existing) return existing as Profile
+
+  if (!email) return null
+
+  const { data: created, error } = await supabase
+    .from('profiles')
+    .insert({ id: userId, email })
+    .select()
+    .maybeSingle()
+
+  if (error) {
+    console.error('[getOrCreateProfile] Failed to create profile:', error.message)
+    return null
+  }
+
+  return created as Profile
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/login`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
 export async function signIn(
   email: string,
   password: string
@@ -55,12 +96,28 @@ export async function signIn(
 
   const teacher = await getTeacherProfile(authUser.id, authUser.email ?? undefined)
 
+  if (teacher) {
+    return {
+      user: {
+        id: authUser.id,
+        email: authUser.email!,
+        teacher,
+        profile: null,
+        role: teacher.role ?? 'teacher',
+      },
+      error: null,
+    }
+  }
+
+  const profile = await getOrCreateProfile(authUser.id, authUser.email ?? undefined)
+
   return {
     user: {
       id: authUser.id,
       email: authUser.email!,
-      teacher,
-      role: teacher?.role ?? 'teacher',
+      teacher: null,
+      profile,
+      role: profile?.role ?? 'teacher',
     },
     error: null,
   }
@@ -86,10 +143,23 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   const teacher = await getTeacherProfile(data.user.id, data.user.email ?? undefined)
 
+  if (teacher) {
+    return {
+      id: data.user.id,
+      email: data.user.email!,
+      teacher,
+      profile: null,
+      role: teacher.role ?? 'teacher',
+    }
+  }
+
+  const profile = await getOrCreateProfile(data.user.id, data.user.email ?? undefined)
+
   return {
     id: data.user.id,
     email: data.user.email!,
-    teacher,
-    role: teacher?.role ?? 'teacher',
+    teacher: null,
+    profile,
+    role: profile?.role ?? 'teacher',
   }
 }

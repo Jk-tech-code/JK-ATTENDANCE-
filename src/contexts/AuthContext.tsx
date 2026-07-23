@@ -1,7 +1,12 @@
 import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { AuthUser } from '@/types'
 import { supabase } from '@/services/supabase'
-import { getCurrentUser, signIn as authSignIn, signOut as authSignOut } from '@/services/auth'
+import {
+  getCurrentUser,
+  signIn as authSignIn,
+  signOut as authSignOut,
+  signInWithGoogle as authSignInWithGoogle,
+} from '@/services/auth'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -10,9 +15,9 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<{ error: string | null; user: AuthUser | null }>
   signOut: () => Promise<{ error: string | null }>
+  signInWithGoogle: () => Promise<void>
 }
 
-// oxlint-disable-next-line react/only-export-components
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -23,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUser = useCallback(async () => {
     const currentUser = await getCurrentUser()
     setUser(currentUser)
-    if (currentUser && !currentUser.teacher) {
+    if (currentUser && !currentUser.teacher && !currentUser.profile) {
       setProfileError('Teacher profile not found. Contact your administrator.')
     } else {
       setProfileError(null)
@@ -34,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileError(null)
     const currentUser = await getCurrentUser()
     setUser(currentUser)
-    if (currentUser && !currentUser.teacher) {
+    if (currentUser && !currentUser.teacher && !currentUser.profile) {
       setProfileError('Teacher profile not found. Contact your administrator.')
     }
   }, [])
@@ -61,13 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await authSignIn(email, password)
     if (result.user) {
       setUser(result.user)
-      if (!result.user.teacher) {
+      if (!result.user.teacher && !result.user.profile) {
         setProfileError('Teacher profile not found. Contact your administrator.')
       } else {
         setProfileError(null)
       }
     }
     return { error: result.error, user: result.user }
+  }
+
+  const signInWithGoogle = async () => {
+    await authSignInWithGoogle()
   }
 
   const signOut = async () => {
@@ -80,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, profileError, refreshProfile, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, profileError, refreshProfile, signIn, signOut, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   )

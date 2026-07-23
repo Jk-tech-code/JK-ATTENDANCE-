@@ -22,9 +22,29 @@ vi.mock('./supabase', () => ({
   },
 }))
 
+function mockProfilesChain(data: unknown) {
+  const maybeSingle = vi.fn().mockResolvedValue({ data, error: null })
+  const eq = vi.fn().mockReturnValue({ maybeSingle })
+  const select = vi.fn().mockReturnValue({ eq })
+  const insert = vi.fn().mockReturnValue({ select })
+  return { select, insert, eq, maybeSingle }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
-  mockFrom.mockReturnValue({ select: mockSelect })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'profiles') {
+      return mockProfilesChain({
+        id: 'user-2',
+        email: 'no-profile@school.com',
+        full_name: 'Google User',
+        avatar_url: null,
+        role: 'teacher',
+        created_at: new Date().toISOString(),
+      })
+    }
+    return { select: mockSelect, eq: mockEq, maybeSingle: mockMaybeSingle }
+  })
   mockSelect.mockReturnValue({ eq: mockEq })
   mockEq.mockReturnValue({ maybeSingle: mockMaybeSingle })
 })
@@ -91,7 +111,7 @@ describe('getCurrentUser', () => {
     expect(result).toBeNull()
   })
 
-  it('returns user with null teacher when profile missing', async () => {
+  it('returns user with null teacher and profile when teacher missing', async () => {
     mockGetUser.mockResolvedValue({
       data: {
         user: {
@@ -114,6 +134,9 @@ describe('getCurrentUser', () => {
     expect(result).not.toBeNull()
     expect(result!.id).toBe('user-2')
     expect(result!.teacher).toBeNull()
+    expect(result!.profile).not.toBeNull()
+    expect(result!.profile!.full_name).toBe('Google User')
+    expect(result!.role).toBe('teacher')
   })
 })
 

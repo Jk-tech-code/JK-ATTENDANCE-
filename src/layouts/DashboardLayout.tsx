@@ -48,7 +48,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="hidden items-center gap-2 sm:flex">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {user?.teacher?.full_name ?? user?.email}
+                {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </span>
             </div>
             {user?.role === 'admin' && (

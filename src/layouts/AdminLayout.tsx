@@ -108,7 +108,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           {!collapsed && (
             <div className="mb-2 px-3 py-2">
               <p className="truncate text-sm font-medium">
-                {user?.teacher?.full_name ?? user?.email}
+                {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </p>
               <p className="truncate text-xs text-muted-foreground">Admin</p>
             </div>
@@ -152,7 +152,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
           </Button>
           <span className="text-xs text-muted-foreground hidden sm:inline">
-            {user?.teacher?.full_name ?? user?.email}
+            {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
           </span>
         </header>
         <main role="main" id="main-content" className="flex-1">
