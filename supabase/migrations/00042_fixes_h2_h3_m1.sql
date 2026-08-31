@@ -12,6 +12,9 @@
 -- attendance rows that haven't been processed yet.
 -- Also add search_path hardening per security baseline.
 -- ============================================
+-- Cannot change return type of existing function, so drop first
+DROP FUNCTION IF EXISTS public.process_end_of_day();
+
 CREATE OR REPLACE FUNCTION process_end_of_day()
 RETURNS jsonb
 LANGUAGE plpgsql
