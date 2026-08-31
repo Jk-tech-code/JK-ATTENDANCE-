@@ -12,6 +12,7 @@ import {
   GpsTimeoutError,
   LocationRejectedError,
   LowAccuracyError,
+  RateLimitError,
 } from '@/lib/errors'
 
 export interface UseLocationAttendanceState {
@@ -19,8 +20,10 @@ export interface UseLocationAttendanceState {
   error: string | null
   distance: number | null
   locationStatus: 'inside_school' | 'outside_school' | 'low_accuracy' | null
-  gpsAccuracy: number | null
   successMessage: string | null
+  // Rate limiting (from RPC response)
+  rateLimitRemaining: number | null
+  rateLimitRetryAfter: number | null
 }
 
 export interface UseLocationAttendanceReturn extends UseLocationAttendanceState {
@@ -45,8 +48,9 @@ export function useLocationAttendance(): UseLocationAttendanceReturn {
     error: null,
     distance: null,
     locationStatus: null,
-    gpsAccuracy: null,
     successMessage: null,
+    rateLimitRemaining: null,
+    rateLimitRetryAfter: null,
   })
 
   const clearError = useCallback(() => {
@@ -103,8 +107,9 @@ export function useLocationAttendance(): UseLocationAttendanceReturn {
         checkingIn: false,
         distance: result.distance ?? null,
         locationStatus: (result.location_status as 'inside_school') ?? null,
-        gpsAccuracy: gps.accuracy,
         successMessage: 'Check-in successful!',
+        rateLimitRemaining: result.rate_limit?.remaining ?? null,
+        rateLimitRetryAfter: null,
       }))
 
       queryClient.invalidateQueries({ queryKey: attendanceKeys.today(teacherId) })
@@ -128,6 +133,17 @@ export function useLocationAttendance(): UseLocationAttendanceReturn {
         message = err.message
       } else if (err instanceof LocationRejectedError) {
         message = err.message
+      } else if (err instanceof RateLimitError) {
+        message = err.message
+        // Set rate limit state for countdown UI
+        setState((prev) => ({
+          ...prev,
+          checkingIn: false,
+          error: message,
+          rateLimitRetryAfter: err.retryAfter,
+          rateLimitRemaining: 0,
+        }))
+        return null
       } else if (err instanceof Error) {
         message = err.message
       } else {

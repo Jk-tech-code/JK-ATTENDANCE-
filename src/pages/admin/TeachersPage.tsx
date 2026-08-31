@@ -1,4 +1,7 @@
 import { useState, useMemo, useRef } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +11,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useTeachers, useCreateTeacher, useUpdateTeacher, useDeleteTeacher, useInviteTeacher } from '@/hooks/useTeachers'
+import { InviteTeacherModal, type InviteTeacherFormData } from '@/components/InviteTeacherModal'
 import type { Teacher } from '@/types'
 import { Plus, Pencil, Trash2, Search, UserPlus, Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -15,7 +19,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
-const defaultForm = {
+const teacherSchema = z.object({
+  staff_number: z.string().min(1, 'Staff number is required').max(50, 'Staff number too long'),
+  full_name: z.string().min(1, 'Full name is required').max(200, 'Name too long'),
+  email: z.string().min(1, 'Email is required').email('Enter a valid email address').max(254),
+  department: z.string().max(200).optional().or(z.literal('')),
+  phone: z.string().max(30).optional().or(z.literal('')),
+  reporting_time: z.string().optional().or(z.literal('')),
+  employment_status: z.enum(['active', 'inactive', 'suspended']),
+})
+
+type TeacherFormData = z.infer<typeof teacherSchema>
+
+const defaultFormValues: TeacherFormData = {
   staff_number: '',
   full_name: '',
   email: '',
@@ -23,30 +39,6 @@ const defaultForm = {
   phone: '',
   reporting_time: '07:20',
   employment_status: 'active',
-}
-
-const defaultInviteForm = {
-  staff_number: '',
-  full_name: '',
-  email: '',
-  department: '',
-  phone: '',
-  reporting_time: '07:20',
-}
-
-function validateForm(values: Record<string, string>): Record<string, string> {
-  const errors: Record<string, string> = {}
-  if (!values.staff_number.trim()) errors.staff_number = 'Staff number is required'
-  if (!values.full_name.trim()) errors.full_name = 'Full name is required'
-  if (!values.email.trim()) {
-    errors.email = 'Email is required'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-    errors.email = 'Invalid email format'
-  }
-  if (values.phone && !/^[+]?[\d\s()-]{6,20}$/.test(values.phone)) {
-    errors.phone = 'Invalid phone number format'
-  }
-  return errors
 }
 
 export default function TeachersPage() {
@@ -62,10 +54,17 @@ export default function TeachersPage() {
   const [open, setOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null)
-  const [form, setForm] = useState(defaultForm)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-  const [inviteForm, setInviteForm] = useState(defaultInviteForm)
-  const [inviteFormErrors, setInviteFormErrors] = useState<Record<string, string>>({})
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<TeacherFormData>({
+    resolver: zodResolver(teacherSchema),
+    mode: 'onChange',
+    defaultValues: defaultFormValues,
+  })
 
   const filtered = useMemo(() => {
     if (!teachers) return []
@@ -81,39 +80,43 @@ export default function TeachersPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm(defaultForm)
-    setFormErrors({})
+    reset(defaultFormValues)
     setOpen(true)
   }
 
   const openEdit = (t: Teacher) => {
     setEditing(t)
-    setForm({
+    reset({
       staff_number: t.staff_number,
       full_name: t.full_name,
       email: t.email,
       department: t.department ?? '',
       phone: t.phone ?? '',
       reporting_time: t.reporting_time ?? '07:20',
-      employment_status: t.employment_status ?? 'active',
+      employment_status: (t.employment_status as TeacherFormData['employment_status']) ?? 'active',
     })
-    setFormErrors({})
     setOpen(true)
   }
 
-  const handleSave = async () => {
-    const errors = validateForm(form)
-    setFormErrors(errors)
-    if (Object.keys(errors).length > 0) return
+  const onFormSubmit = async (data: TeacherFormData) => {
+    const trimmed = {
+      staff_number: data.staff_number.trim(),
+      full_name: data.full_name.trim(),
+      email: data.email.trim(),
+      department: data.department?.trim() || undefined,
+      phone: data.phone?.trim() || undefined,
+      reporting_time: data.reporting_time || undefined,
+      employment_status: data.employment_status,
+    }
 
     try {
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, input: form })
+        await updateMutation.mutateAsync({ id: editing.id, input: trimmed })
         toast.success('Teacher updated successfully')
       } else {
-        await createMutation.mutateAsync(form)
+        await createMutation.mutateAsync(trimmed)
         toast.success('Teacher created and invitation sent', {
-          description: `${form.email} will receive a link to create their password and sign in.`,
+          description: `${trimmed.email} will receive a link to create their password and sign in.`,
           duration: 10000,
         })
       }
@@ -134,26 +137,20 @@ export default function TeachersPage() {
     }
   }
 
-  const handleInvite = async () => {
-    const errors = validateForm(inviteForm)
-    setInviteFormErrors(errors)
-    if (Object.keys(errors).length > 0) return
-
+  const handleInvite = async (data: InviteTeacherFormData) => {
     try {
-      await inviteMutation.mutateAsync(inviteForm)
-      setInviteOpen(false)
+      await inviteMutation.mutateAsync(data)
       toast.success('Invitation email sent', {
-        description: `${inviteForm.email} will receive a link to create their password and sign in.`,
+        description: `${data.email} will receive a link to create their password and sign in.`,
         duration: 10000,
       })
     } catch (err: any) {
       toast.error(err.message)
+      throw err
     }
   }
 
-  const saving = createMutation.isPending || updateMutation.isPending
   const deleting = deleteMutation.isPending
-  const inviting = inviteMutation.isPending
 
   return (
     <>
@@ -166,7 +163,7 @@ export default function TeachersPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Teachers</h1>
         <div className="flex gap-2">
-          <Button onClick={() => { setInviteForm(defaultInviteForm); setInviteOpen(true) }}>
+          <Button onClick={() => setInviteOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />Invite Teacher
           </Button>
           <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add Teacher</Button>
@@ -218,43 +215,43 @@ export default function TeachersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setFormErrors({}) }} title={editing ? 'Edit Teacher' : 'Add Teacher'}>
-        <div className="space-y-4">
+      <Dialog open={open} onOpenChange={(o) => { if (!o && !isSubmitting) reset(); setOpen(o); }} title={editing ? 'Edit Teacher' : 'Add Teacher'}>
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Staff Number <span className="text-destructive">*</span></Label>
-              <Input value={form.staff_number} onChange={e => { setForm({ ...form, staff_number: e.target.value }); setFormErrors({ ...formErrors, staff_number: '' })}} className={formErrors.staff_number ? 'border-destructive' : ''} />
-              {formErrors.staff_number && <p className="text-xs text-destructive">{formErrors.staff_number}</p>}
+              <Label htmlFor="edit-staff-number">Staff Number <span className="text-destructive">*</span></Label>
+              <Input id="edit-staff-number" {...register('staff_number')} className={errors.staff_number ? 'border-destructive' : ''} />
+              {errors.staff_number && <p className="text-xs text-destructive">{errors.staff_number.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Full Name <span className="text-destructive">*</span></Label>
-              <Input value={form.full_name} onChange={e => { setForm({ ...form, full_name: e.target.value }); setFormErrors({ ...formErrors, full_name: '' })}} className={formErrors.full_name ? 'border-destructive' : ''} />
-              {formErrors.full_name && <p className="text-xs text-destructive">{formErrors.full_name}</p>}
+              <Label htmlFor="edit-full-name">Full Name <span className="text-destructive">*</span></Label>
+              <Input id="edit-full-name" {...register('full_name')} className={errors.full_name ? 'border-destructive' : ''} />
+              {errors.full_name && <p className="text-xs text-destructive">{errors.full_name.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Email <span className="text-destructive">*</span></Label>
-              <Input type="email" value={form.email} onChange={e => { setForm({ ...form, email: e.target.value }); setFormErrors({ ...formErrors, email: '' })}} disabled={!!editing} className={formErrors.email ? 'border-destructive' : ''} />
-              {formErrors.email && <p className="text-xs text-destructive">{formErrors.email}</p>}
+              <Label htmlFor="edit-email">Email <span className="text-destructive">*</span></Label>
+              <Input id="edit-email" type="email" {...register('email')} disabled={!!editing} className={errors.email ? 'border-destructive' : ''} />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Department</Label>
-              <Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
+              <Label htmlFor="edit-department">Department</Label>
+              <Input id="edit-department" {...register('department')} />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input value={form.phone} onChange={e => { setForm({ ...form, phone: e.target.value }); setFormErrors({ ...formErrors, phone: '' })}} className={formErrors.phone ? 'border-destructive' : ''} />
-              {formErrors.phone && <p className="text-xs text-destructive">{formErrors.phone}</p>}
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input id="edit-phone" {...register('phone')} className={errors.phone ? 'border-destructive' : ''} />
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Reporting Time</Label>
-              <Input type="time" value={form.reporting_time} onChange={e => setForm({ ...form, reporting_time: e.target.value })} />
+              <Label htmlFor="edit-reporting-time">Reporting Time</Label>
+              <Input id="edit-reporting-time" type="time" {...register('reporting_time')} />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label htmlFor="edit-status">Status</Label>
               <select
+                id="edit-status"
+                {...register('employment_status')}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                value={form.employment_status}
-                onChange={e => setForm({ ...form, employment_status: e.target.value })}
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -262,52 +259,17 @@ export default function TeachersPage() {
               </select>
             </div>
           </div>
-          <Button onClick={handleSave} className="w-full" loading={saving} disabled={Object.keys(formErrors).length > 0}>
+          <Button type="submit" className="w-full" loading={isSubmitting} disabled={!isValid || isSubmitting}>
             {editing ? 'Update' : 'Create'} Teacher
           </Button>
-        </div>
+        </form>
       </Dialog>
 
-      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setInviteFormErrors({}) }} title="Invite Teacher">
-        <p className="text-sm text-muted-foreground mb-4">
-          An invitation email will be sent to the teacher with a secure link to create their password and activate their account.
-        </p>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Staff Number <span className="text-destructive">*</span></Label>
-              <Input value={inviteForm.staff_number} onChange={e => { setInviteForm({ ...inviteForm, staff_number: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, staff_number: '' })}} className={inviteFormErrors.staff_number ? 'border-destructive' : ''} />
-              {inviteFormErrors.staff_number && <p className="text-xs text-destructive">{inviteFormErrors.staff_number}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Full Name <span className="text-destructive">*</span></Label>
-              <Input value={inviteForm.full_name} onChange={e => { setInviteForm({ ...inviteForm, full_name: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, full_name: '' })}} className={inviteFormErrors.full_name ? 'border-destructive' : ''} />
-              {inviteFormErrors.full_name && <p className="text-xs text-destructive">{inviteFormErrors.full_name}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Email <span className="text-destructive">*</span></Label>
-              <Input type="email" value={inviteForm.email} onChange={e => { setInviteForm({ ...inviteForm, email: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, email: '' })}} className={inviteFormErrors.email ? 'border-destructive' : ''} />
-              {inviteFormErrors.email && <p className="text-xs text-destructive">{inviteFormErrors.email}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Input value={inviteForm.department} onChange={e => setInviteForm({ ...inviteForm, department: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input value={inviteForm.phone} onChange={e => { setInviteForm({ ...inviteForm, phone: e.target.value }); setInviteFormErrors({ ...inviteFormErrors, phone: '' })}} className={inviteFormErrors.phone ? 'border-destructive' : ''} />
-              {inviteFormErrors.phone && <p className="text-xs text-destructive">{inviteFormErrors.phone}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Reporting Time</Label>
-              <Input type="time" value={inviteForm.reporting_time} onChange={e => setInviteForm({ ...inviteForm, reporting_time: e.target.value })} />
-            </div>
-          </div>
-          <Button onClick={handleInvite} className="w-full" loading={inviting} disabled={Object.keys(inviteFormErrors).length > 0}>
-            Invite & Create Account
-          </Button>
-        </div>
-      </Dialog>
+      <InviteTeacherModal
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        onSubmit={handleInvite}
+      />
 
       <AlertDialog
         open={!!deleteTarget}

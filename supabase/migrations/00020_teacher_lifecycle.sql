@@ -125,7 +125,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM auth.users WHERE email = p_email) THEN
     RETURN jsonb_build_object(
       'available', false,
-      'reason', 'A user with this email already exists'
+      'reason', 'This staff number or email is already registered'
     );
   END IF;
 
@@ -133,7 +133,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.teachers WHERE email = p_email) THEN
     RETURN jsonb_build_object(
       'available', false,
-      'reason', 'A teacher with this email already exists'
+      'reason', 'This staff number or email is already registered'
     );
   END IF;
 
@@ -141,7 +141,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.teachers WHERE staff_number = p_staff_number) THEN
     RETURN jsonb_build_object(
       'available', false,
-      'reason', 'This staff number is already assigned'
+      'reason', 'This staff number or email is already registered'
     );
   END IF;
 

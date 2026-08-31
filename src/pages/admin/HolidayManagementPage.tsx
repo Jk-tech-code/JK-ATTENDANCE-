@@ -2,9 +2,6 @@ import { useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Dialog } from '@/components/ui/dialog'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import {
   useCalendarEntries,
@@ -12,6 +9,7 @@ import {
   useUpdateCalendarEntry,
   useDeleteCalendarEntry,
 } from '@/hooks/useCalendar'
+import { AddHolidayModal } from '@/components/AddHolidayModal'
 import type { SchoolCalendarEntry } from '@/services/calendar'
 import { Pencil, Trash2, Umbrella, Star } from 'lucide-react'
 import { toast } from 'sonner'
@@ -26,13 +24,9 @@ export default function HolidayManagementPage() {
   const [open, setOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<SchoolCalendarEntry | null>(null)
   const [filter, setFilter] = useState<'all' | 'holiday' | 'event'>('all')
-  const [form, setForm] = useState({
-    calendar_date: '',
-    day_type: 'holiday' as 'holiday' | 'event',
-    title: '',
-    description: '',
-  })
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [quickType, setQuickType] = useState<'holiday' | 'event'>('holiday')
+  const [quickDate, setQuickDate] = useState('')
+  const [quickTitle, setQuickTitle] = useState('')
 
   const startDate = `${year}-01-01`
   const endDate = `${year}-12-31`
@@ -42,7 +36,6 @@ export default function HolidayManagementPage() {
   const updateMutation = useUpdateCalendarEntry()
   const deleteMutation = useDeleteCalendarEntry()
 
-  const saving = createMutation.isPending || updateMutation.isPending
   const deleting = deleteMutation.isPending
 
   const holidays = useMemo(
@@ -57,45 +50,18 @@ export default function HolidayManagementPage() {
 
   const openCreate = (dayType: 'holiday' | 'event') => {
     setEditing(null)
-    setForm({ calendar_date: '', day_type: dayType, title: '', description: '' })
-    setFormErrors({})
+    setQuickType(dayType)
+    setQuickDate('')
+    setQuickTitle('')
     setOpen(true)
   }
 
   const openEdit = (e: SchoolCalendarEntry) => {
     setEditing(e)
-    setForm({
-      calendar_date: e.calendar_date,
-      day_type: e.day_type as 'holiday' | 'event',
-      title: e.title ?? '',
-      description: e.description ?? '',
-    })
-    setFormErrors({})
+    setQuickType(e.day_type as 'holiday' | 'event')
+    setQuickDate(e.calendar_date)
+    setQuickTitle(e.title ?? '')
     setOpen(true)
-  }
-
-  const handleSave = async () => {
-    const errors: Record<string, string> = {}
-    if (!form.calendar_date) errors.calendar_date = 'Date is required'
-    if (!form.title.trim()) errors.title = 'Title is required'
-    setFormErrors(errors)
-    if (Object.keys(errors).length > 0) return
-
-    try {
-      if (editing) {
-        await updateMutation.mutateAsync({
-          id: editing.id,
-          input: { calendar_date: form.calendar_date, day_type: form.day_type, title: form.title.trim(), description: form.description },
-        })
-        toast.success('Entry updated')
-      } else {
-        await createMutation.mutateAsync({ ...form, title: form.title.trim() })
-        toast.success(form.day_type === 'holiday' ? 'Holiday created' : 'Event created')
-      }
-      setOpen(false)
-    } catch (err: any) {
-      toast.error(err.message)
-    }
   }
 
   const handleDelete = async () => {
@@ -111,8 +77,9 @@ export default function HolidayManagementPage() {
 
   const quickAdd = (dayType: 'holiday' | 'event', date: Date, title: string) => {
     setEditing(null)
-    setForm({ calendar_date: format(date, 'yyyy-MM-dd'), day_type: dayType, title, description: '' })
-    setFormErrors({})
+    setQuickType(dayType)
+    setQuickDate(format(date, 'yyyy-MM-dd'))
+    setQuickTitle(title)
     setOpen(true)
   }
 
@@ -229,36 +196,42 @@ export default function HolidayManagementPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setFormErrors({}) }} title={editing ? 'Edit Entry' : form.day_type === 'holiday' ? 'Add Holiday' : 'Add Event'}>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Date <span className="text-destructive">*</span></Label>
-            <Input type="date" value={form.calendar_date} onChange={e => { setForm({ ...form, calendar_date: e.target.value }); setFormErrors({ ...formErrors, calendar_date: '' })}} className={formErrors.calendar_date ? 'border-destructive' : ''} />
-            {formErrors.calendar_date && <p className="text-xs text-destructive">{formErrors.calendar_date}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Type</Label>
-            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.day_type} onChange={e => setForm({ ...form, day_type: e.target.value as 'holiday' | 'event' })}>
-              <option value="holiday">Holiday</option>
-              <option value="event">Event</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>Title <span className="text-destructive">*</span></Label>
-            <Input value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setFormErrors({ ...formErrors, title: '' })}} placeholder={form.day_type === 'holiday' ? 'e.g., National Holiday' : 'e.g., Sports Day'} className={formErrors.title ? 'border-destructive' : ''} />
-            {formErrors.title && <p className="text-xs text-destructive">{formErrors.title}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Description (optional)</Label>
-            <textarea className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional description" />
-          </div>
-          <Button onClick={handleSave} className="w-full" loading={saving} disabled={Object.keys(formErrors).length > 0}>
-            {editing ? 'Update' : 'Create'} {form.day_type === 'holiday' ? 'Holiday' : 'Event'}
-          </Button>
-        </div>
-      </Dialog>
+      <AddHolidayModal
+        open={open}
+        onOpenChange={setOpen}
+        defaultType={quickType}
+        defaultDate={quickDate}
+        defaultTitle={quickTitle}
+        editMode={!!editing}
+        onSubmit={editing
+          ? async (data) => {
+              try {
+                await updateMutation.mutateAsync({
+                  id: editing.id,
+                  input: { calendar_date: data.calendar_date, day_type: data.day_type, title: data.title, description: data.description },
+                })
+                toast.success('Entry updated')
+              } catch (err: any) {
+                toast.error(err.message)
+                throw err
+              }
+            }
+          : async (data) => {
+              try {
+                await createMutation.mutateAsync({
+                  calendar_date: data.calendar_date,
+                  day_type: data.day_type,
+                  title: data.title,
+                  description: data.description,
+                })
+                toast.success(data.day_type === 'holiday' ? 'Holiday created' : 'Event created')
+              } catch (err: any) {
+                toast.error(err.message)
+                throw err
+              }
+            }
+        }
+      />
 
       <AlertDialog
         open={!!deleteTarget}

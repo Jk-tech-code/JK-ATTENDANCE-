@@ -1,27 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { handleCors, jsonResponse } from "../_shared/cors.ts"
-import { createSupabaseAdmin, verifyAuth, isAdmin } from "../_shared/supabase.ts"
+import { jsonResponse } from "../_shared/cors.ts"
+import { createSupabaseAdmin } from "../_shared/supabase.ts"
+import { adminMiddleware } from "../_shared/admin.ts"
 
 Deno.serve(async (req: Request) => {
-  const cors = handleCors(req)
-  if (cors) return cors
+  const adminResult = await adminMiddleware(req, "GET")
+  if (adminResult instanceof Response) return adminResult
+
+  const { userId: _userId, email: _email } = adminResult
+  const supabase = createSupabaseAdmin()
 
   try {
-    const auth = await verifyAuth(req.headers.get("Authorization"))
-    if (auth.error) {
-      return jsonResponse({ error: auth.error }, 401)
-    }
-
-    const supabase = createSupabaseAdmin()
-
-    if (!(await isAdmin(supabase, auth.user.id))) {
-      return jsonResponse({ error: "Forbidden: Admin access required" }, 403)
-    }
-
-    if (req.method !== "GET") {
-      return jsonResponse({ error: "Method not allowed" }, 405)
-    }
-
     const url = new URL(req.url)
     const year = parseInt(url.searchParams.get("year") ?? String(new Date().getFullYear()))
     const month = parseInt(url.searchParams.get("month") ?? String(new Date().getMonth() + 1))

@@ -7,6 +7,8 @@ Deno.serve(async (req: Request) => {
   if (cors) return cors
 
   try {
+    // verify-admin endpoint: anyone can check their admin status
+    // We just verify auth, not admin status
     const auth = await verifyAuth(req.headers.get("Authorization"))
     if (auth.error) {
       return jsonResponse(

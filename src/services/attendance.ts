@@ -6,17 +6,27 @@ import {
   AlreadyCheckedOutError,
   NoAttendanceRecordError,
   UndoWindowExpiredError,
+  RateLimitError,
 } from '@/lib/errors'
 
 export interface CheckInWithLocationResult {
   success: boolean
   status?: string
+  attendance_status?: string
   location_status?: string
   distance?: number
   accuracy?: number
   id?: string
   error?: string
   message?: string
+  retry_after?: number
+  retry_after_seconds?: number
+  rate_limit?: {
+    attempts_used: number
+    max_attempts: number
+    window_minutes: number
+    remaining: number
+  }
 }
 
 export async function getTodayAttendance(
@@ -57,6 +67,12 @@ export async function checkInWithLocation(
 
   if (!result.success && result.error === 'already_checked_in') {
     throw new AlreadyCheckedInError()
+  }
+
+  if (!result.success && result.error === 'rate_limited') {
+    // Use retry_after_seconds from new RPC format, fallback to retry_after
+    const retryAfter = result.retry_after_seconds ?? result.retry_after ?? 60
+    throw new RateLimitError(retryAfter)
   }
 
   return result

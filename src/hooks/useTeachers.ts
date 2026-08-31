@@ -5,21 +5,23 @@ import {
   updateTeacher,
   deleteTeacher,
   inviteTeacher,
+  type GetTeachersParams
 } from '@/services/admin'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const teacherKeys = {
   all: ['teachers'] as const,
-  list: () => [...teacherKeys.all, 'list'] as const,
+  list: (params?: GetTeachersParams) => [...['teachers', 'list'] as const, params] as const,
 }
 
 // ─── Read ────────────────────────────────────────────────────
-export function useTeachers() {
+export function useTeachers(params?: GetTeachersParams) {
   return useQuery({
-    queryKey: teacherKeys.list(),
-    queryFn: getTeachers,
+    queryKey: teacherKeys.list(params),
+    queryFn: () => getTeachers(params),
     staleTime: 30_000,
     gcTime: 300_000,
+    select: (data) => data.teachers,
   })
 }
 

@@ -1,10 +1,7 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("CORS_ORIGIN") ?? "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-}
+import { adminMiddleware } from "../_shared/admin.ts"
+import { jsonResponse } from "../_shared/cors.ts"
 
 interface InviteInput {
   staff_number: string
@@ -26,61 +23,35 @@ function createSupabaseAdmin() {
   })
 }
 
-function errorResponse(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  })
-}
-
 Deno.serve(async (req: Request) => {
   const start = Date.now()
   console.log("[invite-teacher] Request:", { method: req.method, url: req.url, origin: req.headers.get("origin") })
 
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  const adminResult = await adminMiddleware(req, "POST")
+  if (adminResult instanceof Response) return adminResult
 
-  if (req.method !== "POST") {
-    return errorResponse({ error: "Method not allowed" }, 405)
-  }
+  const { userId: _userId, email: _adminEmail } = adminResult
+  const supabase = createSupabaseAdmin()
 
   try {
-    const authHeader = req.headers.get("Authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
-      return errorResponse({ error: "Missing or invalid Authorization header" }, 401)
-    }
-
-    const supabase = createSupabaseAdmin()
-    const token = authHeader.slice(7)
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-    if (userError || !user) {
-      return errorResponse({ error: "Invalid or expired token" }, 401)
-    }
-
-    // Admin check: query teachers table directly (service_role has no auth.uid())
-    const { data: adminCheck } = await supabase
-      .from("teachers")
-      .select("id")
-      .or(`id.eq.${user.id},user_id.eq.${user.id},auth_user_id.eq.${user.id}`)
-      .eq("role", "admin")
-      .maybeSingle()
-    if (!adminCheck) {
-      return errorResponse({ error: "Only admins can invite teachers" }, 403)
-    }
-
     const input: InviteInput = await req.json()
     console.log("[invite-teacher] Input:", { email: input.email, staff_number: input.staff_number, full_name: input.full_name })
 
     if (!input.staff_number || !input.full_name || !input.email) {
-      return errorResponse({ error: "staff_number, full_name, and email are required" }, 400)
+      return jsonResponse({ error: "staff_number, full_name, and email are required" }, 400)
     }
 
     // Duplicate check: auth user, teacher email, staff number
-    const { data: existingAuth } = await supabase.auth.admin.listUsers()
-    const emailTaken = existingAuth?.users?.some(u => u.email === input.email)
-    if (emailTaken) {
-      return errorResponse({ error: "A user with this email already exists" }, 409)
+    // FIX: Use getUserByEmail instead of listUsers to prevent email enumeration
+    // listUsers() returns ALL users - an attacker can enumerate valid emails
+    // getUserByEmail() only returns the specific user if they exist (or 404)
+    const { data: existingAuthUser, error: getUserError } = await supabase.auth.admin.getUserByEmail(input.email)
+    if (getUserError && getUserError.status !== 404) {
+      // Unexpected error - log but don't reveal whether email exists
+      console.error("[invite-teacher] getUserByEmail error:", getUserError.message)
+    }
+    if (existingAuthUser?.user) {
+      return jsonResponse({ error: "This staff number or email is already registered" }, 409)
     }
 
     const { data: existingTeacher } = await supabase
@@ -90,7 +61,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
 
     if (existingTeacher) {
-      return errorResponse({ error: "A teacher with this email or staff number already exists" }, 409)
+      return jsonResponse({ error: "This staff number or email is already registered" }, 409)
     }
 
     // Create auth user via inviteUserByEmail
@@ -104,10 +75,10 @@ Deno.serve(async (req: Request) => {
 
     if (inviteError) {
       console.error("[invite-teacher] inviteUserByEmail failed:", inviteError.message)
-      return errorResponse({ error: inviteError.message }, 400)
+      return jsonResponse({ error: inviteError.message }, 400)
     }
     if (!inviteData.user) {
-      return errorResponse({ error: "Invitation failed — no user returned" }, 500)
+      return jsonResponse({ error: "Invitation failed — no user returned" }, 500)
     }
 
     const authUserId = inviteData.user.id
@@ -135,18 +106,15 @@ Deno.serve(async (req: Request) => {
     if (teacherError) {
       console.error("[invite-teacher] Teacher insert failed, rolling back:", teacherError.message)
       await supabase.auth.admin.deleteUser(authUserId).catch(() => {})
-      return errorResponse({ error: teacherError.message }, 400)
+      return jsonResponse({ error: teacherError.message }, 400)
     }
 
     const elapsed = Date.now() - start
     console.log("[invite-teacher] Success in", elapsed, "ms:", { teacher_id: teacher.id, email: input.email })
 
-    return new Response(JSON.stringify({ teacher }), {
-      status: 201,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    return jsonResponse({ teacher }, 201)
   } catch (err) {
     console.error("[invite-teacher] Unhandled error:", err)
-    return errorResponse({ error: `Internal error: ${err.message}` }, 500)
+    return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
   }
 })

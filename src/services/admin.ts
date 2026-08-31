@@ -67,7 +67,46 @@ export async function getMonthlyReport(year: number, month: number): Promise<Mon
 }
 
 // ─── Teachers CRUD ───────────────────────────────────────────
-export async function getTeachers(): Promise<Teacher[]> {
+export interface GetTeachersParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  employmentStatus?: string
+}
+
+export interface PaginatedTeachers {
+  teachers: Teacher[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export async function getTeachers(params: GetTeachersParams = {}): Promise<PaginatedTeachers> {
+  const page = params.page ?? 1
+  const pageSize = params.pageSize ?? 20
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  let query = supabase
+    .from('teachers')
+    .select('*', { count: 'exact' })
+    .order('full_name', { ascending: true })
+
+  if (params.search) {
+    query = query.or(`full_name.ilike.%${params.search}%,staff_number.ilike.%${params.search}%,email.ilike.%${params.search}%`)
+  }
+  if (params.employmentStatus) {
+    query = query.eq('employment_status', params.employmentStatus)
+  }
+
+  const { data, error, count } = await query.range(from, to)
+
+  if (error) throw new Error(error.message)
+  return { teachers: (data ?? []) as Teacher[], total: count ?? 0, page, pageSize }
+}
+
+// Legacy function for backward compatibility - fetches all (use with caution)
+export async function getAllTeachers(): Promise<Teacher[]> {
   const { data, error } = await supabase
     .from('teachers')
     .select('*')

@@ -70,3 +70,13 @@ export class LowAccuracyError extends Error {
     this.threshold = threshold
   }
 }
+
+export class RateLimitError extends Error {
+  retryAfter: number
+
+  constructor(retryAfter: number) {
+    super(`Please wait ${retryAfter} seconds before checking in again`)
+    this.name = 'RateLimitError'
+    this.retryAfter = retryAfter
+  }
+}

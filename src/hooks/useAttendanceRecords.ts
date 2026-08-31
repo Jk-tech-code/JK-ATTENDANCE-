@@ -29,6 +29,7 @@ export function useAttendanceTeachers() {
     queryFn: () => getTeachers(),
     staleTime: 60_000,
     gcTime: 300_000,
+    select: (data) => data.teachers,
   })
 }
 

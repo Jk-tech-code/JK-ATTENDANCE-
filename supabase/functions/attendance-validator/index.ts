@@ -49,11 +49,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: settings } = await supabase
       .from("school_settings")
-      .select("reporting_start_time, grace_period_minutes, checkout_time")
+      .select(
+        "reporting_start_time, grace_period_minutes, checkout_time, default_reporting_time, allowed_radius_meters, allowed_radius"
+      )
       .eq("active", true)
       .maybeSingle()
 
-    const reportingStart = settings?.reporting_start_time ?? "07:00"
+    // Use new columns with fallback to legacy columns
+    const reportingStart = settings?.reporting_start_time ?? settings?.default_reporting_time ?? "07:00"
     const graceMinutes = settings?.grace_period_minutes ?? 20
     const checkoutTime = settings?.checkout_time ?? "17:30"
 

@@ -38,7 +38,15 @@ export default async function handler(req, res) {
     if (userError || !user) {
       return res.status(401).json({ error: 'Invalid or expired token' })
     }
-    if (user.user_metadata?.role !== 'admin') {
+
+    // Admin check: query teachers table directly (service_role has no auth.uid())
+    const { data: adminCheck } = await supabase
+      .from('teachers')
+      .select('id')
+      .or(`id.eq.${user.id},user_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+      .eq('role', 'admin')
+      .maybeSingle()
+    if (!adminCheck) {
       return res.status(403).json({ error: 'Only admins can delete teachers' })
     }
 

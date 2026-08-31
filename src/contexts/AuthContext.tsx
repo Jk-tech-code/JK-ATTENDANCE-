@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { AuthUser } from '@/types'
 import { supabase } from '@/services/supabase'
 import {
@@ -7,18 +7,7 @@ import {
   signOut as authSignOut,
   signInWithGoogle as authSignInWithGoogle,
 } from '@/services/auth'
-
-interface AuthContextType {
-  user: AuthUser | null
-  loading: boolean
-  profileError: string | null
-  refreshProfile: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<{ error: string | null; user: AuthUser | null }>
-  signOut: () => Promise<{ error: string | null }>
-  signInWithGoogle: () => Promise<void>
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import { AuthContext } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)

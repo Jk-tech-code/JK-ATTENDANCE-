@@ -1,0 +1,43 @@
+-- 00040_profiles_role_immutable.sql
+--
+-- Hardening: prevent self-service privilege escalation via profiles.role.
+--
+-- WHY
+--   The "Users update own profile" RLS policy allows a user to UPDATE their own
+--   profiles row with WITH CHECK (auth.uid() = id) and NO column restriction, and
+--   both anon and authenticated hold UPDATE on every column including `role`.
+--   So a user could run: UPDATE profiles SET role='admin' WHERE id = auth.uid().
+--
+--   Server-side impact TODAY is nil — every authorization path (is_admin(), the
+--   24 RLS policies, report/attendance/delete RPCs, edge functions) keys off
+--   teachers.role, never profiles.role (verified: no function or policy reads
+--   profiles.role; profiles holds 1 row, role='teacher'). But the client derives
+--   user.role from profiles.role for accounts with no teacher row
+--   (src/services/auth.ts), so a self-promotion still renders the admin UI shell
+--   (data calls then 403). This closes it at the DB layer as defense-in-depth and
+--   guards against any future server path that trusts profiles.role.
+--
+-- FIX
+--   * anon must never UPDATE profiles at all -> revoke the whole UPDATE grant.
+--   * authenticated may update their own profile (full_name / avatar_url) but must
+--     never change `role` -> revoke the column-level UPDATE on role only.
+--   Column privilege + RLS both apply: an UPDATE that assigns role now fails with
+--   "permission denied for column role"; an UPDATE that leaves role untouched works.
+--
+-- SAFETY
+--   No app code updates profiles.role (getOrCreateProfile only INSERTs id+email;
+--   the default 'teacher' comes from the column default). Role assignment for
+--   teachers happens on the teachers table via the invite/verify-admin edge
+--   functions (service_role), which are unaffected by these grants. The
+--   handle_new_user() trigger runs SECURITY DEFINER (owner privileges) and is
+--   likewise unaffected. Re-runnable.
+
+REVOKE UPDATE ON public.profiles FROM anon;
+REVOKE UPDATE (role) ON public.profiles FROM authenticated;
+
+-- Verify (run manually after push):
+--   SELECT grantee, column_name FROM information_schema.role_column_grants
+--   WHERE table_schema='public' AND table_name='profiles'
+--     AND grantee IN ('anon','authenticated') AND privilege_type='UPDATE'
+--   ORDER BY 1,2;
+--   -- expect: anon has NO rows; authenticated has every column EXCEPT role.

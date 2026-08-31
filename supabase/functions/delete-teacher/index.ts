@@ -1,68 +1,21 @@
-import { createClient } from "jsr:@supabase/supabase-js@2"
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("CORS_ORIGIN") ?? "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-}
-
-function createSupabaseAdmin() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
-  }
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
-
-function errorResponse(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  })
-}
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { adminMiddleware } from "../_shared/admin.ts"
+import { createSupabaseAdmin, jsonResponse } from "../_shared/supabase.ts"
 
 Deno.serve(async (req: Request) => {
   const start = Date.now()
   console.log("[delete-teacher] Request:", { method: req.method, url: req.url, origin: req.headers.get("origin") })
 
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  const adminResult = await adminMiddleware(req, "POST")
+  if (adminResult instanceof Response) return adminResult
 
-  if (req.method !== "POST") {
-    return errorResponse({ error: "Method not allowed" }, 405)
-  }
+  const { userId: _userId, email: _adminEmail } = adminResult
+  const supabase = createSupabaseAdmin()
 
   try {
-    const authHeader = req.headers.get("Authorization")
-    if (!authHeader?.startsWith("Bearer ")) {
-      return errorResponse({ error: "Missing or invalid Authorization header" }, 401)
-    }
-
-    const supabase = createSupabaseAdmin()
-    const token = authHeader.slice(7)
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-    if (userError || !user) {
-      return errorResponse({ error: "Invalid or expired token" }, 401)
-    }
-
-    // Admin check: query teachers table directly (service_role has no auth.uid())
-    const { data: adminCheck } = await supabase
-      .from("teachers")
-      .select("id")
-      .or(`id.eq.${user.id},user_id.eq.${user.id},auth_user_id.eq.${user.id}`)
-      .eq("role", "admin")
-      .maybeSingle()
-    if (!adminCheck) {
-      return errorResponse({ error: "Only admins can delete teachers" }, 403)
-    }
-
     const { teacher_id } = await req.json()
     if (!teacher_id) {
-      return errorResponse({ error: "teacher_id is required" }, 400)
+      return jsonResponse({ error: "teacher_id is required" }, 400)
     }
 
     console.log("[delete-teacher] Deleting teacher:", teacher_id)
@@ -74,23 +27,20 @@ Deno.serve(async (req: Request) => {
 
     if (fnError) {
       console.error("[delete-teacher] RPC failed:", fnError.message)
-      return errorResponse({ error: fnError.message }, 500)
+      return jsonResponse({ error: fnError.message }, 500)
     }
 
     if (!result?.success) {
       console.error("[delete-teacher] Cascade delete failed:", result?.error)
-      return errorResponse({ error: result?.error || "Delete failed" }, 500)
+      return jsonResponse({ error: result?.error || "Delete failed" }, 500)
     }
 
     const elapsed = Date.now() - start
     console.log("[delete-teacher] Success in", elapsed, "ms:", result)
 
-    return new Response(JSON.stringify({ success: true, result }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    return jsonResponse({ success: true, result })
   } catch (err) {
     console.error("[delete-teacher] Unhandled error:", err)
-    return errorResponse({ error: `Internal error: ${err.message}` }, 500)
+    return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
   }
 })

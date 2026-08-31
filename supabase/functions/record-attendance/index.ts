@@ -1,9 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { handleCors, jsonResponse } from "../_shared/cors.ts"
-import {
-  createSupabaseAdmin,
-  verifyAuth,
-} from "../_shared/supabase.ts"
+import { jsonResponse } from "../_shared/cors.ts"
+import { createSupabaseAdmin } from "../_shared/supabase.ts"
+import { adminMiddleware } from "../_shared/admin.ts"
 
 interface RecordAttendanceBody {
   teacher_id: string
@@ -19,19 +17,13 @@ interface RecordAttendanceBody {
 }
 
 Deno.serve(async (req: Request) => {
-  const cors = handleCors(req)
-  if (cors) return cors
+  const adminResult = await adminMiddleware(req, "POST")
+  if (adminResult instanceof Response) return adminResult
+
+  const { userId: _userId, email: _email } = adminResult
+  const supabase = createSupabaseAdmin()
 
   try {
-    const auth = await verifyAuth(req.headers.get("Authorization"))
-    if (auth.error) {
-      return jsonResponse({ error: auth.error }, 401)
-    }
-
-    if (req.method !== "POST") {
-      return jsonResponse({ error: "Method not allowed" }, 405)
-    }
-
     const body: RecordAttendanceBody = await req.json()
 
     if (!body.teacher_id || !body.attendance_date || !body.status) {
@@ -40,8 +32,6 @@ Deno.serve(async (req: Request) => {
         400
       )
     }
-
-    const supabase = createSupabaseAdmin()
 
     const { data: existing } = await supabase
       .from("attendance")

@@ -42,7 +42,7 @@ export function useAdminDashboard() {
 
   const teachersQuery = useQuery({
     queryKey: dashboardKeys.teachers(),
-    queryFn: () => getTeachers(),
+    queryFn: () => getTeachers({ page: 1, pageSize: 100 }),
     staleTime: 30_000,
     gcTime: 300_000,
     refetchInterval: 60_000,
@@ -60,7 +60,7 @@ export function useAdminDashboard() {
     data: {
       stats: statsQuery.data ?? null,
       daily: dailyQuery.data ?? null,
-      teachers: teachersQuery.data ?? [],
+      teachers: teachersQuery.data?.teachers ?? [],
     } satisfies AdminDashboardData,
     isLoading,
     errors,

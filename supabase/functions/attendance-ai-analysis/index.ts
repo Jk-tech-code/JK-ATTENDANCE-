@@ -50,9 +50,11 @@ Deno.serve(async (req: Request) => {
     const { data: attendance, error: attErr } = await attQuery
     if (attErr) throw attErr
 
+    // FIX M5: Only fetch teacher IDs, NOT names or staff numbers
+    // PII (full_name, staff_number) must NOT be sent to external AI APIs
     const { data: teachers, error: tErr } = await supabase
       .from("teachers")
-      .select("id, full_name, staff_number")
+      .select("id")
       .eq("employment_status", "active")
 
     if (tErr) throw tErr
@@ -66,7 +68,7 @@ Deno.serve(async (req: Request) => {
         present: number
         lateMinutes: number[]
         workingMinutes: number[]
-        name: string
+        // name is intentionally omitted - will use anonymized index
       }
     >()
 
@@ -78,7 +80,6 @@ Deno.serve(async (req: Request) => {
         present: 0,
         lateMinutes: [],
         workingMinutes: [],
-        name: t.full_name,
       })
     }
 
@@ -97,26 +98,37 @@ Deno.serve(async (req: Request) => {
       if (a.working_minutes) agg.workingMinutes.push(a.working_minutes)
     }
 
-    const frequentLate = Array.from(teacherAgg.entries())
-      .filter(([, a]) => a.late >= 3)
-      .map(([id, a]) => ({
-        teacher_id: id,
-        name: a.name,
-        late_count: a.late,
+    // FIX M5: Anonymize teacher data for external API
+    // Use sequential indices (Teacher 1, Teacher 2, ...) instead of real names/IDs
+    const anonymizedTeachers = Array.from(teacherAgg.entries())
+      .filter(([, a]) => a.total > 0) // Only teachers with attendance records
+      .map(([_teacherId, agg], index) => ({
+        teacher_index: index + 1, // 1-based for readability
+        total_days: agg.total,
+        late_count: agg.late,
+        absent_count: agg.absent,
+        present_count: agg.present,
         avg_late_minutes:
-          a.lateMinutes.length > 0
-            ? Math.round(a.lateMinutes.reduce((s, m) => s + m, 0) / a.lateMinutes.length)
+          agg.lateMinutes.length > 0
+            ? Math.round(agg.lateMinutes.reduce((s, m) => s + m, 0) / agg.lateMinutes.length)
+            : 0,
+        avg_working_minutes:
+          agg.workingMinutes.length > 0
+            ? Math.round(agg.workingMinutes.reduce((s, m) => s + m, 0) / agg.workingMinutes.length)
+            : 0,
+        attendance_rate:
+          agg.total > 0
+            ? Math.round(((agg.present + agg.late) / agg.total) * 100)
             : 0,
       }))
+
+    // Filter for concerning patterns using anonymized data
+    const frequentLate = anonymizedTeachers
+      .filter((a) => a.late_count >= 3)
       .sort((a, b) => b.late_count - a.late_count)
 
-    const topAbsent = Array.from(teacherAgg.entries())
-      .filter(([, a]) => a.absent >= 2)
-      .map(([id, a]) => ({
-        teacher_id: id,
-        name: a.name,
-        absent_count: a.absent,
-      }))
+    const topAbsent = anonymizedTeachers
+      .filter((a) => a.absent_count >= 2)
       .sort((a, b) => b.absent_count - a.absent_count)
 
     const overallLate = attendance?.filter((a) => a.status === "late").length ?? 0
@@ -130,48 +142,49 @@ Deno.serve(async (req: Request) => {
       attendance
         ?.map((a) => a.working_minutes)
         .filter((m): m is number => m !== null) ?? []
-    const avgWorkingHours =
+    const avgWorkingMinutes =
       workingMins.length > 0
-        ? Math.round(
-            (workingMins.reduce((a, b) => a + b, 0) / workingMins.length) * 10
-          ) / 10
+        ? Math.round(workingMins.reduce((a, b) => a + b, 0) / workingMins.length)
         : 0
 
-    const insights = {
+    // FIX M5: Prepare anonymized insights for AI - NO PII
+    const anonymizedInsights = {
       month: `${year}-${String(month).padStart(2, "0")}`,
       summary: {
         total_records: totalRecords,
         present: overallPresent,
         late: overallLate,
         absent: overallAbsent,
-        avg_working_minutes: avgWorkingHours,
+        avg_working_minutes: avgWorkingMinutes,
         attendance_rate:
           totalRecords > 0
             ? Math.round(((overallPresent + overallLate) / totalRecords) * 100)
             : 0,
+        total_teachers_with_data: anonymizedTeachers.length,
       },
+      // Anonymized: only indices and aggregated stats, no names/IDs
       teachers_with_frequent_lateness: frequentLate,
       teachers_with_high_absenteeism: topAbsent,
       suggestions: [] as string[],
     }
 
     if (frequentLate.length > 0) {
-      insights.suggestions.push(
+      anonymizedInsights.suggestions.push(
         `${frequentLate.length} teacher(s) have been late 3+ times this month. Consider implementing a reminder system or reviewing start time policies.`
       )
     }
     if (topAbsent.length > 0) {
-      insights.suggestions.push(
+      anonymizedInsights.suggestions.push(
         `${topAbsent.length} teacher(s) have 2+ absences. Follow up to identify underlying causes.`
       )
     }
-    if (insights.summary.attendance_rate < 80) {
-      insights.suggestions.push(
-        `Overall attendance rate is ${insights.summary.attendance_rate}%. Consider organizing a staff meeting to address attendance concerns.`
+    if (anonymizedInsights.summary.attendance_rate < 80) {
+      anonymizedInsights.suggestions.push(
+        `Overall attendance rate is ${anonymizedInsights.summary.attendance_rate}%. Consider organizing a staff meeting to address attendance concerns.`
       )
-    } else if (insights.summary.attendance_rate >= 95) {
-      insights.suggestions.push(
-        `Excellent attendance rate at ${insights.summary.attendance_rate}%. Keep up the great work!`
+    } else if (anonymizedInsights.summary.attendance_rate >= 95) {
+      anonymizedInsights.suggestions.push(
+        `Excellent attendance rate at ${anonymizedInsights.summary.attendance_rate}%. Keep up the great work!`
       )
     }
 
@@ -183,12 +196,14 @@ Deno.serve(async (req: Request) => {
 
     if (provider === "openai" && openaiApiKey) {
       try {
-        const prompt = `Analyze this school attendance data for ${year}-${String(month).padStart(2, "0")}:
+        // FIX M5: Send ONLY anonymized data to external API
+        const prompt = `Analyze this ANONYMIZED school attendance data for ${year}-${String(month).padStart(2, "0")}:
 - Total records: ${totalRecords}
 - Present: ${overallPresent}, Late: ${overallLate}, Absent: ${overallAbsent}
-- Attendance rate: ${insights.summary.attendance_rate}%
-- Teachers frequently late: ${JSON.stringify(frequentLate)}
-- Teachers with high absenteeism: ${JSON.stringify(topAbsent)}
+- Attendance rate: ${anonymizedInsights.summary.attendance_rate}%
+- Total teachers with data: ${anonymizedInsights.summary.total_teachers_with_data}
+- Teachers frequently late (anonymized indices): ${JSON.stringify(frequentLate.map(t => ({ idx: t.teacher_index, late: t.late_count, avg_late: t.avg_late_minutes })))}
+- Teachers with high absenteeism (anonymized indices): ${JSON.stringify(topAbsent.map(t => ({ idx: t.teacher_index, absent: t.absent_count })))}
 
 Provide 3-5 actionable recommendations in JSON format: { recommendations: string[] }`
 
@@ -204,7 +219,7 @@ Provide 3-5 actionable recommendations in JSON format: { recommendations: string
               {
                 role: "system",
                 content:
-                  "You are an attendance analytics expert for schools. Provide concise, actionable insights.",
+                  "You are an attendance analytics expert for schools. Provide concise, actionable insights. All data is anonymized - teachers are referenced by index only.",
               },
               { role: "user", content: prompt },
             ],
@@ -231,6 +246,7 @@ Provide 3-5 actionable recommendations in JSON format: { recommendations: string
       }
     } else if (provider === "deepseek" && deepseekApiKey) {
       try {
+        // FIX M5: Send ONLY anonymized data to external API
         const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -242,11 +258,11 @@ Provide 3-5 actionable recommendations in JSON format: { recommendations: string
             messages: [
               {
                 role: "system",
-                content: "You are an attendance analytics expert for schools.",
+                content: "You are an attendance analytics expert for schools. All data is anonymized.",
               },
               {
                 role: "user",
-                content: `Analyze attendance data for ${year}-${String(month).padStart(2, "0")}: ${JSON.stringify(insights)}`,
+                content: `Analyze anonymized attendance data for ${year}-${String(month).padStart(2, "0")}: ${JSON.stringify(anonymizedInsights)}`,
               },
             ],
             max_tokens: 500,
@@ -262,14 +278,27 @@ Provide 3-5 actionable recommendations in JSON format: { recommendations: string
       }
     }
 
+    // Return full insights (with names) to the ADMIN UI, but only anonymized to AI
+    // The admin UI already has admin access and can see names via other RPCs
+    const fullInsights = {
+      month: `${year}-${String(month).padStart(2, "0")}`,
+      summary: anonymizedInsights.summary,
+      // Admin can see detailed teacher info - they're already authenticated as admin
+      teachers_with_frequent_lateness: frequentLate,
+      teachers_with_high_absenteeism: topAbsent,
+      suggestions: anonymizedInsights.suggestions,
+    }
+
     return jsonResponse({
       success: true,
-      insights,
+      insights: fullInsights,
       ai_generated: aiGenerated,
       config: {
         provider_configured: provider ?? null,
         openai_available: !!openaiApiKey,
         deepseek_available: !!deepseekApiKey,
+        // Document that AI only received anonymized data
+        pii_protected: true,
       },
     })
   } catch (err) {

@@ -52,15 +52,17 @@ export function AttendanceCard() {
     error: gpsError,
     distance,
     locationStatus,
-    gpsAccuracy,
     successMessage,
     checkIn: gpsCheckIn,
     clearError: clearGpsError,
     clearSuccess: clearGpsSuccess,
+    rateLimitRemaining,
+    rateLimitRetryAfter,
   } = useLocationAttendance()
 
   const [actionError, setActionError] = useState<string | null>(null)
   const [undoCountdown, setUndoCountdown] = useState<number | null>(null)
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null)
 
   const displayError = actionError || gpsError
 
@@ -79,6 +81,24 @@ export function AttendanceCard() {
     const timer = setInterval(tick, 1000)
     return () => clearInterval(timer)
   }, [attendance?.check_out_expires_at])
+
+  // Rate limit countdown effect
+  useEffect(() => {
+    if (rateLimitRetryAfter && rateLimitRetryAfter > 0) {
+      setRateLimitCountdown(rateLimitRetryAfter)
+      const timer = setInterval(() => {
+        setRateLimitCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            return null
+          }
+          return prev - 1
+        })
+      }, 1000)
+      return () => clearInterval(timer)
+    } else {
+      setRateLimitCountdown(null)
+    }
+  }, [rateLimitRetryAfter])
 
   const teacher = user?.teacher
   if (!teacher) {
@@ -112,7 +132,6 @@ export function AttendanceCard() {
 
   const showUndo = undoCountdown !== null && undoCountdown > 0
   const showDistance = distance !== null && locationStatus !== null
-  const showGpsInfo = gpsAccuracy !== null
   const showAttachedGps =
     isCheckedIn && attendance?.distance_from_school != null && attendance?.location_status
 
@@ -256,7 +275,6 @@ export function AttendanceCard() {
                 </p>
                 <p className="text-emerald-600/70 dark:text-emerald-400/70">
                   Status: Inside School Compound
-                  {showGpsInfo && ` · Accuracy: ±${gpsAccuracy}m`}
                 </p>
               </div>
             </div>
@@ -349,6 +367,19 @@ export function AttendanceCard() {
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{displayError}</span>
             </div>
+          )}
+
+          {rateLimitCountdown !== null && (
+            <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Too many attempts. Retry in {rateLimitCountdown}s</span>
+            </div>
+          )}
+
+          {rateLimitRemaining !== null && rateLimitRemaining > 0 && rateLimitRemaining < 5 && (
+            <p className="text-[10px] text-muted-foreground/70">
+              Check-in attempts remaining: {rateLimitRemaining} of 5 (5-minute window)
+            </p>
           )}
 
           {!isCheckedIn && (

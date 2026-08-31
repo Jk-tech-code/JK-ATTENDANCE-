@@ -16,13 +16,24 @@ const attendanceKeys = {
 export function useTodayAttendance() {
   const { user } = useAuth()
   const teacherId = user?.teacher?.id
-
-  return useQuery({
+  const attendance = useQuery({
     queryKey: attendanceKeys.today(teacherId ?? ''),
     queryFn: () => getTodayAttendance(teacherId!),
     enabled: !!teacherId,
-    refetchInterval: 30000,
+    // FIX M7: Optimize refetch strategy
+    // - Refetch on window focus (when user returns to tab)
+    // - Refetch every 5 minutes (300s) instead of 30s - less aggressive polling
+    // - Don't refetch in background if not checked in (stale data is fine)
+    refetchInterval: (query) => {
+      // If checked in, refetch every 2 minutes to show real-time status
+      // If not checked in, refetch every 5 minutes (just for date changes)
+      return query.state.data?.check_in ? 120000 : 300000
+    },
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 60000, // Consider data fresh for 1 minute
   })
+  return attendance
 }
 
 export function useCheckOut() {
