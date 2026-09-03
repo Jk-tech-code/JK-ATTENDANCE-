@@ -45,15 +45,6 @@ export default function AttendanceRecordsPage() {
     }
   }
 
-  const handleExportAll = (format: 'csv' | 'xlsx' | 'pdf') => {
-    const filename = `attendance_all_${new Date().toISOString().slice(0, 10)}`
-    toast.promise(exportAllAttendance(format, filename), {
-      loading: 'Exporting all records...',
-      success: `All records exported as ${format.toUpperCase()}`,
-      error: 'Failed to export records',
-    })
-  }
-
   return (
     <>
       <Helmet>
@@ -71,9 +62,9 @@ export default function AttendanceRecordsPage() {
             onExportPDF={() => handleExport('pdf')}
           />
           <ExportMenu label="Export All"
-            onExportCSV={() => handleExportAll('csv')}
-            onExportExcel={() => handleExportAll('xlsx')}
-            onExportPDF={() => handleExportAll('pdf')}
+            onExportCSV={() => exportAllAttendance('csv', `attendance_all_${new Date().toISOString().slice(0, 10)}`)}
+            onExportExcel={() => exportAllAttendance('xlsx', `attendance_all_${new Date().toISOString().slice(0, 10)}`)}
+            onExportPDF={() => exportAllAttendance('pdf', `attendance_all_${new Date().toISOString().slice(0, 10)}`)}
           />
         </div>
       </div>

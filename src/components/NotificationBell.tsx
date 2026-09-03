@@ -18,14 +18,20 @@ export function NotificationBell() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (!open) return
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
     }
   }, [open])
 
@@ -42,6 +48,8 @@ export function NotificationBell() {
         size="icon"
         onClick={() => setOpen(!open)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+        aria-expanded={open}
+        aria-haspopup="true"
         className="relative text-muted-foreground hover:text-foreground"
       >
         <Bell className="h-4 w-4" />

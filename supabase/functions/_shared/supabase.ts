@@ -72,8 +72,4 @@ export async function isAdminViaRpc(
   return data === true
 }
 
-export function getUserRole(_user: { user_metadata?: Record<string, unknown> }): string {
-  return "teacher"
-}
-
 export { jsonResponse } from "./cors.ts"

@@ -27,7 +27,7 @@ Deno.serve(async (req: Request) => {
 
     if (fnError) {
       console.error("[delete-teacher] RPC failed:", fnError.message)
-      return jsonResponse({ error: fnError.message }, 500)
+      return jsonResponse({ error: "Failed to delete teacher. Please try again." }, 500)
     }
 
     if (!result?.success) {
@@ -41,6 +41,6 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ success: true, result })
   } catch (err) {
     console.error("[delete-teacher] Unhandled error:", err)
-    return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
+    return jsonResponse({ error: "An unexpected error occurred" }, 500)
   }
 })

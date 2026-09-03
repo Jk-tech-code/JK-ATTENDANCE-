@@ -4,15 +4,16 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import sitemap from 'vite-plugin-sitemap'
 import path from 'path'
+import { loadEnv } from 'vite'
 
+const env = loadEnv('', process.cwd(), '')
 const requiredEnvVars = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
 for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
+  if (!env[envVar]) {
     console.warn(`Warning: ${envVar} is not set. Build will proceed but app may not work at runtime.`)
   }
 }
-
-const siteUrl = process.env.VITE_SITE_URL ?? 'https://jkattendance.vercel.app'
+const siteUrl = env.VITE_SITE_URL || 'https://jkattendance.vercel.app'
 
 export default defineConfig({
   plugins: [

@@ -70,8 +70,8 @@ export default function HolidayManagementPage() {
       await deleteMutation.mutateAsync(deleteTarget.id)
       toast.success('Entry deleted')
       setDeleteTarget(null)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -211,8 +211,8 @@ export default function HolidayManagementPage() {
                   input: { calendar_date: data.calendar_date, day_type: data.day_type, title: data.title, description: data.description },
                 })
                 toast.success('Entry updated')
-              } catch (err: any) {
-                toast.error(err.message)
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : String(err))
                 throw err
               }
             }
@@ -225,8 +225,8 @@ export default function HolidayManagementPage() {
                   description: data.description,
                 })
                 toast.success(data.day_type === 'holiday' ? 'Holiday created' : 'Event created')
-              } catch (err: any) {
-                toast.error(err.message)
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : String(err))
                 throw err
               }
             }

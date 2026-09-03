@@ -20,6 +20,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         () => {
           queryClient.invalidateQueries({ queryKey: ['teachers'] })
           queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
         },
       )
       .on(
@@ -28,6 +29,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         () => {
           queryClient.invalidateQueries({ queryKey: ['dashboard'] })
           queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
+          queryClient.invalidateQueries({ queryKey: ['attendance'] })
         },
       )
       .on(

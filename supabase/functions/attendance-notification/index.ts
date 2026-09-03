@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
-import { createSupabaseAdmin } from "../_shared/supabase.ts"
+import { createSupabaseAdmin, verifyAuth } from "../_shared/supabase.ts"
 import { adminMiddleware } from "../_shared/admin.ts"
 
 interface NotificationPayload {

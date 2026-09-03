@@ -23,13 +23,15 @@ Deno.serve(async (req: Request) => {
 
   // Optional: protect with CRON_SECRET (same pattern as process-end-of-day)
   const cronSecret = Deno.env.get("CRON_SECRET")
-  if (cronSecret) {
-    const authHeader =
-      req.headers.get("x-api-key") ??
-      req.headers.get("authorization")?.replace("Bearer ", "")
-    if (authHeader !== cronSecret) {
-      return jsonResponse({ error: "Unauthorized" }, 401)
-    }
+  if (!cronSecret) {
+    console.error("CRON_SECRET environment variable is not set. Rejecting request.")
+    return jsonResponse({ error: "Server misconfigured: CRON_SECRET not set" }, 500)
+  }
+  const authHeader =
+    req.headers.get("x-api-key") ??
+    req.headers.get("authorization")?.replace("Bearer ", "")
+  if (authHeader !== cronSecret) {
+    return jsonResponse({ error: "Unauthorized" }, 401)
   }
 
   try {
@@ -266,5 +268,6 @@ async function storeReport(
 
   if (error) {
     console.error(`Failed to store ${reportType} report:`, error.message)
+    throw new Error(`Failed to persist ${reportType} report: ${error.message}`)
   }
 }

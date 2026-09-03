@@ -121,8 +121,8 @@ export default function TeachersPage() {
         })
       }
       setOpen(false)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -132,8 +132,8 @@ export default function TeachersPage() {
       await deleteMutation.mutateAsync(deleteTarget.id)
       toast.success('Teacher deleted successfully')
       setDeleteTarget(null)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -144,8 +144,8 @@ export default function TeachersPage() {
         description: `${data.email} will receive a link to create their password and sign in.`,
         duration: 10000,
       })
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
       throw err
     }
   }

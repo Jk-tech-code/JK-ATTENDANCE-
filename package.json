@@ -9,6 +9,9 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -37,6 +40,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/react": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

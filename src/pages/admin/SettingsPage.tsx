@@ -285,7 +285,7 @@ export default function SettingsPage() {
             {updateMutation.error && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                {(updateMutation.error as Error).message}
+                {updateMutation.error instanceof Error ? updateMutation.error.message : 'Failed to save settings'}
               </div>
             )}
           </CardContent>

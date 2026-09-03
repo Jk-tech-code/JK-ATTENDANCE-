@@ -127,8 +127,8 @@ export async function getAttendanceSummary(
   year: number,
   month: number
 ): Promise<{ total: number; present: number; late: number; absent: number; checkedOut: number }> {
-  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-  const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+  const startDate = formatISODate(new Date(year, month - 1, 1))
+  const endDate = formatISODate(new Date(year, month, 0))
 
   const { data, error } = await supabase
     .from('attendance')

@@ -87,7 +87,12 @@ export function useUpdateSchoolSettings() {
 
   return useMutation({
     mutationFn: async (input: Partial<SchoolSettingsFormData>) => {
-      const id = input.id ?? (await fetchSchoolSettings())?.id
+      // Reuse the cached settings row when available to avoid a round-trip;
+      // only fall back to a fresh fetch if the cache is empty.
+      const cached = queryClient.getQueryData<SchoolSettingsFormData | null>(
+        schoolSettingsKeys.settings(),
+      )
+      const id = input.id ?? cached?.id ?? (await fetchSchoolSettings())?.id
       if (!id) throw new Error('No school settings record found')
 
       const { error } = await supabase
@@ -101,6 +106,7 @@ export function useUpdateSchoolSettings() {
           reporting_start_time: input.reporting_start_time,
           grace_period_minutes: input.grace_period_minutes,
           checkout_time: input.checkout_time,
+          weekend_working_days: input.weekend_working_days,
         })
         .eq('id', id)
 

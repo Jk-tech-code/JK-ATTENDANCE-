@@ -56,13 +56,25 @@ export default function ReportsPage() {
 
   const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
     try {
+      // Cap at last day of the selected month so records outside the month
+      // are excluded and records on the last day are included.
+      const lastDay = new Date(year, month, 0).getDate()
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
       const { records } = await import('@/services/admin').then(m =>
-        m.getAttendanceRecords({ date: `${year}-${String(month).padStart(2, '0')}-01`, page_size: 500 })
+        m.getAttendanceRecords({ date: startDate, page_size: 500 })
       )
+      // getAttendanceRecords filters by exact `date` match — fall back to a
+      // range query so the whole month is exported.
+      const fetched = records.length === 0 || records[0].attendance_date < endDate
+        ? (await import('@/services/admin').then(m =>
+            m.getAttendanceRecords({ page_size: 500 })
+          )).records.filter(r => r.attendance_date >= startDate && r.attendance_date <= endDate)
+        : records
       const filename = `monthly_report_${year}_${month}`
-      if (format === 'csv') exportToCSV(records, filename)
-      else if (format === 'xlsx') await exportToExcel(records, filename)
-      else await exportToPDF(records, filename)
+      if (format === 'csv') exportToCSV(fetched, filename)
+      else if (format === 'xlsx') await exportToExcel(fetched, filename)
+      else await exportToPDF(fetched, filename)
       toast.success(`Report exported as ${format.toUpperCase()}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Export failed')

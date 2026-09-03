@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 
+const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
+
 const faqs = [
   { q: 'How does GPS check-in work?', a: 'When you tap "Check In" on the dashboard, the system records your GPS location. If you are within the school\'s allowed radius, check-in is accepted. Otherwise, it is flagged.' },
   { q: 'What if I forget to check out?', a: 'The system auto-checks you out at the end of the day. You can also manually undo a checkout within a short window.' },
@@ -13,22 +15,39 @@ const faqs = [
   { q: 'How do I reset my password?', a: 'Click "Forgot Password" on the login page and follow the email instructions.' },
 ]
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: f.a,
+    },
+  })),
+}
+
 export default function HelpPage() {
   return (
     <>
       <Helmet>
-        <title>Help — JK Attendance System</title>
+        <title>Help & FAQ — JK Attendance System</title>
         <meta name="description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href={`${window.location.origin}/help`} />
+        <link rel="canonical" href={`${siteUrl}/help`} />
         <meta property="og:title" content="Help & FAQ — JK Attendance System" />
         <meta property="og:description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
-        <meta property="og:image" content={`${window.location.origin}/og-image.png`} />
+        <meta property="og:url" content={`${siteUrl}/help`} />
+        <meta property="og:image" content={`${siteUrl}/og-image.png`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content={`${window.location.origin}/og-image.png`} />
+        <meta name="twitter:title" content="Help & FAQ — JK Attendance System" />
+        <meta name="twitter:description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta name="twitter:image" content={`${siteUrl}/og-image.png`} />
+        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
         <div className="flex items-center gap-4">

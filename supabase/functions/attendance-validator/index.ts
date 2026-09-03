@@ -79,37 +79,24 @@ Deno.serve(async (req: Request) => {
     let earlyDepartureMinutes: number | null = null
     let workingHours: string | null = null
 
-    if (!body.check_in && !body.check_out) {
-      attendanceStatus = "ABSENT"
-    }
-
-    if (body.check_in) {
-      const checkInMin = toMinutes(body.check_in.substring(0, 5))
-
-      if (checkInMin > graceEndMin) {
-        attendanceStatus = "LATE"
-        lateMinutes = checkInMin - graceEndMin
-      } else {
-        attendanceStatus = "PRESENT"
-        lateMinutes = 0
-      }
-    }
-
-    if (body.check_out) {
-      const checkOutMin = toMinutes(body.check_out.substring(0, 5))
-
-      if (checkOutMin < checkoutTimeMin) {
-        attendanceStatus = "EARLY_DEPARTURE"
-        earlyDepartureMinutes = checkoutTimeMin - checkOutMin
-      }
-    }
-
     if (body.check_in && body.check_out) {
       const checkInMin = toMinutes(body.check_in.substring(0, 5))
       const checkOutMin = toMinutes(body.check_out.substring(0, 5))
 
       if (checkOutMin >= checkoutTimeMin && checkInMin <= graceEndMin) {
         attendanceStatus = "COMPLETE_DAY"
+      } else if (checkInMin > graceEndMin && checkOutMin < checkoutTimeMin) {
+        attendanceStatus = "LATE"
+        lateMinutes = checkInMin - graceEndMin
+        earlyDepartureMinutes = checkoutTimeMin - checkOutMin
+      } else if (checkInMin > graceEndMin) {
+        attendanceStatus = "LATE"
+        lateMinutes = checkInMin - graceEndMin
+      } else if (checkOutMin < checkoutTimeMin) {
+        attendanceStatus = "EARLY_DEPARTURE"
+        earlyDepartureMinutes = checkoutTimeMin - checkOutMin
+      } else {
+        attendanceStatus = "PRESENT"
       }
 
       const totalMinutes = checkOutMin - checkInMin
@@ -118,6 +105,25 @@ Deno.serve(async (req: Request) => {
         const mins = totalMinutes % 60
         workingHours = `${hrs} hrs ${mins} mins`
       }
+    } else if (body.check_in) {
+      const checkInMin = toMinutes(body.check_in.substring(0, 5))
+      if (checkInMin > graceEndMin) {
+        attendanceStatus = "LATE"
+        lateMinutes = checkInMin - graceEndMin
+      } else {
+        attendanceStatus = "PRESENT"
+        lateMinutes = 0
+      }
+    } else if (body.check_out) {
+      const checkOutMin = toMinutes(body.check_out.substring(0, 5))
+      if (checkOutMin < checkoutTimeMin) {
+        attendanceStatus = "EARLY_DEPARTURE"
+        earlyDepartureMinutes = checkoutTimeMin - checkOutMin
+      } else {
+        attendanceStatus = "PRESENT"
+      }
+    } else {
+      attendanceStatus = "ABSENT"
     }
 
     const result: Record<string, unknown> = {

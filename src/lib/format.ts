@@ -17,7 +17,12 @@ export function formatTime(date: Date): string {
 }
 
 export function formatISODate(date: Date): string {
-  return date.toISOString().split('T')[0]
+  // Use local date components (not toISOString) so a check-in at 1am local time
+  // is recorded against today's local date, not yesterday's UTC date.
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export function minutesToHours(minutes: number): string {

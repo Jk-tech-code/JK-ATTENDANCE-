@@ -306,6 +306,17 @@ export async function deleteTeacher(id: string): Promise<void> {
 }
 
 // ─── Export helpers ──────────────────────────────────────────
+
+// RFC 4180: wrap fields containing commas, quotes, or newlines in double quotes
+// and escape any embedded double quotes by doubling them.
+function csvEscape(value: unknown): string {
+  const s = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
+
 export function exportToCSV(records: AttendanceWithTeacher[], filename: string) {
   const headers = ['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']
   const rows = records.map(r => [
@@ -318,8 +329,11 @@ export function exportToCSV(records: AttendanceWithTeacher[], filename: string) 
     r.late_minutes ?? 0,
     r.working_minutes ?? 0,
   ])
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
+  const csv = [headers, ...rows]
+    .map(row => row.map(csvEscape).join(','))
+    .join('\r\n')
+  // Prepend BOM so Excel opens UTF-8 (including accented names) correctly.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

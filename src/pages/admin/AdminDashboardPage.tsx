@@ -14,8 +14,9 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     for (const err of errors) {
-      console.error('[AdminDashboard] Error:', err.message)
-      toast.error(err.message, { duration: 5000 })
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[AdminDashboard] Error:', msg)
+      toast.error(msg, { duration: 5000 })
     }
   }, [errors])
 

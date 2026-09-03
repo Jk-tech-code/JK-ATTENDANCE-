@@ -67,7 +67,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <Helmet>
-        <html lang="en" />
         <title>JK Attendance System</title>
         <meta name="description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
       </Helmet>

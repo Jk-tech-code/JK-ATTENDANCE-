@@ -19,11 +19,13 @@ Deno.serve(async (req: Request) => {
   if (cors) return cors
 
   const cronSecret = Deno.env.get("CRON_SECRET")
-  if (cronSecret) {
-    const authHeader = req.headers.get("x-api-key") ?? req.headers.get("authorization")?.replace("Bearer ", "")
-    if (authHeader !== cronSecret) {
-      return jsonResponse({ error: "Unauthorized" }, 401)
-    }
+  if (!cronSecret) {
+    console.error("CRON_SECRET environment variable is not set. Rejecting request.")
+    return jsonResponse({ error: "Server misconfigured: CRON_SECRET not set" }, 500)
+  }
+  const authHeader = req.headers.get("x-api-key") ?? req.headers.get("authorization")?.replace("Bearer ", "")
+  if (authHeader !== cronSecret) {
+    return jsonResponse({ error: "Unauthorized" }, 401)
   }
 
   try {

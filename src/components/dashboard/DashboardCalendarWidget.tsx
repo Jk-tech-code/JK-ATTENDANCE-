@@ -38,7 +38,7 @@ export function DashboardCalendarWidget() {
 
         if (upcoming.length > 0) setNextEvent(upcoming[0])
       })
-      .catch(() => toast.error('Failed to load calendar data'))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Failed to load calendar data'))
       .finally(() => setLoading(false))
   }, [])
 

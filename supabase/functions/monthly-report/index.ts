@@ -21,28 +21,29 @@ Deno.serve(async (req: Request) => {
 
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`
     const endDate = new Date(year, month, 0).toISOString().slice(0, 10)
+    const daysInMonth = new Date(year, month, 0).getDate()
 
-    const { data: allAttendance, error: attErr } = await supabase
-      .from("attendance")
-      .select("teacher_id, status, check_in, check_out, working_minutes, late_minutes")
-      .gte("attendance_date", startDate)
-      .lte("attendance_date", endDate)
+    const [{ data: holidays }, { data: allAttendance }, { data: teachers }] = await Promise.all([
+      supabase.from("school_holidays").select("date").gte("date", startDate).lte("date", endDate),
+      supabase.from("attendance").select("teacher_id, status, check_in, check_out, working_minutes, late_minutes").gte("attendance_date", startDate).lte("attendance_date", endDate),
+      supabase.from("teachers").select("id, full_name, staff_number").eq("employment_status", "active"),
+    ])
 
-    if (attErr) throw attErr
+    const holidayDates = new Set((holidays ?? []).map((h: { date: string }) => h.date))
+    const workingDays = Math.max(0, daysInMonth - holidayDates.size)
 
-    const { data: teachers, error: tErr } = await supabase
-      .from("teachers")
-      .select("id, full_name, staff_number")
-      .eq("employment_status", "active")
-
-    if (tErr) throw tErr
-
-    const workingDays = allAttendance?.length ?? 0
     const presentCount = allAttendance?.filter((a) =>
       ["present", "checked_out"].includes(a.status ?? "")
     ).length ?? 0
     const lateCount = allAttendance?.filter((a) => a.status === "late").length ?? 0
     const absentCount = allAttendance?.filter((a) => a.status === "absent").length ?? 0
+
+    const teacherCount = teachers?.length ?? 0
+    const totalPossibleAttendance = teacherCount * workingDays
+    const summaryAttendancePercentage =
+      totalPossibleAttendance > 0
+        ? Math.round(((presentCount + lateCount) / totalPossibleAttendance) * 100)
+        : 0
 
     const teacherStats = (teachers ?? []).map((teacher) => {
       const records = allAttendance?.filter((a) => a.teacher_id === teacher.id) ?? []
@@ -57,8 +58,7 @@ Deno.serve(async (req: Request) => {
         .filter((m): m is number => m !== null)
       const avgHours =
         workingMinutes.length > 0
-          ? Math.round((workingMinutes.reduce((a, b) => a + b, 0) / workingMinutes.length) * 10) /
-            10
+          ? Math.round((workingMinutes.reduce((a, b) => a + b, 0) / workingMinutes.length) * 10) / 10
           : 0
 
       return {
@@ -80,34 +80,19 @@ Deno.serve(async (req: Request) => {
       .filter((m): m is number => m !== null)
     const overallAvgHours =
       allWorkingMinutes && allWorkingMinutes.length > 0
-        ? Math.round(
-            (allWorkingMinutes.reduce((a, b) => a + b, 0) / allWorkingMinutes.length) * 10
-          ) / 10
+        ? Math.round(allWorkingMinutes.reduce((a, b) => a + b, 0) / allWorkingMinutes.length * 10) / 10
         : 0
 
     return jsonResponse({
       year,
       month,
       summary: {
-        total_teachers: teachers?.length ?? 0,
-        working_days: Math.max(
-          workingDays,
-          endDate.slice(8)
-            ? parseInt(endDate.slice(8))
-            : 0
-        ),
+        total_teachers: teacherCount,
+        working_days: workingDays,
         present_days: presentCount,
         late_days: lateCount,
         absent_days: absentCount,
-        attendance_percentage:
-          (teachers?.length ?? 0) > 0
-            ? Math.round(
-                ((presentCount + lateCount) /
-                  ((teachers?.length ?? 1) *
-                    parseInt(endDate.slice(8) || "30"))) *
-                  100
-              )
-            : 0,
+        attendance_percentage: summaryAttendancePercentage,
         avg_working_hours: overallAvgHours,
       },
       teachers: teacherStats,

@@ -72,7 +72,10 @@ export default function CalendarPage() {
       .then(entries => {
         setHolidayEntries(entries)
         setDetailLoading(true)
-        return getDayAttendanceDetail(selectedDate).then(setDayDetail).catch(() => setDayDetail(null))
+        return getDayAttendanceDetail(selectedDate).then(setDayDetail).catch((err) => {
+          console.error('Failed to load day attendance detail:', err)
+          setDayDetail(null)
+        })
       })
       .catch(() => toast.error('Failed to load date details'))
       .finally(() => { setDetailLoading(false); setHolidayListLoading(false) })
@@ -147,8 +150,8 @@ export default function CalendarPage() {
       URL.revokeObjectURL(url)
 
       toast.success('Monthly report generated')
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to generate report')
     } finally {
       setGenerating(false)
     }
@@ -176,9 +179,9 @@ export default function CalendarPage() {
       })
       toast.success(addForm.day_type === 'holiday' ? 'Holiday added' : 'Event added')
       setAddDialogOpen(false)
-      getMonthCalendar(year, month).then(setData).catch(() => {})
-    } catch (err: any) {
-      toast.error(err.message)
+      getMonthCalendar(year, month).then(setData).catch((_err) => toast.error('Failed to refresh calendar'))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add entry')
     }
   }
 
