@@ -1,0 +1,41 @@
+-- ============================================
+-- JK Attendance - Migration 00046
+-- Remove dead-code SECURITY DEFINER function
+-- that contains a hardcoded plaintext secret.
+--
+-- WHY
+--   The function app_set_cron_secret() was found during a final
+--   security audit (2026-09-04) to:
+--     1. Contain a plaintext secret 'jALsFm5Qly3vk4zRBrqbDE76J0GKcOXf'
+--        in its function body. This secret is in the public migration
+--        history and would be visible to anyone with repository access.
+--     2. Be effectively dead code. The production cron architecture
+--        uses the Edge Function's CRON_SECRET runtime env var
+--        (supabase/functions/process-end-of-day/index.ts:21), not the
+--        Postgres GUC app.settings.cron_secret. Verified live: the GUC
+--        is currently NULL.
+--     3. Carry a SECURITY DEFINER risk: any future code path that
+--        calls this function would silently overwrite the GUC with
+--        the hardcoded value, potentially bypassing any
+--        GUC-based authentication.
+--
+-- VERIFICATION (2026-09-04, all 6 conditions confirmed before DROP)
+--   1. No application code calls public.app_set_cron_secret() — grep src/
+--   2. No Edge Function calls it — grep supabase/functions/
+--   3. process-end-of-day does not depend on app.settings.cron_secret —
+--      reads only Deno.env.get("CRON_SECRET")
+--   4. CRON_SECRET is read exclusively from Edge Function environment
+--   5. process_end_of_day() remains executable only by service_role/postgres
+--   6. No trigger, function, or migration depends on app_set_cron_secret()
+--      — pg_cron is not installed on remote, GUC is not set,
+--      00028's pg_cron block was silently skipped
+--
+-- SAFETY
+--   Live DROP applied first and confirmed:
+--     - function removed from pg_proc
+--     - Security Advisor no longer flags app_set_cron_secret
+--   This migration is the source-of-truth record of that change.
+--   Re-runnable.
+-- ============================================
+
+DROP FUNCTION IF EXISTS public.app_set_cron_secret();
