@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -218,7 +218,6 @@ export default function CalendarPage() {
     }
   }
 
-  const today = format(now, 'yyyy-MM-dd')
   const workingDays = data?.calendar.filter(d => d.day_type === 'working_day') ?? []
   const totalWorking = workingDays.length
   const completedDays = workingDays.filter(d => d.present > 0 || d.late > 0).length
