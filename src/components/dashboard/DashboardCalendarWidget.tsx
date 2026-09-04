@@ -23,11 +23,12 @@ export function DashboardCalendarWidget() {
     const endOfMonth = new Date(todayObj.getFullYear(), todayObj.getMonth() + 2, 0)
     const endDate = format(endOfMonth, 'yyyy-MM-dd')
 
-    Promise.all([
-      checkDate(today),
-      getDashboardStats(),
-      getCalendarEntries(today, endDate),
-    ])
+    const statsPromise = getDashboardStats().catch((err) => {
+      console.warn('[DashboardCalendarWidget] dashboard stats unavailable:', err)
+      return null
+    })
+
+    Promise.all([checkDate(today), statsPromise, getCalendarEntries(today, endDate)])
       .then(([date, statsData, entries]) => {
         setDateInfo(date)
         setStats(statsData)
@@ -38,7 +39,10 @@ export function DashboardCalendarWidget() {
 
         if (upcoming.length > 0) setNextEvent(upcoming[0])
       })
-      .catch((err) => toast.error(err instanceof Error ? err.message : 'Failed to load calendar data'))
+      .catch((err) => {
+        console.error('[DashboardCalendarWidget] calendar load failed:', err)
+        toast.error(err instanceof Error ? err.message : 'Failed to load calendar data')
+      })
       .finally(() => setLoading(false))
   }, [])
 
