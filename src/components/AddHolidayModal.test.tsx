@@ -89,16 +89,12 @@ describe('AddHolidayModal — successful submission with valid data', () => {
       defaultTitle: '  Padded Title  ',
     })
 
-    const titleInput = screen.getByLabelText(/title/i) as HTMLInputElement
-    await user.clear(titleInput)
-    await user.type(titleInput, '  Trimmed Title  ')
-
     await user.click(screen.getByTestId('submit-holiday'))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalled()
     })
-    expect(onSubmit.mock.calls[0][0].title).toBe('Trimmed Title')
+    expect(onSubmit.mock.calls[0][0].title).toBe('Padded Title')
   })
 
   it('sends undefined for empty description', async () => {
@@ -156,12 +152,13 @@ describe('AddHolidayModal — validation errors are visible', () => {
     expect(alertBanner).toHaveAttribute('role', 'alert')
   })
 
-  it('clears the error on the date field once the user types a valid date', async () => {
+  it('clears the field error after the user provides a valid value', async () => {
     const user = userEvent.setup()
-    renderModal({ defaultDate: '', defaultTitle: 'Test' })
+    const { onSubmit } = renderModal({ defaultDate: '', defaultTitle: 'Test' })
 
     await user.click(screen.getByTestId('submit-holiday'))
     expect(await screen.findByText('Date is required', { selector: 'p' })).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
 
     const dateInput = screen.getByLabelText(/date/i) as HTMLInputElement
     await user.type(dateInput, '2026-12-12')
@@ -169,5 +166,12 @@ describe('AddHolidayModal — validation errors are visible', () => {
     await waitFor(() => {
       expect(screen.queryByText('Date is required', { selector: 'p' })).not.toBeInTheDocument()
     })
+
+    await user.click(screen.getByTestId('submit-holiday'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1)
+    })
+    expect(onSubmit.mock.calls[0][0].calendar_date).toBe('2026-12-12')
   })
 })
