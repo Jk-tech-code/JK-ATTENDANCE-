@@ -56,12 +56,13 @@ export function ProfileCard() {
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-            {teacher.full_name
-              .split(' ')
+            {(teacher.full_name ?? '')
+              .split(/\s+/)
+              .filter(Boolean)
               .map((n) => n[0])
               .join('')
               .slice(0, 2)
-              .toUpperCase()}
+              .toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{teacher.full_name}</p>

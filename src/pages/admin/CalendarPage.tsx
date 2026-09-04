@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,8 @@ import { format, parse, getDate } from 'date-fns'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const currentYear = new Date().getFullYear()
+const initialNow = new Date()
+const currentYear = initialNow.getFullYear()
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 3 + i)
 
 function getDayColor(day: MonthCalendar['calendar'][0]): string {
@@ -36,9 +37,8 @@ function getDayColor(day: MonthCalendar['calendar'][0]): string {
 }
 
 export default function CalendarPage() {
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(initialNow.getFullYear())
+  const [month, setMonth] = useState(initialNow.getMonth() + 1)
   const [data, setData] = useState<MonthCalendar | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -47,6 +47,13 @@ export default function CalendarPage() {
   const [generating, setGenerating] = useState(false)
   const [holidayEntries, setHolidayEntries] = useState<HolidayEntry[]>([])
   const [holidayListLoading, setHolidayListLoading] = useState(false)
+  // Tracks today's date so it refreshes across midnight without a remount.
+  const [today, setToday] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  useEffect(() => {
+    setToday(format(new Date(), 'yyyy-MM-dd'))
+    const id = setInterval(() => setToday(format(new Date(), 'yyyy-MM-dd')), 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addForm, setAddForm] = useState({
@@ -58,27 +65,53 @@ export default function CalendarPage() {
   const createMutation = useCreateCalendarEntry()
 
   useEffect(() => {
+    // Cancellation token — ignore responses from older requests so a
+    // fast month change can't have stale data win the race.
+    let cancelled = false
     setLoading(true)
     getMonthCalendar(year, month)
-      .then(setData)
-      .catch(() => toast.error('Failed to load calendar'))
-      .finally(() => setLoading(false))
+      .then((d) => {
+        if (!cancelled) setData(d)
+      })
+      .catch(() => {
+        if (!cancelled) toast.error('Failed to load calendar')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [year, month])
 
   useEffect(() => {
-    if (!selectedDate) { setHolidayEntries([]); return }
+    if (!selectedDate) {
+      setHolidayEntries([])
+      setDayDetail(null)
+      return
+    }
+    let cancelled = false
     setHolidayListLoading(true)
-    getHolidayEntries(selectedDate)
-      .then(entries => {
+    setDetailLoading(true)
+    Promise.all([getHolidayEntries(selectedDate), getDayAttendanceDetail(selectedDate)])
+      .then(([entries, detail]) => {
+        if (cancelled) return
         setHolidayEntries(entries)
-        setDetailLoading(true)
-        return getDayAttendanceDetail(selectedDate).then(setDayDetail).catch((err) => {
-          console.error('Failed to load day attendance detail:', err)
-          setDayDetail(null)
-        })
+        setDayDetail(detail)
       })
-      .catch(() => toast.error('Failed to load date details'))
-      .finally(() => { setDetailLoading(false); setHolidayListLoading(false) })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Failed to load date details:', err)
+        toast.error('Failed to load date details')
+      })
+      .finally(() => {
+        if (cancelled) return
+        setDetailLoading(false)
+        setHolidayListLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [selectedDate])
 
   const calendarGrid = useMemo(() => {
@@ -247,7 +280,7 @@ export default function CalendarPage() {
           <CardContent>
             {loading ? <Skeleton className="h-8 w-20" /> : (
               <p className="text-2xl font-bold text-red-600">
-                {data?.calendar.reduce((s, d) => s + d.absent, 0) ?? 0}
+                {data?.calendar.reduce((s, d) => s + (d.absent ?? 0), 0) ?? 0}
               </p>
             )}
           </CardContent>

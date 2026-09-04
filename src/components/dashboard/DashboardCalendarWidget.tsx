@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { checkDate, getCalendarEntries } from '@/services/calendar'
 import type { DateCheckResult, SchoolCalendarEntry } from '@/services/calendar'
-import { CalendarDays, Sun, Moon, CloudSun, ArrowRight } from 'lucide-react'
+import { CalendarDays, Sun, Moon, CloudSun, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 
 export function DashboardCalendarWidget() {
-  const navigate = useNavigate()
   const [dateInfo, setDateInfo] = useState<DateCheckResult | null>(null)
   const [nextEvent, setNextEvent] = useState<SchoolCalendarEntry | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
@@ -20,21 +19,45 @@ export function DashboardCalendarWidget() {
     const endOfMonth = new Date(todayObj.getFullYear(), todayObj.getMonth() + 2, 0)
     const endDate = format(endOfMonth, 'yyyy-MM-dd')
 
-    Promise.all([checkDate(today), getCalendarEntries(today, endDate)])
-      .then(([date, entries]) => {
+    let cancelled = false
+
+    async function load() {
+      const safe = async <T,>(p: Promise<T>): Promise<T | null> => {
+        try {
+          return await p
+        } catch (err) {
+          console.error('[DashboardCalendarWidget] sub-query failed:', err)
+          return null
+        }
+      }
+
+      const [date, entries] = await Promise.all([
+        safe(checkDate(today)),
+        safe(getCalendarEntries(today, endDate)),
+      ])
+
+      if (cancelled) return
+
+      if (!date) {
+        setError('Unable to load calendar info')
+      } else {
         setDateInfo(date)
+      }
 
+      if (entries) {
         const upcoming = entries
-          .filter(e => e.calendar_date > today && (e.day_type === 'holiday' || e.day_type === 'event'))
+          .filter((e) => e.calendar_date > today && (e.day_type === 'holiday' || e.day_type === 'event'))
           .sort((a, b) => a.calendar_date.localeCompare(b.calendar_date))
-
         if (upcoming.length > 0) setNextEvent(upcoming[0])
-      })
-      .catch((err) => {
-        console.error('[DashboardCalendarWidget] calendar load failed:', err)
-        toast.error(err instanceof Error ? err.message : 'Failed to load calendar data')
-      })
-      .finally(() => setLoading(false))
+      }
+
+      setLoading(false)
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (loading) {
@@ -51,8 +74,27 @@ export function DashboardCalendarWidget() {
   }
 
   const today = format(new Date(), 'EEEE, dd MMMM yyyy')
-  const isWeekend = dateInfo?.is_weekend
-  const isHoliday = dateInfo?.is_holiday
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-2 p-4 text-center">
+          <AlertCircle className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm font-medium">Calendar unavailable</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+          <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const dateInfoSafe = dateInfo
+  if (!dateInfoSafe) return null
+
+  const isWeekend = dateInfoSafe.is_weekend
+  const isHoliday = dateInfoSafe.is_holiday
 
   return (
     <Card className="overflow-hidden">
@@ -82,29 +124,34 @@ export function DashboardCalendarWidget() {
               isWeekend ? 'bg-blue-100 text-blue-700' :
               'bg-green-100 text-green-700'
             }`}>
-              {dateInfo?.title ?? 'Working Day'}
+              {dateInfoSafe.title || 'Working Day'}
             </span>
             <span className="text-muted-foreground">
-              {!dateInfo?.attendance_allowed ? 'Attendance not required' : 'Attendance active'}
+              {!dateInfoSafe.attendance_allowed ? 'Attendance not required' : 'Attendance active'}
             </span>
           </div>
         </div>
 
-        {nextEvent && (
-          <button
-            onClick={() => navigate('/admin/holidays')}
-            className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>
-                <span className="font-medium">Upcoming:</span>{' '}
-                {nextEvent.title} - {new Date(nextEvent.calendar_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </span>
+{nextEvent && (() => {
+          const raw = nextEvent.calendar_date
+          const parsed = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+            ? new Date(`${raw}T12:00:00`)
+            : null
+          const dateLabel =
+            parsed && !Number.isNaN(parsed.getTime())
+              ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              : 'TBD'
+          return (
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>
+                  Next: {nextEvent.title} - {dateLabel}
+                </span>
+              </div>
             </div>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-        )}
+          )
+        })()}
       </CardContent>
     </Card>
   )

@@ -44,8 +44,8 @@ export default function HolidayManagementPage() {
   )
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return holidays
-    return holidays.filter(e => e.day_type === filter)
+    const base = filter === 'all' ? holidays : holidays.filter(e => e.day_type === filter)
+    return [...base].sort((a, b) => a.calendar_date.localeCompare(b.calendar_date))
   }, [holidays, filter])
 
   const openCreate = (dayType: 'holiday' | 'event') => {
@@ -120,7 +120,7 @@ export default function HolidayManagementPage() {
               <p className="text-center text-muted-foreground py-8">No {filter === 'all' ? 'holidays or events' : filter + 's'} for {year}</p>
             ) : (
               <div className="space-y-2">
-                {filtered.sort((a, b) => a.calendar_date.localeCompare(b.calendar_date)).map(e => (
+                {filtered.map(e => (
                   <div key={e.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/50">
                     <div className="flex items-start gap-3">
                       <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${

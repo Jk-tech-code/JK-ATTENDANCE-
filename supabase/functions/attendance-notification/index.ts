@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
-import { createSupabaseAdmin, verifyAuth } from "../_shared/supabase.ts"
+import { createSupabaseAdmin, verifyAuth, isAdmin } from "../_shared/supabase.ts"
 import { adminMiddleware } from "../_shared/admin.ts"
 
 interface NotificationPayload {
@@ -15,42 +15,62 @@ Deno.serve(async (req: Request) => {
   if (cors) return cors
 
   try {
-    // GET can be accessed by authenticated users (teachers reading their own notifications)
-    // POST requires admin access
+    // POST: admin only. GET: any authenticated user, but server enforces
+    // ownership — non-admins can only fetch their own notifications.
     if (req.method === "POST") {
       const adminResult = await adminMiddleware(req, "POST")
       if (adminResult instanceof Response) return adminResult
     } else if (req.method === "GET") {
-      // For GET, just verify auth but don't require admin
       const auth = await verifyAuth(req.headers.get("Authorization"))
       if (auth.error) {
         return jsonResponse({ error: auth.error }, 401)
       }
-    } else {
-      return jsonResponse({ error: "Method not allowed" }, 405)
-    }
-
-    if (req.method === "GET") {
-      const url = new URL(req.url)
-      const teacherId = url.searchParams.get("teacher_id")
-      const limit = parseInt(url.searchParams.get("limit") ?? "20")
 
       const supabase = createSupabaseAdmin()
+      const callerId = auth.user!.id
+      const callerIsAdmin = await isAdmin(supabase, callerId)
+
+      // Resolve the caller's teacher_id (teachers.id) from the JWT user id.
+      // Without this, a teacher could pass any teacher_id and read others' rows.
+      const { data: callerTeacher } = await supabase
+        .from("teachers")
+        .select("id")
+        .or(`id.eq.${callerId},user_id.eq.${callerId},auth_user_id.eq.${callerId}`)
+        .maybeSingle()
+
+      const url = new URL(req.url)
+      const requestedTeacherId = url.searchParams.get("teacher_id")
+      const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20"), 100)
+
+      let effectiveTeacherId: string | null = null
+      if (callerIsAdmin) {
+        effectiveTeacherId = requestedTeacherId
+      } else {
+        if (!callerTeacher) {
+          return jsonResponse({ notifications: [] })
+        }
+        if (requestedTeacherId && requestedTeacherId !== callerTeacher.id) {
+          return jsonResponse({ error: "Forbidden" }, 403)
+        }
+        effectiveTeacherId = callerTeacher.id
+      }
+
       let query = supabase
         .from("attendance_notifications")
-        .select("*, teacher:teachers(full_name, staff_number)")
+        .select("*")
         .order("created_at", { ascending: false })
-        .limit(Math.min(limit, 100))
+        .limit(limit)
 
-      if (teacherId) query = query.eq("teacher_id", teacherId)
+      if (effectiveTeacherId) query = query.eq("teacher_id", effectiveTeacherId)
 
       const { data, error } = await query
       if (error) throw error
 
-      return jsonResponse({ notifications: data })
+      return jsonResponse({ notifications: data ?? [] })
+    } else {
+      return jsonResponse({ error: "Method not allowed" }, 405)
     }
 
-    // At this point, we've already validated POST method and admin access
     const payload: NotificationPayload = await req.json()
     const supabase = createSupabaseAdmin()
 

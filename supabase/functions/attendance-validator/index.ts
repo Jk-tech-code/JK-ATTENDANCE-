@@ -3,6 +3,7 @@ import { handleCors, jsonResponse } from "../_shared/cors.ts"
 import {
   createSupabaseAdmin,
   verifyAuth,
+  isAdmin,
 } from "../_shared/supabase.ts"
 
 interface ValidatorBody {
@@ -36,6 +37,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createSupabaseAdmin()
+
+    // Authorization: callers may only validate attendance for their own
+    // teacher_id. Admins may validate for any teacher.
+    const callerIsAdmin = await isAdmin(supabase, auth.user!.id)
+    if (!callerIsAdmin) {
+      const { data: callerTeacher } = await supabase
+        .from("teachers")
+        .select("id")
+        .or(
+          `id.eq.${auth.user!.id},user_id.eq.${auth.user!.id},auth_user_id.eq.${auth.user!.id}`,
+        )
+        .maybeSingle()
+
+      if (!callerTeacher || callerTeacher.id !== body.teacher_id) {
+        return jsonResponse({ error: "Forbidden" }, 403)
+      }
+    }
 
     const { data: teacher } = await supabase
       .from("teachers")

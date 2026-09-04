@@ -93,7 +93,14 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
     .order('full_name', { ascending: true })
 
   if (params.search) {
-    query = query.or(`full_name.ilike.%${params.search}%,staff_number.ilike.%${params.search}%,email.ilike.%${params.search}%`)
+    // Sanitize search input before injecting into PostgREST filter strings.
+    // PostgREST parses commas / parens as operator separators inside .or(),
+    // so unsanitized input can break the filter or broaden it unexpectedly.
+    const safe = params.search.replace(/[\\%_(),]/g, (c) => '\\' + c)
+    const pattern = `%${safe}%`
+    query = query.or(
+      `full_name.ilike.${pattern},staff_number.ilike.${pattern},email.ilike.${pattern}`,
+    )
   }
   if (params.employmentStatus) {
     query = query.eq('employment_status', params.employmentStatus)

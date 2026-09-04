@@ -35,16 +35,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
-      await loadUser()
-      setLoading(false)
-    }
-    init()
-
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
+      try {
         await loadUser()
+      } catch (err) {
+        console.error('[AuthProvider] init failed', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    void init()
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'TOKEN_REFRESHED') return
+      if (session?.user) {
+        try {
+          await loadUser()
+        } catch (err) {
+          console.error('[AuthProvider] auth state change failed', err)
+        }
       } else {
         setUser(null)
+        setProfileError(null)
       }
     })
 
@@ -65,7 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithGoogle = async () => {
-    await authSignInWithGoogle()
+    try {
+      await authSignInWithGoogle()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google sign-in failed'
+      setProfileError(message)
+      throw err
+    }
   }
 
   const signOut = async () => {

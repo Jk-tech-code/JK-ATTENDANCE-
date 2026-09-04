@@ -30,13 +30,10 @@ const statusConfig: Record<
   string,
   { label: string; color: string; bg: string; icon: typeof CheckCircle2 }
 > = {
-  PRESENT: { label: 'Present', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: CheckCircle2 },
   present: { label: 'Present', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: CheckCircle2 },
-  LATE: { label: 'Late', color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30', icon: AlertTriangle },
   late: { label: 'Late', color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30', icon: AlertTriangle },
-  COMPLETE_DAY: { label: 'Complete Day', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', icon: CheckCircle2 },
-  EARLY_DEPARTURE: { label: 'Early Departure', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/30', icon: Timer },
-  ABSENT: { label: 'Absent', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/30', icon: XCircle },
+  complete_day: { label: 'Complete Day', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', icon: CheckCircle2 },
+  early_departure: { label: 'Early Departure', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/30', icon: Timer },
   absent: { label: 'Absent', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/30', icon: XCircle },
   checked_out: { label: 'Checked Out', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', icon: CheckCircle2 },
 }
@@ -124,7 +121,7 @@ export function AttendanceCard() {
 
   const isCheckedIn = !!attendance?.check_in
   const isCheckedOut = !!attendance?.check_out
-  const statusKey = attendance?.attendance_status ?? attendance?.status ?? 'absent'
+  const statusKey = (attendance?.attendance_status ?? attendance?.status ?? 'absent').toLowerCase()
   const config = statusConfig[statusKey] ?? statusConfig.absent
   const StatusIcon = config.icon
 
@@ -369,7 +366,7 @@ export function AttendanceCard() {
             </div>
           )}
 
-          {rateLimitCountdown !== null && (
+          {rateLimitCountdown !== null && rateLimitCountdown > 0 && (
             <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>Too many attempts. Retry in {rateLimitCountdown}s</span>

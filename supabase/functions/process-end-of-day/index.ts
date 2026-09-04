@@ -11,6 +11,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createSupabaseAdmin } from "../_shared/supabase.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
+import { timingSafeEqualStrings } from "../_shared/timing.ts"
 
 console.log("process-end-of-day invoked")
 
@@ -23,8 +24,10 @@ Deno.serve(async (req: Request) => {
     console.error("CRON_SECRET environment variable is not set. Rejecting request.")
     return jsonResponse({ error: "Server misconfigured: CRON_SECRET not set" }, 500)
   }
-  const authHeader = req.headers.get("x-api-key") ?? req.headers.get("authorization")?.replace("Bearer ", "")
-  if (authHeader !== cronSecret) {
+  // Only accept the secret via the dedicated x-api-key header — never reuse
+  // the Authorization header (which carries JWTs on every other function).
+  const apiKey = req.headers.get("x-api-key")
+  if (!apiKey || !timingSafeEqualStrings(apiKey, cronSecret)) {
     return jsonResponse({ error: "Unauthorized" }, 401)
   }
 

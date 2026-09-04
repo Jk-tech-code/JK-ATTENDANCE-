@@ -106,7 +106,12 @@ export function useLocationAttendance(): UseLocationAttendanceReturn {
         ...prev,
         checkingIn: false,
         distance: result.distance ?? null,
-        locationStatus: (result.location_status as 'inside_school') ?? null,
+        locationStatus:
+          result.location_status === 'inside_school' ||
+          result.location_status === 'outside_school' ||
+          result.location_status === 'low_accuracy'
+            ? result.location_status
+            : null,
         successMessage: 'Check-in successful!',
         rateLimitRemaining: result.rate_limit?.remaining ?? null,
         rateLimitRetryAfter: null,

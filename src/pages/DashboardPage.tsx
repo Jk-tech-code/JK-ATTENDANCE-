@@ -8,10 +8,10 @@ import { DashboardCalendarWidget } from '@/components/dashboard/DashboardCalenda
 import { useAuth } from '@/hooks/useAuth'
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-  const displayName = user?.teacher?.full_name?.split(' ')[0]
+  const { user, loading } = useAuth()
+  const firstName = user?.teacher?.full_name?.split(' ')[0]
     ?? user?.profile?.full_name?.split(' ')[0]
-    ?? 'Teacher'
+  const displayName = firstName ?? (loading ? '…' : 'Teacher')
   const department = user?.teacher?.department ?? 'All Departments'
   const staffNumber = user?.teacher?.staff_number ?? 'N/A'
 

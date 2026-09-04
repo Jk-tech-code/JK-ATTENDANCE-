@@ -43,3 +43,9 @@ scripts/
 
 .vercel
 .env*
+
+# Local CI / build log dumps
+build.txt
+test.txt
+test_cal.txt
+lint.txt
