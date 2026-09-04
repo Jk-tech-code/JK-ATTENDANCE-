@@ -154,6 +154,24 @@ export async function createCalendarEntry(input: {
     if (error.code === '23505') throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
     throw new Error(error.message)
   }
+
+  if (input.day_type === 'holiday') {
+    const { error: holidayErr } = await supabase
+      .from('holidays')
+      .upsert(
+        {
+          title: input.title,
+          description: input.description || null,
+          holiday_date: input.calendar_date,
+          type: 'holiday',
+        },
+        { onConflict: 'holiday_date,type' },
+      )
+    if (holidayErr && holidayErr.code !== '42P01') {
+      console.warn('[createCalendarEntry] holidays upsert failed:', holidayErr.message)
+    }
+  }
+
   return data as SchoolCalendarEntry
 }
 
@@ -177,12 +195,58 @@ export async function updateCalendarEntry(
     if (error.code === '23505') throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
     throw new Error(error.message)
   }
+
+  if (input.day_type === 'holiday' && input.title) {
+    const { error: holidayErr } = await supabase
+      .from('holidays')
+      .upsert(
+        {
+          title: input.title,
+          description: input.description ?? null,
+          holiday_date: input.calendar_date ?? data.calendar_date,
+          type: 'holiday',
+        },
+        { onConflict: 'holiday_date,type' },
+      )
+    if (holidayErr && holidayErr.code !== '42P01') {
+      console.warn('[updateCalendarEntry] holidays upsert failed:', holidayErr.message)
+    }
+  } else if (input.day_type && input.day_type !== 'holiday' && data.calendar_date) {
+    const { error: delErr } = await supabase
+      .from('holidays')
+      .delete()
+      .eq('holiday_date', data.calendar_date)
+      .eq('type', 'holiday')
+    if (delErr && delErr.code !== '42P01') {
+      console.warn('[updateCalendarEntry] holidays delete failed:', delErr.message)
+    }
+  }
+
   return data as SchoolCalendarEntry
 }
 
 export async function deleteCalendarEntry(id: string): Promise<void> {
+  const { data: existing, error: fetchErr } = await supabase
+    .from('school_calendar')
+    .select('calendar_date, day_type')
+    .eq('id', id)
+    .single()
+
+  if (fetchErr) throw new Error(fetchErr.message)
+
   const { error } = await supabase.from('school_calendar').delete().eq('id', id)
   if (error) throw new Error(error.message)
+
+  if (existing?.day_type === 'holiday') {
+    const { error: delErr } = await supabase
+      .from('holidays')
+      .delete()
+      .eq('holiday_date', existing.calendar_date)
+      .eq('type', 'holiday')
+    if (delErr && delErr.code !== '42P01') {
+      console.warn('[deleteCalendarEntry] holidays delete failed:', delErr.message)
+    }
+  }
 }
 
 export async function autoPopulateWeekends(

@@ -154,9 +154,12 @@ export default function HolidayManagementPage() {
               variant="outline"
               className="w-full justify-start"
               onClick={() => {
-                const nextWeek = new Date()
-                nextWeek.setDate(nextWeek.getDate() + (11 - nextWeek.getDay()) % 7 + 1)
-                quickAdd('holiday', nextWeek, 'Mid-Term Break')
+                const d = new Date()
+                const dow = d.getDay()
+                const daysUntilFriday = (5 - dow + 7) % 7
+                const offset = daysUntilFriday === 0 ? 7 : daysUntilFriday
+                d.setDate(d.getDate() + offset)
+                quickAdd('holiday', d, 'Mid-Term Break')
               }}
             >
               <Umbrella className="mr-2 h-4 w-4 text-yellow-600" />Mid-Term Break (Holiday)
@@ -165,9 +168,10 @@ export default function HolidayManagementPage() {
               variant="outline"
               className="w-full justify-start"
               onClick={() => {
-                const endYear = new Date()
-                endYear.setMonth(11, 1)
-                quickAdd('event', endYear, 'School Closing Day')
+                const d = new Date()
+                const candidate = new Date(d.getFullYear(), 11, 15)
+                if (candidate < d) candidate.setFullYear(d.getFullYear() + 1)
+                quickAdd('event', candidate, 'School Closing Day')
               }}
             >
               <Star className="mr-2 h-4 w-4 text-purple-600" />School Closing Day (Event)
@@ -197,6 +201,7 @@ export default function HolidayManagementPage() {
       </div>
 
       <AddHolidayModal
+        key={editing?.id ?? `create-${quickDate}-${quickType}`}
         open={open}
         onOpenChange={setOpen}
         defaultType={quickType}

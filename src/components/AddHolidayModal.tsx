@@ -114,6 +114,12 @@ export function AddHolidayModal({
           >
             <option value="holiday">Holiday</option>
             <option value="event">Event</option>
+            {editMode && (
+              <>
+                <option value="working_day">Working Day</option>
+                <option value="weekend">Weekend</option>
+              </>
+            )}
           </select>
         </div>
         <div className="space-y-2">
