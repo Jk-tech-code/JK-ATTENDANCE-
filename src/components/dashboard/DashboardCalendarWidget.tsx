@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { checkDate, getCalendarEntries } from '@/services/calendar'
-import { getDashboardStats } from '@/services/admin'
 import type { DateCheckResult, SchoolCalendarEntry } from '@/services/calendar'
-import type { DashboardStats } from '@/services/admin'
 import { CalendarDays, Sun, Moon, CloudSun, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
@@ -13,7 +11,6 @@ import { toast } from 'sonner'
 export function DashboardCalendarWidget() {
   const navigate = useNavigate()
   const [dateInfo, setDateInfo] = useState<DateCheckResult | null>(null)
-  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [nextEvent, setNextEvent] = useState<SchoolCalendarEntry | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -23,15 +20,9 @@ export function DashboardCalendarWidget() {
     const endOfMonth = new Date(todayObj.getFullYear(), todayObj.getMonth() + 2, 0)
     const endDate = format(endOfMonth, 'yyyy-MM-dd')
 
-    const statsPromise = getDashboardStats().catch((err) => {
-      console.warn('[DashboardCalendarWidget] dashboard stats unavailable:', err)
-      return null
-    })
-
-    Promise.all([checkDate(today), statsPromise, getCalendarEntries(today, endDate)])
-      .then(([date, statsData, entries]) => {
+    Promise.all([checkDate(today), getCalendarEntries(today, endDate)])
+      .then(([date, entries]) => {
         setDateInfo(date)
-        setStats(statsData)
 
         const upcoming = entries
           .filter(e => e.calendar_date > today && (e.day_type === 'holiday' || e.day_type === 'event'))
@@ -98,15 +89,6 @@ export function DashboardCalendarWidget() {
             </span>
           </div>
         </div>
-
-        {dateInfo?.attendance_allowed && stats && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Attendance</span>
-            <span className="font-medium">
-              {stats.present_today + stats.late_today}/{stats.total_teachers} Teachers Present
-            </span>
-          </div>
-        )}
 
         {nextEvent && (
           <button
