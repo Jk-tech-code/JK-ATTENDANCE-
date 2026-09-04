@@ -259,6 +259,11 @@ export interface PaginatedAttendance {
   page_size: number
 }
 
+// PostgREST's hard cap is 1000 rows per request; pass anything higher
+// and it silently clamps to 1000. Anything that wants "all rows" must
+// page. See https://postgrest.org/en/stable/references/api/pagination.html
+export const POSTGREST_MAX_PAGE_SIZE = 1000
+
 export async function getAttendanceRecords(filters: AttendanceFilters = {}): Promise<PaginatedAttendance> {
   const page = filters.page ?? 1
   const page_size = filters.page_size ?? 20
@@ -280,6 +285,40 @@ export async function getAttendanceRecords(filters: AttendanceFilters = {}): Pro
 
   if (error) throw new Error(error.message)
   return { records: (data ?? []) as unknown as AttendanceWithTeacher[], total: count ?? 0, page, page_size }
+}
+
+// Page through attendance records honouring the same filters as
+// getAttendanceRecords, but fetching every row in chunks of
+// POSTGREST_MAX_PAGE_SIZE. Used by full-export flows; the single-page
+// UI keeps using getAttendanceRecords.
+//
+// `fetchPage` is injected so tests can drive the loop directly without
+// having to stub the entire Supabase client.
+export async function getAllAttendanceRecords(
+  filters: Omit<AttendanceFilters, 'page' | 'page_size'> = {},
+): Promise<AttendanceWithTeacher[]> {
+  return pageAllAttendance(filters, getAttendanceRecords)
+}
+
+export async function pageAllAttendance(
+  filters: Omit<AttendanceFilters, 'page' | 'page_size'>,
+  fetchPage: (
+    f: AttendanceFilters,
+  ) => Promise<{ records: AttendanceWithTeacher[] }>,
+): Promise<AttendanceWithTeacher[]> {
+  const all: AttendanceWithTeacher[] = []
+  let page = 1
+  for (;;) {
+    const { records } = await fetchPage({
+      ...filters,
+      page,
+      page_size: POSTGREST_MAX_PAGE_SIZE,
+    })
+    all.push(...records)
+    if (records.length < POSTGREST_MAX_PAGE_SIZE) break
+    page += 1
+  }
+  return all
 }
 
 // ─── Teacher Delete ──────────────────────────────────────────
@@ -512,7 +551,7 @@ export async function exportToPDF(records: AttendanceWithTeacher[], filename: st
 
 // ─── Export all pages ────────────────────────────────────────
 export async function exportAllAttendance(format: 'csv' | 'xlsx' | 'pdf', filename: string): Promise<void> {
-  const { records } = await getAttendanceRecords({ page: 1, page_size: 10000 })
+  const records = await getAllAttendanceRecords()
   if (format === 'csv') exportToCSV(records, filename)
   else if (format === 'xlsx') await exportToExcel(records, filename)
   else await exportToPDF(records, filename)
