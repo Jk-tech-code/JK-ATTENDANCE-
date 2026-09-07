@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
 import { createSupabaseAdmin, verifyAuth, isAdmin } from "../_shared/supabase.ts"
 
-Deno.serve(async (req: Request) => {
+export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
@@ -36,4 +36,8 @@ Deno.serve(async (req: Request) => {
       500
     )
   }
-})
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  Deno.serve(handler)
+}

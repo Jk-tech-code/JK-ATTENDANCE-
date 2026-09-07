@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import { POSTGREST_MAX_PAGE_SIZE, pageAllAttendance } from './admin'
 

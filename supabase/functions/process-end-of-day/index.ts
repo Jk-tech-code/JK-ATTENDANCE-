@@ -13,9 +13,7 @@ import { createSupabaseAdmin } from "../_shared/supabase.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
 import { timingSafeEqualStrings } from "../_shared/timing.ts"
 
-console.log("process-end-of-day invoked")
-
-Deno.serve(async (req: Request) => {
+export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
@@ -48,4 +46,9 @@ Deno.serve(async (req: Request) => {
     console.error("Unhandled error:", message)
     return jsonResponse({ error: message }, 500)
   }
-})
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  console.log("process-end-of-day invoked")
+  Deno.serve(handler)
+}

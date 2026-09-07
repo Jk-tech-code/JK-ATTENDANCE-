@@ -9,7 +9,7 @@ interface AIAnalysisRequest {
   provider?: "openai" | "deepseek"
 }
 
-Deno.serve(async (req: Request) => {
+export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
@@ -308,4 +308,8 @@ Provide 3-5 actionable recommendations in JSON format: { recommendations: string
       500
     )
   }
-})
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  Deno.serve(handler)
+}

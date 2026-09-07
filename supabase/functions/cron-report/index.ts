@@ -15,9 +15,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createSupabaseAdmin } from "../_shared/supabase.ts"
 import { handleCors, jsonResponse } from "../_shared/cors.ts"
 
-console.log("cron-report invoked")
-
-Deno.serve(async (req: Request) => {
+export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
@@ -27,6 +25,9 @@ Deno.serve(async (req: Request) => {
     console.error("CRON_SECRET environment variable is not set. Rejecting request.")
     return jsonResponse({ error: "Server misconfigured: CRON_SECRET not set" }, 500)
   }
+  // SECURITY: compare secrets with a constant-time check and accept
+  // either the x-api-key header or an Authorization: Bearer header.
+  // (Originally this was a plain `!==` check; see timing.ts.)
   const authHeader =
     req.headers.get("x-api-key") ??
     req.headers.get("authorization")?.replace("Bearer ", "")
@@ -72,7 +73,7 @@ Deno.serve(async (req: Request) => {
     console.error("cron-report error:", message)
     return jsonResponse({ error: message }, 500)
   }
-})
+}
 
 // ─── Daily Report Generation ─────────────────────────────────
 async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdmin>) {
@@ -270,4 +271,9 @@ async function storeReport(
     console.error(`Failed to store ${reportType} report:`, error.message)
     throw new Error(`Failed to persist ${reportType} report: ${error.message}`)
   }
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  console.log("cron-report invoked")
+  Deno.serve(handler)
 }

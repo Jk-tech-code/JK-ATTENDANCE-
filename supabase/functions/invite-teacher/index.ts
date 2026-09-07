@@ -23,10 +23,7 @@ function createSupabaseAdmin() {
   })
 }
 
-Deno.serve(async (req: Request) => {
-  const start = Date.now()
-  console.log("[invite-teacher] Request:", { method: req.method, url: req.url, origin: req.headers.get("origin") })
-
+export async function handler(req: Request): Promise<Response> {
   const adminResult = await adminMiddleware(req, "POST")
   if (adminResult instanceof Response) return adminResult
 
@@ -109,12 +106,13 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: teacherError.message }, 400)
     }
 
-    const elapsed = Date.now() - start
-    console.log("[invite-teacher] Success in", elapsed, "ms:", { teacher_id: teacher.id, email: input.email })
-
     return jsonResponse({ teacher }, 201)
   } catch (err) {
     console.error("[invite-teacher] Unhandled error:", err)
     return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
   }
-})
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  Deno.serve(handler)
+}

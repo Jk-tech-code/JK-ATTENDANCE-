@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { adminMiddleware } from "../_shared/admin.ts"
 import { createSupabaseAdmin, jsonResponse } from "../_shared/supabase.ts"
 
-Deno.serve(async (req: Request) => {
+export async function handler(req: Request): Promise<Response> {
   const start = Date.now()
   console.log("[delete-teacher] Request:", { method: req.method, url: req.url, origin: req.headers.get("origin") })
 
@@ -43,4 +43,8 @@ Deno.serve(async (req: Request) => {
     console.error("[delete-teacher] Unhandled error:", err)
     return jsonResponse({ error: "An unexpected error occurred" }, 500)
   }
-})
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  Deno.serve(handler)
+}
