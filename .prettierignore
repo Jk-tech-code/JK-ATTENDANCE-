@@ -1,0 +1,22 @@
+dist
+node_modules
+.pnp
+.pnp.js
+
+# Local CI / build log dumps
+build.txt
+test.txt
+test_cal.txt
+lint.txt
+test_full.txt
+
+# Supabase
+supabase/.temp/
+.remote_schema.sql
+
+# Generated / coverage
+coverage
+*.tsbuildinfo
+
+# Lock files (Prettier will fight Prettier on different machines otherwise)
+package-lock.json

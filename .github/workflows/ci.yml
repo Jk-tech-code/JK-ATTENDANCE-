@@ -16,7 +16,26 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npx tsc -b
-      - run: npm test -- --run
-      - run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        run: npx tsc -b
+      - name: Unit tests
+        run: npm test -- --run
+      - name: Build
+        run: npm run build
+
+  # Format check runs separately so it can be required without
+  # blocking the rest of the pipeline. Set to required: true once
+  # the codebase is fully formatted (`npm run format` then commit).
+  format:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
