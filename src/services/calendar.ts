@@ -138,41 +138,31 @@ export async function createCalendarEntry(input: {
   const { data: user, error: userErr } = await supabase.auth.getUser()
   if (userErr || !user?.user) throw new Error('Authentication required')
 
-  const { data, error } = await supabase
-    .from('school_calendar')
-    .insert({
-      calendar_date: input.calendar_date,
-      day_type: input.day_type,
-      title: input.title,
-      description: input.description || null,
-      created_by: user.user.id,
-    })
-    .select()
-    .single()
+  // Atomic write via SECURITY DEFINER RPC. The RPC inserts the
+  // school_calendar row and reconciles the denormalized holidays
+  // cache in a single transaction — no more drift between the two
+  // tables. See migration 00049_calendar_holiday_atomic_writes.sql.
+  const { data, error } = await supabase.rpc('create_calendar_entry', {
+    p_calendar_date: input.calendar_date,
+    p_day_type: input.day_type,
+    p_title: input.title,
+    p_description: input.description ?? null,
+    p_created_by: user.user.id,
+  })
 
   if (error) {
-    if (error.code === '23505') throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
+    if (error.code === '23505') {
+      throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
+    }
+    if (error.code === '22023') throw new Error(`Invalid day type: ${input.day_type}`)
     throw new Error(error.message)
   }
 
-  if (input.day_type === 'holiday') {
-    const { error: holidayErr } = await supabase
-      .from('holidays')
-      .upsert(
-        {
-          title: input.title,
-          description: input.description || null,
-          holiday_date: input.calendar_date,
-          type: 'holiday',
-        },
-        { onConflict: 'holiday_date,type' },
-      )
-    if (holidayErr && holidayErr.code !== '42P01') {
-      console.warn('[createCalendarEntry] holidays upsert failed:', holidayErr.message)
-    }
-  }
-
-  return data as SchoolCalendarEntry
+  // The RPC returns a setof row; .single() would expect one row
+  // but PostgREST's RPC representation is an array. Take the first.
+  const row = (Array.isArray(data) ? data[0] : data) as SchoolCalendarEntry | undefined
+  if (!row) throw new Error('Calendar entry was not created')
+  return row
 }
 
 export async function updateCalendarEntry(
@@ -184,68 +174,39 @@ export async function updateCalendarEntry(
     description: string
   }>
 ): Promise<SchoolCalendarEntry> {
-  const { data, error } = await supabase
-    .from('school_calendar')
-    .update(input)
-    .eq('id', id)
-    .select()
-    .single()
+  // Atomic update via SECURITY DEFINER RPC. Reconciles the holidays
+  // cache when day_type changes (deletes the old row, upserts the
+  // new). See migration 00049.
+  const { data, error } = await supabase.rpc('update_calendar_entry', {
+    p_id: id,
+    p_calendar_date: input.calendar_date ?? null,
+    p_day_type: input.day_type ?? null,
+    p_title: input.title ?? null,
+    p_description: input.description ?? null,
+  })
 
   if (error) {
-    if (error.code === '23505') throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
+    if (error.code === '23505') {
+      throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
+    }
+    if (error.code === '22023') throw new Error(`Invalid day type: ${input.day_type}`)
+    if (error.code === 'P0002') throw new Error('Calendar entry not found')
     throw new Error(error.message)
   }
 
-  if (input.day_type === 'holiday' && input.title) {
-    const { error: holidayErr } = await supabase
-      .from('holidays')
-      .upsert(
-        {
-          title: input.title,
-          description: input.description ?? null,
-          holiday_date: input.calendar_date ?? data.calendar_date,
-          type: 'holiday',
-        },
-        { onConflict: 'holiday_date,type' },
-      )
-    if (holidayErr && holidayErr.code !== '42P01') {
-      console.warn('[updateCalendarEntry] holidays upsert failed:', holidayErr.message)
-    }
-  } else if (input.day_type && input.day_type !== 'holiday' && data.calendar_date) {
-    const { error: delErr } = await supabase
-      .from('holidays')
-      .delete()
-      .eq('holiday_date', data.calendar_date)
-      .eq('type', 'holiday')
-    if (delErr && delErr.code !== '42P01') {
-      console.warn('[updateCalendarEntry] holidays delete failed:', delErr.message)
-    }
-  }
-
-  return data as SchoolCalendarEntry
+  const row = (Array.isArray(data) ? data[0] : data) as SchoolCalendarEntry | undefined
+  if (!row) throw new Error('Calendar entry was not updated')
+  return row
 }
 
 export async function deleteCalendarEntry(id: string): Promise<void> {
-  const { data: existing, error: fetchErr } = await supabase
-    .from('school_calendar')
-    .select('calendar_date, day_type')
-    .eq('id', id)
-    .single()
-
-  if (fetchErr) throw new Error(fetchErr.message)
-
-  const { error } = await supabase.from('school_calendar').delete().eq('id', id)
-  if (error) throw new Error(error.message)
-
-  if (existing?.day_type === 'holiday') {
-    const { error: delErr } = await supabase
-      .from('holidays')
-      .delete()
-      .eq('holiday_date', existing.calendar_date)
-      .eq('type', 'holiday')
-    if (delErr && delErr.code !== '42P01') {
-      console.warn('[deleteCalendarEntry] holidays delete failed:', delErr.message)
-    }
+  // Atomic delete via SECURITY DEFINER RPC. Removes the
+  // school_calendar row and the matching holidays row in one
+  // transaction. See migration 00049.
+  const { error } = await supabase.rpc('delete_calendar_entry', { p_id: id })
+  if (error) {
+    if (error.code === 'P0002') throw new Error('Calendar entry not found')
+    throw new Error(error.message)
   }
 }
 
