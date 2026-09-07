@@ -7,6 +7,7 @@ import {
   signOut as authSignOut,
   signInWithGoogle as authSignInWithGoogle,
 } from '@/services/auth'
+import { queryClient } from '@/lib/queryClient'
 import { AuthContext } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -54,8 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error('[AuthProvider] auth state change failed', err)
         }
       } else {
+        // SIGNED_OUT (or any non-refresh event with no session):
+        // clear React-Query cache so the next session does not see
+        // stale data from the previous user. queryClient.clear() also
+        // cancels in-flight queries and resets query state.
         setUser(null)
         setProfileError(null)
+        queryClient.clear()
       }
     })
 
@@ -90,6 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!result.error) {
       setUser(null)
       setProfileError(null)
+      // Clear cached query data so the next user (or a fresh login by
+      // the same user on a shared device) does not see the previous
+      // user's data. Also cancels pending queries.
+      queryClient.clear()
     }
     return result
   }
