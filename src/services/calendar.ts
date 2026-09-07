@@ -64,6 +64,22 @@ export interface DayAttendance {
 
 // ─── Holiday entries ─────────────────────────────────────────
 
+// Map a raw Supabase/PostgREST error to a user-friendly message for
+// the calendar RPCs. Detects the case where the function has not
+// been deployed (or migration 00049 has not been applied) and
+// returns a safe generic message instead of leaking the raw
+// "Could not find function public.create_calendar_entry" string.
+// The 23505 / 22023 / P0002 mappings are handled in their own
+// error branches so the order of checks in callers matters.
+function friendlyCalendarRpcError(err: { code?: string; message?: string }): string {
+  const code = err.code ?? ''
+  const message = err.message ?? ''
+  if (code === 'PGRST202' || /Could not find function/i.test(message)) {
+    return 'Calendar system is not available yet. Please contact your administrator.'
+  }
+  return message || 'Calendar operation failed. Please try again.'
+}
+
 export async function getHolidayEntries(date: string): Promise<HolidayEntry[]> {
   const { data, error } = await supabase
     .from('holidays')
@@ -155,7 +171,7 @@ export async function createCalendarEntry(input: {
       throw new Error(`A calendar entry already exists for ${input.calendar_date}`)
     }
     if (error.code === '22023') throw new Error(`Invalid day type: ${input.day_type}`)
-    throw new Error(error.message)
+    throw new Error(friendlyCalendarRpcError(error))
   }
 
   // The RPC returns a setof row; .single() would expect one row
@@ -191,7 +207,7 @@ export async function updateCalendarEntry(
     }
     if (error.code === '22023') throw new Error(`Invalid day type: ${input.day_type}`)
     if (error.code === 'P0002') throw new Error('Calendar entry not found')
-    throw new Error(error.message)
+    throw new Error(friendlyCalendarRpcError(error))
   }
 
   const row = (Array.isArray(data) ? data[0] : data) as SchoolCalendarEntry | undefined
@@ -206,14 +222,11 @@ export async function deleteCalendarEntry(id: string): Promise<void> {
   const { error } = await supabase.rpc('delete_calendar_entry', { p_id: id })
   if (error) {
     if (error.code === 'P0002') throw new Error('Calendar entry not found')
-    throw new Error(error.message)
+    throw new Error(friendlyCalendarRpcError(error))
   }
 }
 
-export async function autoPopulateWeekends(
-  startYear: number,
-  endYear: number
-): Promise<number> {
+export async function autoPopulateWeekends(startYear: number, endYear: number): Promise<number> {
   const { data, error } = await supabase.rpc('auto_populate_weekends', {
     p_start_year: startYear,
     p_end_year: endYear,
@@ -225,9 +238,7 @@ export async function autoPopulateWeekends(
 
 // ─── Day attendance detail ───────────────────────────────────
 
-export async function getDayAttendanceDetail(
-  date: string
-): Promise<DayAttendance> {
+export async function getDayAttendanceDetail(date: string): Promise<DayAttendance> {
   const [dateCheck, recordsResult] = await Promise.all([
     checkDate(date),
     supabase
@@ -240,10 +251,10 @@ export async function getDayAttendanceDetail(
   if (recordsResult.error) throw new Error(recordsResult.error.message)
 
   const records = (recordsResult.data || []) as DayAttendance['records']
-  const present = records.filter(r => ['present', 'checked_out'].includes(r.status ?? '')).length
-  const late = records.filter(r => r.status === 'late').length
-  const absent = records.filter(r => r.status === 'absent').length
-  const checkedOut = records.filter(r => r.status === 'checked_out').length
+  const present = records.filter((r) => ['present', 'checked_out'].includes(r.status ?? '')).length
+  const late = records.filter((r) => r.status === 'late').length
+  const absent = records.filter((r) => r.status === 'absent').length
+  const checkedOut = records.filter((r) => r.status === 'checked_out').length
   const total = records.length
 
   return {
@@ -266,7 +277,7 @@ export async function getDayAttendanceDetail(
 
 export async function generateMonthlyReport(year: number, month: number) {
   const monthCal = await getMonthCalendar(year, month)
-  const workingDays = monthCal.calendar.filter(d => d.day_type === 'working_day')
+  const workingDays = monthCal.calendar.filter((d) => d.day_type === 'working_day')
 
   const totalTeachersRes = await supabase
     .from('teachers')
@@ -302,7 +313,7 @@ export async function generateMonthlyReport(year: number, month: number) {
     total_late: totalLate,
     total_absent: totalAbsent,
     attendance_rate: attendanceRate,
-    working_days: workingDays.map(d => ({
+    working_days: workingDays.map((d) => ({
       date: d.date,
       present: d.present,
       late: d.late,

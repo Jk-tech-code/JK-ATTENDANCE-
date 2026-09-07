@@ -15,11 +15,7 @@ vi.mock('@/services/supabase', () => ({
 }))
 
 // Import after the mock is in place.
-const {
-  createCalendarEntry,
-  updateCalendarEntry,
-  deleteCalendarEntry,
-} = await import('./calendar')
+const { createCalendarEntry, updateCalendarEntry, deleteCalendarEntry } = await import('./calendar')
 
 function mockRpcSuccess(data: unknown) {
   mockRpc.mockResolvedValueOnce({ data, error: null })
@@ -47,7 +43,7 @@ describe('createCalendarEntry', () => {
         calendar_date: '2026-09-01',
         day_type: 'holiday',
         title: 'Test',
-      }),
+      })
     ).rejects.toThrow(/Authentication required/)
   })
 
@@ -86,7 +82,7 @@ describe('createCalendarEntry', () => {
         calendar_date: '2026-09-01',
         day_type: 'holiday',
         title: 'Dup',
-      }),
+      })
     ).rejects.toThrow(/already exists/)
   })
 
@@ -97,8 +93,43 @@ describe('createCalendarEntry', () => {
         calendar_date: '2026-09-01',
         day_type: 'working_day',
         title: 'OK',
-      }),
+      })
     ).rejects.toThrow(/Invalid day type/)
+  })
+
+  it('surfaces a friendly error when the RPC is missing (PGRST202)', async () => {
+    // PostgREST returns PGRST202 when the function does not exist
+    // (e.g. migration 00049 has not been applied to the target
+    // environment). Verify the user sees a safe message instead of
+    // the raw "Could not find function public.create_calendar_entry".
+    mockRpcError('PGRST202', 'Could not find function public.create_calendar_entry')
+    await expect(
+      createCalendarEntry({
+        calendar_date: '2026-09-01',
+        day_type: 'holiday',
+        title: 'T',
+      })
+    ).rejects.toThrow(/not available yet|contact your administrator/i)
+    await expect(
+      createCalendarEntry({
+        calendar_date: '2026-09-01',
+        day_type: 'holiday',
+        title: 'T',
+      }).catch((e: Error) => e.message)
+    ).resolves.not.toMatch(/Could not find function/)
+  })
+
+  it('surfaces a friendly error on PGRST202 from the message field alone', async () => {
+    // Some PostgREST versions set code to "PGRST202" but lowercase
+    // varies; the regex on the message must catch them.
+    mockRpcError('PGRST202', 'could not find function public.create_calendar_entry in schema cache')
+    await expect(
+      createCalendarEntry({
+        calendar_date: '2026-09-01',
+        day_type: 'holiday',
+        title: 'T',
+      })
+    ).rejects.toThrow(/not available yet/)
   })
 
   it('forwards the description when provided', async () => {
@@ -121,7 +152,7 @@ describe('createCalendarEntry', () => {
     })
     expect(mockRpc).toHaveBeenCalledWith(
       'create_calendar_entry',
-      expect.objectContaining({ p_description: 'desc' }),
+      expect.objectContaining({ p_description: 'desc' })
     )
   })
 })
@@ -157,9 +188,14 @@ describe('updateCalendarEntry', () => {
 
   it('surfaces a friendly error when the row is missing (P0002)', async () => {
     mockRpcError('P0002', 'Calendar entry not found')
-    await expect(updateCalendarEntry('missing', { title: 'x' })).rejects.toThrow(
-      /not found/i,
-    )
+    await expect(updateCalendarEntry('missing', { title: 'x' })).rejects.toThrow(/not found/i)
+  })
+
+  it('surfaces a friendly error on PGRST202 (missing RPC)', async () => {
+    mockRpcError('PGRST202', 'Could not find function public.update_calendar_entry')
+    await expect(
+      updateCalendarEntry('row-1', { title: 'x' })
+    ).rejects.toThrow(/not available yet/)
   })
 })
 
@@ -177,5 +213,10 @@ describe('deleteCalendarEntry', () => {
   it('surfaces a friendly error when the row is missing', async () => {
     mockRpcError('P0002', 'Calendar entry not found')
     await expect(deleteCalendarEntry('missing')).rejects.toThrow(/not found/i)
+  })
+
+  it('surfaces a friendly error on PGRST202 (missing RPC)', async () => {
+    mockRpcError('PGRST202', 'Could not find function public.delete_calendar_entry')
+    await expect(deleteCalendarEntry('row-1')).rejects.toThrow(/not available yet/)
   })
 })
