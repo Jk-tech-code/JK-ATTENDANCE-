@@ -1,6 +1,5 @@
 import { lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { AdminLayout } from '@/layouts/AdminLayout'
@@ -70,13 +69,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Helmet>
-        <title>JK Attendance System</title>
-        <meta
-          name="description"
-          content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration."
-        />
-      </Helmet>
       <Toaster position="top-right" richColors />
       <Routes>
         <Route path="/" element={<LandingPage />} />

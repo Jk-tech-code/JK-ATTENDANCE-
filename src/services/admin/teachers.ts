@@ -102,7 +102,7 @@ export async function deleteTeacher(id: string): Promise<void> {
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   const url = `${supabaseUrl}/functions/v1/delete-teacher`
-  console.log('[deleteTeacher] Calling:', url, { teacher_id: id })
+  console.warn('[deleteTeacher] Calling:', url, { teacher_id: id })
 
   let res: Response
   try {
@@ -151,7 +151,7 @@ async function callInviteEdgeFunction(input: {
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   const url = `${supabaseUrl}/functions/v1/invite-teacher`
-  console.log('[inviteTeacher] Calling:', url, { email: input.email })
+  console.warn('[inviteTeacher] Calling:', url, { email: input.email })
 
   let res: Response
   try {

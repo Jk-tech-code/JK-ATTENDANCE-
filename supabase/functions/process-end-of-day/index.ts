@@ -39,7 +39,7 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: error.message }, 500)
     }
 
-    console.log('process_end_of_day completed successfully')
+    console.warn('process_end_of_day completed successfully')
     return jsonResponse({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
@@ -49,6 +49,6 @@ export async function handler(req: Request): Promise<Response> {
 }
 
 if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
-  console.log('process-end-of-day invoked')
+  console.warn('process-end-of-day invoked')
   Deno.serve(handler)
 }

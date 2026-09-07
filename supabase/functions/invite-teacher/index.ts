@@ -32,7 +32,7 @@ export async function handler(req: Request): Promise<Response> {
 
   try {
     const input: InviteInput = await req.json()
-    console.log('[invite-teacher] Input:', {
+    console.warn('[invite-teacher] Input:', {
       email: input.email,
       staff_number: input.staff_number,
       full_name: input.full_name,
@@ -68,7 +68,7 @@ export async function handler(req: Request): Promise<Response> {
 
     // Create auth user via inviteUserByEmail
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jkattendance.vercel.app'
-    console.log(
+    console.warn(
       '[invite-teacher] Inviting:',
       input.email,
       'redirectTo:',

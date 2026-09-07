@@ -68,8 +68,7 @@ export default function LoginPage() {
           name="description"
           content="Sign in to the JK Attendance System for Glorious Group of Schools"
         />
-        <meta name="robots" content="index, follow" />
-        <link rel="canonical" href={`${window.location.origin}/login`} />
+        <meta name="robots" content="noindex, follow" />
         <meta property="og:title" content="Sign In — JK Attendance System" />
         <meta
           property="og:description"
@@ -126,7 +125,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -134,9 +133,15 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@school.com"
                   autoComplete="email"
+                  aria-invalid={errors.email ? 'true' : undefined}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   {...register('email')}
                 />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                {errors.email && (
+                  <p id="email-error" className="text-xs text-destructive" role="alert">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -154,10 +159,14 @@ export default function LoginPage() {
                   type="password"
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  aria-invalid={errors.password ? 'true' : undefined}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   {...register('password')}
                 />
                 {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
+                  <p id="password-error" className="text-xs text-destructive" role="alert">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 

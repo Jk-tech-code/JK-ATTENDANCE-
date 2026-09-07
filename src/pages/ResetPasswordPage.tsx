@@ -96,17 +96,21 @@ export default function ResetPasswordPage() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="password">New Password</Label>
                   <Input
                     id="password"
                     type="password"
                     placeholder="Min. 8 characters"
+                    aria-invalid={errors.password ? 'true' : undefined}
+                    aria-describedby={errors.password ? 'password-error' : undefined}
                     {...register('password')}
                   />
                   {errors.password && (
-                    <p className="text-xs text-destructive">{errors.password.message}</p>
+                    <p id="password-error" className="text-xs text-destructive" role="alert">
+                      {errors.password.message}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -115,10 +119,18 @@ export default function ResetPasswordPage() {
                     id="confirmPassword"
                     type="password"
                     placeholder="Repeat password"
+                    aria-invalid={errors.confirmPassword ? 'true' : undefined}
+                    aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
                     {...register('confirmPassword')}
                   />
                   {errors.confirmPassword && (
-                    <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+                    <p
+                      id="confirm-password-error"
+                      className="text-xs text-destructive"
+                      role="alert"
+                    >
+                      {errors.confirmPassword.message}
+                    </p>
                   )}
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}

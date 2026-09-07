@@ -618,11 +618,9 @@ export default function CalendarPage() {
                                 className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-xs"
                               >
                                 <div>
-                                  <p className="font-medium">
-                                    {(r as any).teacher?.full_name ?? 'Unknown'}
-                                  </p>
+                                  <p className="font-medium">{r.teacher?.full_name ?? 'Unknown'}</p>
                                   <p className="text-muted-foreground">
-                                    {(r as any).teacher?.staff_number ?? ''}
+                                    {r.teacher?.staff_number ?? ''}
                                   </p>
                                 </div>
                                 <div className="text-right">

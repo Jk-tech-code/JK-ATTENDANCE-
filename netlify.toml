@@ -15,6 +15,10 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(self), microphone=(), camera=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    # Mirrors vercel.json so Netlify deployments get the same CSP as Vercel.
+    # No 'unsafe-eval' in production; 'unsafe-inline' is required for
+    # vite-emitted inline scripts and react-helmet-async JSON-LD injection.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ireyodsiyvvjfqymgdpa.supabase.co wss://ireyodsiyvvjfqymgdpa.supabase.co https://*.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
 
 [[headers]]
   for = "/assets/*"

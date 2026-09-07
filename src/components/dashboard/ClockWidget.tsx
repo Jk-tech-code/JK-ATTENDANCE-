@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { formatDate, formatTime } from '@/lib/format'
 import { Clock } from 'lucide-react'
 
-export function ClockWidget() {
+function ClockWidgetImpl() {
   const [now, setNow] = useState(new Date())
 
   useEffect(() => {
@@ -22,3 +22,10 @@ export function ClockWidget() {
     </div>
   )
 }
+
+// memo() with no props means the widget never re-renders when its
+// parent re-renders — only the internal 1Hz setInterval triggers an
+// update. Without this, every DashboardPage re-render (e.g. caused by
+// any of the children updating) would re-execute ClockWidget's function
+// body and reconcile the JSX unnecessarily.
+export const ClockWidget = memo(ClockWidgetImpl)

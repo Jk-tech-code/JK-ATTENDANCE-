@@ -266,6 +266,6 @@ async function storeReport(
 }
 
 if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
-  console.log('cron-report invoked')
+  console.warn('cron-report invoked')
   Deno.serve(handler)
 }

@@ -46,7 +46,6 @@ export default function ForgotPasswordPage() {
         <title>Forgot Password — JK Attendance System</title>
         <meta name="description" content="Reset your JK Attendance System password" />
         <meta name="robots" content="noindex, follow" />
-        <link rel="canonical" href={`${window.location.origin}/forgot-password`} />
       </Helmet>
       <AuthLayout
         title="Reset password"
@@ -65,17 +64,21 @@ export default function ForgotPasswordPage() {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     placeholder="you@school.com"
+                    aria-invalid={errors.email ? 'true' : undefined}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
                     {...register('email')}
                   />
                   {errors.email && (
-                    <p className="text-xs text-destructive">{errors.email.message}</p>
+                    <p id="email-error" className="text-xs text-destructive" role="alert">
+                      {errors.email.message}
+                    </p>
                   )}
                 </div>
 

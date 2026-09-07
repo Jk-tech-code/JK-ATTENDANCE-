@@ -4,7 +4,7 @@ import { createSupabaseAdmin, jsonResponse } from '../_shared/supabase.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const start = Date.now()
-  console.log('[delete-teacher] Request:', {
+  console.warn('[delete-teacher] Request:', {
     method: req.method,
     url: req.url,
     origin: req.headers.get('origin'),
@@ -22,7 +22,7 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'teacher_id is required' }, 400)
     }
 
-    console.log('[delete-teacher] Deleting teacher:', teacher_id)
+    console.warn('[delete-teacher] Deleting teacher:', teacher_id)
 
     // Call SECURITY DEFINER function for atomic cascade delete
     const { data: result, error: fnError } = await supabase
@@ -40,7 +40,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const elapsed = Date.now() - start
-    console.log('[delete-teacher] Success in', elapsed, 'ms:', result)
+    console.warn('[delete-teacher] Success in', elapsed, 'ms:', result)
 
     return jsonResponse({ success: true, result })
   } catch (err) {

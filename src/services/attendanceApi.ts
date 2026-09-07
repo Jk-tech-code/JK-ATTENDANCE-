@@ -147,12 +147,23 @@ export async function verifyAdmin(): Promise<VerifyAdminResult> {
   return callFunction<VerifyAdminResult>('verify-admin')
 }
 
+export interface NotificationRecord {
+  id: string
+  teacher_id: string | null
+  type: string
+  message: string
+  date: string
+  channel: string
+  status: string
+  created_at?: string
+}
+
 export interface NotificationResult {
   success: boolean
   message: string
   notifications_created?: number
   teachers_notified?: Array<{ id: string; name: string; email: string }>
-  notification?: any
+  notification?: NotificationRecord
 }
 
 export interface NotificationPayload {
@@ -174,8 +185,8 @@ export async function createNotification(
 export async function getNotifications(
   teacherId?: string,
   limit = 20
-): Promise<{ notifications: any[] }> {
-  return callFunction<{ notifications: any[] }>('attendance-notification', {
+): Promise<{ notifications: NotificationRecord[] }> {
+  return callFunction<{ notifications: NotificationRecord[] }>('attendance-notification', {
     params: {
       ...(teacherId ? { teacher_id: teacherId } : {}),
       limit: String(limit),
