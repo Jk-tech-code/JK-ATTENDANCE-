@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   useTodayAttendance,
   useCheckOut,
@@ -6,6 +6,7 @@ import {
 } from '@/hooks/useAttendance'
 import { useLocationAttendance } from '@/hooks/useLocationAttendance'
 import { useAuth } from '@/hooks/useAuth'
+import { useCountdownTo, useRetryCountdown } from '@/hooks/useCountdown'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -58,44 +59,15 @@ export function AttendanceCard() {
   } = useLocationAttendance()
 
   const [actionError, setActionError] = useState<string | null>(null)
-  const [undoCountdown, setUndoCountdown] = useState<number | null>(null)
-  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null)
+
+  // Two countdown timers, each owned by a small dedicated hook.
+  // useCountdownTo drives the undo-check-out window from
+  // attendance.check_out_expires_at. useRetryCountdown drives the
+  // "Too many attempts. Retry in Ns" banner from rateLimitRetryAfter.
+  const undoCountdown = useCountdownTo(attendance?.check_out_expires_at)
+  const rateLimitCountdown = useRetryCountdown(rateLimitRetryAfter)
 
   const displayError = actionError || gpsError
-
-  useEffect(() => {
-    const expiresAt = attendance?.check_out_expires_at
-    if (!expiresAt) {
-      setUndoCountdown(null)
-      return
-    }
-    const tick = () => {
-      setUndoCountdown(
-        Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000))
-      )
-    }
-    tick()
-    const timer = setInterval(tick, 1000)
-    return () => clearInterval(timer)
-  }, [attendance?.check_out_expires_at])
-
-  // Rate limit countdown effect
-  useEffect(() => {
-    if (rateLimitRetryAfter && rateLimitRetryAfter > 0) {
-      setRateLimitCountdown(rateLimitRetryAfter)
-      const timer = setInterval(() => {
-        setRateLimitCountdown((prev) => {
-          if (prev === null || prev <= 1) {
-            return null
-          }
-          return prev - 1
-        })
-      }, 1000)
-      return () => clearInterval(timer)
-    } else {
-      setRateLimitCountdown(null)
-    }
-  }, [rateLimitRetryAfter])
 
   const teacher = user?.teacher
   if (!teacher) {
