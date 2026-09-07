@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
+import { QUERY_STALE_TIME_MS } from './constants'
 
 /**
  * Single QueryClient instance used by the whole app.
@@ -9,11 +10,11 @@ import { QueryClient } from '@tanstack/react-query'
  * through context. Importing it in main.tsx wires it into
  * QueryClientProvider.
  *
- * Default options: 1 retry, 30s staleTime. Hooks that need different
- * behaviour override per-query.
+ * Default options: 1 retry, staleTime from QUERY_STALE_TIME_MS.
+ * Hooks that need different behaviour override per-query.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
+    queries: { retry: 1, staleTime: QUERY_STALE_TIME_MS },
   },
 })

@@ -1,3 +1,5 @@
+import { GPS_ACCURACY_THRESHOLD_M, UNDO_WINDOW_MINUTES } from './constants'
+
 export class AlreadyCheckedInError extends Error {
   constructor() {
     super('You have already checked in today.')
@@ -21,7 +23,7 @@ export class NoAttendanceRecordError extends Error {
 
 export class UndoWindowExpiredError extends Error {
   constructor() {
-    super('The undo window has expired (5 minutes).')
+    super(`The undo window has expired (${UNDO_WINDOW_MINUTES} minutes).`)
     this.name = 'UndoWindowExpiredError'
   }
 }
@@ -63,7 +65,7 @@ export class LowAccuracyError extends Error {
   accuracy: number
   threshold: number
 
-  constructor(accuracy: number, threshold: number = 50) {
+  constructor(accuracy: number, threshold: number = GPS_ACCURACY_THRESHOLD_M) {
     super(`GPS signal too weak (${accuracy}m). Accuracy must be within ${threshold}m. Please move to an open area with better reception.`)
     this.name = 'LowAccuracyError'
     this.accuracy = accuracy
