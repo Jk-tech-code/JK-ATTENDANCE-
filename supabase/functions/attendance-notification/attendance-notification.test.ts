@@ -91,7 +91,7 @@ function configureClient(opts: {
         }
         // Make the chain awaitable.
         const promise = (async () => ({
-          data: opts.notificationsError ? null : opts.notifications ?? [],
+          data: opts.notificationsError ? null : (opts.notifications ?? []),
           error: opts.notificationsError ?? null,
         }))()
         // Allow await by also being a thenable object.
@@ -139,7 +139,7 @@ describe('attendance-notification (GET ownership enforcement)', () => {
       new Request('https://example.com/functions/v1/attendance-notification', {
         method: 'GET',
         headers: { authorization: 'Basic xyz' },
-      }),
+      })
     )
     expect(res.status).toBe(401)
   })
@@ -175,9 +175,7 @@ describe('attendance-notification (GET ownership enforcement)', () => {
       isAdmin: null,
       callerTeacher: { id: 'teacher-1' },
     })
-    const res = await handler(
-      makeGetRequest('?teacher_id=teacher-99', 'Bearer teacher-uid-1'),
-    )
+    const res = await handler(makeGetRequest('?teacher_id=teacher-99', 'Bearer teacher-uid-1'))
     expect(res.status).toBe(403)
     const body = await res.json()
     expect(body.error).toBe('Forbidden')
@@ -190,9 +188,7 @@ describe('attendance-notification (GET ownership enforcement)', () => {
       callerTeacher: { id: 'teacher-1' },
       notifications: [{ id: 'n-1', teacher_id: 'teacher-1' }],
     })
-    const res = await handler(
-      makeGetRequest('?teacher_id=teacher-1', 'Bearer teacher-uid-1'),
-    )
+    const res = await handler(makeGetRequest('?teacher_id=teacher-1', 'Bearer teacher-uid-1'))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.notifications).toHaveLength(1)
@@ -204,9 +200,7 @@ describe('attendance-notification (GET ownership enforcement)', () => {
       isAdmin: { id: 'admin-1', role: 'admin' },
       notifications: [{ id: 'n-1', teacher_id: 'teacher-99' }],
     })
-    const res = await handler(
-      makeGetRequest('?teacher_id=teacher-99', 'Bearer admin-uid'),
-    )
+    const res = await handler(makeGetRequest('?teacher_id=teacher-99', 'Bearer admin-uid'))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.notifications).toHaveLength(1)
@@ -229,9 +223,7 @@ describe('attendance-notification (GET ownership enforcement)', () => {
       caller: { id: 'admin-uid' },
       isAdmin: { id: 'admin-1', role: 'admin' },
     })
-    const res = await handler(
-      makeGetRequest('?limit=99999', 'Bearer admin-uid'),
-    )
+    const res = await handler(makeGetRequest('?limit=99999', 'Bearer admin-uid'))
     expect(res.status).toBe(200)
   })
 
@@ -241,7 +233,7 @@ describe('attendance-notification (GET ownership enforcement)', () => {
       new Request('https://example.com/functions/v1/attendance-notification', {
         method: 'PUT',
         headers: { authorization: 'Bearer admin' },
-      }),
+      })
     )
     expect(res.status).toBe(405)
   })

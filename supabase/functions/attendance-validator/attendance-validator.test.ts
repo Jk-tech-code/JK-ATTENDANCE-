@@ -58,10 +58,7 @@ function configureClient(opts: {
             if (cols === 'id') {
               idCalls += 1
               const callNumber = idCalls
-              const data =
-                callNumber === 1
-                  ? opts.isAdmin ?? null
-                  : opts.callerTeacher ?? null
+              const data = callNumber === 1 ? (opts.isAdmin ?? null) : (opts.callerTeacher ?? null)
               // The isAdmin query chains: .or(...).eq('role','admin').maybeSingle()
               // The callerTeacher query chains: .or(...).maybeSingle()
               if (callNumber === 1) {
@@ -153,7 +150,7 @@ describe('attendance-validator', () => {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ teacher_id: 't-1', attendance_date: '2026-09-01' }),
-        }),
+        })
       )
       expect(res.status).toBe(401)
     })
@@ -165,7 +162,7 @@ describe('attendance-validator', () => {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: 'Basic xyz' },
           body: JSON.stringify({ teacher_id: 't-1', attendance_date: '2026-09-01' }),
-        }),
+        })
       )
       expect(res.status).toBe(401)
     })
@@ -183,7 +180,7 @@ describe('attendance-validator', () => {
       })
 
       const res = await handler(
-        makeRequest({ teacher_id: 't-other', attendance_date: '2026-09-01' }),
+        makeRequest({ teacher_id: 't-other', attendance_date: '2026-09-01' })
       )
       expect(res.status).toBe(403)
       const body = await res.json()
@@ -196,9 +193,7 @@ describe('attendance-validator', () => {
         callerTeacher: null,
       })
 
-      const res = await handler(
-        makeRequest({ teacher_id: 't-1', attendance_date: '2026-09-01' }),
-      )
+      const res = await handler(makeRequest({ teacher_id: 't-1', attendance_date: '2026-09-01' }))
       expect(res.status).toBe(403)
     })
 
@@ -216,7 +211,7 @@ describe('attendance-validator', () => {
           attendance_date: '2026-09-01',
           check_in: '07:30:00',
           check_out: '17:30:00',
-        }),
+        })
       )
       expect(res.status).toBe(200)
       const body = await res.json()
@@ -242,8 +237,8 @@ describe('attendance-validator', () => {
             check_in: '07:30:00',
             check_out: '17:30:00',
           },
-          'Bearer admin',
-        ),
+          'Bearer admin'
+        )
       )
       expect(res.status).toBe(200)
     })
@@ -268,7 +263,7 @@ describe('attendance-validator', () => {
         teacher: null,
       })
       const res = await handler(
-        makeRequest({ teacher_id: 'ghost', attendance_date: '2026-09-01' }, 'Bearer admin'),
+        makeRequest({ teacher_id: 'ghost', attendance_date: '2026-09-01' }, 'Bearer admin')
       )
       expect(res.status).toBe(404)
     })
@@ -356,7 +351,7 @@ describe('attendance-validator', () => {
         new Request('https://example.com/functions/v1/attendance-validator', {
           method: 'GET',
           headers: { authorization: 'Bearer t-1' },
-        }),
+        })
       )
       expect(res.status).toBe(405)
     })

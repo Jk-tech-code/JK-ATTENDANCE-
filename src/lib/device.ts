@@ -12,7 +12,10 @@ export function detectDevice(): DeviceType {
     return 'Tablet'
   }
 
-  if (window.innerWidth >= 1024 || typeof navigator.maxTouchPoints !== 'undefined' && navigator.maxTouchPoints === 0) {
+  if (
+    window.innerWidth >= 1024 ||
+    (typeof navigator.maxTouchPoints !== 'undefined' && navigator.maxTouchPoints === 0)
+  ) {
     if (/Windows NT|Mac OS X 10\.(1[5-9]|[2-9]\d)/.test(ua)) {
       return 'Desktop'
     }

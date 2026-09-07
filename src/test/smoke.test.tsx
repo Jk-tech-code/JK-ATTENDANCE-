@@ -10,7 +10,13 @@ describe('EmptyState', () => {
   })
 
   it('renders action button when provided', () => {
-    render(<EmptyState title="Empty" description="Add something" action={{ label: 'Add', onClick: () => {} }} />)
+    render(
+      <EmptyState
+        title="Empty"
+        description="Add something"
+        action={{ label: 'Add', onClick: () => {} }}
+      />
+    )
     expect(screen.getByText('Add')).toBeInTheDocument()
   })
 })

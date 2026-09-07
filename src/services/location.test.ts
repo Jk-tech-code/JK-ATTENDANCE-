@@ -50,7 +50,7 @@ describe('haversineDistance', () => {
 
   it('returns ~274m for a point ~275m from school (outside geofence)', () => {
     // ~275m northwest of school
-    const dist = haversineDistance(SCHOOL_LAT, SCHOOL_LNG, -1.471200, 36.959200)
+    const dist = haversineDistance(SCHOOL_LAT, SCHOOL_LNG, -1.4712, 36.9592)
     expect(dist).toBeGreaterThan(260)
     expect(dist).toBeLessThan(290)
     expect(isWithinRadius(dist, RADIUS)).toBe(false)
@@ -58,7 +58,7 @@ describe('haversineDistance', () => {
 
   it('returns > 100m for a point ~500m from school (outside geofence)', () => {
     // ~500m northeast of school
-    const dist = haversineDistance(SCHOOL_LAT, SCHOOL_LNG, -1.469500, 36.965000)
+    const dist = haversineDistance(SCHOOL_LAT, SCHOOL_LNG, -1.4695, 36.965)
     expect(dist).toBeGreaterThan(450)
     expect(dist).toBeLessThan(600)
     expect(isWithinRadius(dist, RADIUS)).toBe(false)
@@ -66,7 +66,7 @@ describe('haversineDistance', () => {
 
   it('rejects a point 1km away (far outside geofence)', () => {
     // ~1km away
-    const dist = haversineDistance(SCHOOL_LAT, SCHOOL_LNG, -1.463000, 36.962000)
+    const dist = haversineDistance(SCHOOL_LAT, SCHOOL_LNG, -1.463, 36.962)
     expect(dist).toBeGreaterThan(1000)
     expect(isWithinRadius(dist, RADIUS)).toBe(false)
   })

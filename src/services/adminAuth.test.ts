@@ -150,7 +150,7 @@ describe('isAdmin query pattern', () => {
     // Verify the query chain was built correctly
     expect(mockBuilder.select).toHaveBeenCalledWith('id')
     expect(mockBuilder.or).toHaveBeenCalledWith(
-      'id.eq.user-abc-123,user_id.eq.user-abc-123,auth_user_id.eq.user-abc-123',
+      'id.eq.user-abc-123,user_id.eq.user-abc-123,auth_user_id.eq.user-abc-123'
     )
     expect(mockBuilder.eq).toHaveBeenCalledWith('role', 'admin')
     expect(mockBuilder.maybeSingle).toHaveBeenCalled()
@@ -159,7 +159,9 @@ describe('isAdmin query pattern', () => {
 
 describe('verifyAuth pattern', () => {
   /** Simulates the verifyAuth() function from _shared/supabase.ts */
-  async function verifyAuth(authHeader: string | null): Promise<{ user: { id: string; email: string } | null; error: string | null }> {
+  async function verifyAuth(
+    authHeader: string | null
+  ): Promise<{ user: { id: string; email: string } | null; error: string | null }> {
     if (!authHeader?.startsWith('Bearer ')) {
       return { user: null, error: 'Missing or invalid Authorization header' }
     }
@@ -206,9 +208,9 @@ describe('Database admin check — query filtering logic', () => {
   }
 
   function queryAdminTeachers(teachers: TeacherRecord[], userId: string): TeacherRecord | null {
-    const found = teachers.find(t =>
-      (t.id === userId || t.user_id === userId || t.auth_user_id === userId) &&
-      t.role === 'admin',
+    const found = teachers.find(
+      (t) =>
+        (t.id === userId || t.user_id === userId || t.auth_user_id === userId) && t.role === 'admin'
     )
     return found ?? null
   }

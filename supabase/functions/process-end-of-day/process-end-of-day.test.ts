@@ -13,10 +13,7 @@ function configureRpc(impl: (name: string, args?: unknown) => Promise<RpcResult>
 
 const { handler } = await import('./index')
 
-function makeRequest(
-  method: string,
-  headers: Record<string, string> = {},
-): Request {
+function makeRequest(method: string, headers: Record<string, string> = {}): Request {
   return new Request('https://example.com/functions/v1/process-end-of-day', {
     method,
     headers,
@@ -62,9 +59,7 @@ describe('process-end-of-day', () => {
 
   it('does NOT accept Authorization header — only x-api-key', async () => {
     process.env.CRON_SECRET = 'correct-secret'
-    const res = await handler(
-      makeRequest('POST', { authorization: 'Bearer correct-secret' }),
-    )
+    const res = await handler(makeRequest('POST', { authorization: 'Bearer correct-secret' }))
     expect(res.status).toBe(401)
   })
 

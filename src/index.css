@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -139,11 +139,16 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 body {
-  transition: background-color 0.3s ease, color 0.15s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.15s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {

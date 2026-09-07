@@ -1,6 +1,6 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { handleCors, jsonResponse } from "../_shared/cors.ts"
-import { createSupabaseAdmin, verifyAuth, isAdmin } from "../_shared/supabase.ts"
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { handleCors, jsonResponse } from '../_shared/cors.ts'
+import { createSupabaseAdmin, verifyAuth, isAdmin } from '../_shared/supabase.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
@@ -9,12 +9,9 @@ export async function handler(req: Request): Promise<Response> {
   try {
     // verify-admin endpoint: anyone can check their admin status
     // We just verify auth, not admin status
-    const auth = await verifyAuth(req.headers.get("Authorization"))
+    const auth = await verifyAuth(req.headers.get('Authorization'))
     if (auth.error) {
-      return jsonResponse(
-        { verified: false, error: auth.error },
-        401
-      )
+      return jsonResponse({ verified: false, error: auth.error }, 401)
     }
 
     const supabase = createSupabaseAdmin()
@@ -24,20 +21,18 @@ export async function handler(req: Request): Promise<Response> {
       verified: admin,
       user_id: auth.user!.id,
       email: auth.user!.email,
-      role: admin ? "admin" : "teacher",
-      message: admin
-        ? "Admin access verified"
-        : "User is not an admin",
+      role: admin ? 'admin' : 'teacher',
+      message: admin ? 'Admin access verified' : 'User is not an admin',
     })
   } catch (err) {
-    console.error("verify-admin error:", err)
+    console.error('verify-admin error:', err)
     return jsonResponse(
-      { verified: false, error: err instanceof Error ? err.message : "Internal server error" },
+      { verified: false, error: err instanceof Error ? err.message : 'Internal server error' },
       500
     )
   }
 }
 
-if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
   Deno.serve(handler)
 }

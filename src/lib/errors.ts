@@ -66,7 +66,9 @@ export class LowAccuracyError extends Error {
   threshold: number
 
   constructor(accuracy: number, threshold: number = GPS_ACCURACY_THRESHOLD_M) {
-    super(`GPS signal too weak (${accuracy}m). Accuracy must be within ${threshold}m. Please move to an open area with better reception.`)
+    super(
+      `GPS signal too weak (${accuracy}m). Accuracy must be within ${threshold}m. Please move to an open area with better reception.`
+    )
     this.name = 'LowAccuracyError'
     this.accuracy = accuracy
     this.threshold = threshold

@@ -64,11 +64,17 @@ export default function LoginPage() {
     <>
       <Helmet>
         <title>Sign In — JK Attendance System</title>
-        <meta name="description" content="Sign in to the JK Attendance System for Glorious Group of Schools" />
+        <meta
+          name="description"
+          content="Sign in to the JK Attendance System for Glorious Group of Schools"
+        />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`${window.location.origin}/login`} />
         <meta property="og:title" content="Sign In — JK Attendance System" />
-        <meta property="og:description" content="Sign in to the JK Attendance System for Glorious Group of Schools" />
+        <meta
+          property="og:description"
+          content="Sign in to the JK Attendance System for Glorious Group of Schools"
+        />
         <meta property="og:type" content="website" />
         <meta property="og:image" content={`${window.location.origin}/og-image.png`} />
         <meta property="og:image:width" content="1200" />
@@ -130,9 +136,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   {...register('email')}
                 />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -157,13 +161,13 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+                  </>
                 ) : (
                   'Sign in'
                 )}

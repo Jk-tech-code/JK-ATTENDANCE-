@@ -1,10 +1,10 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { jsonResponse } from "../_shared/cors.ts"
-import { createSupabaseAdmin } from "../_shared/supabase.ts"
-import { adminMiddleware } from "../_shared/admin.ts"
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { jsonResponse } from '../_shared/cors.ts'
+import { createSupabaseAdmin } from '../_shared/supabase.ts'
+import { adminMiddleware } from '../_shared/admin.ts'
 
 export async function handler(req: Request): Promise<Response> {
-  const adminResult = await adminMiddleware(req, "GET")
+  const adminResult = await adminMiddleware(req, 'GET')
   if (adminResult instanceof Response) return adminResult
 
   const { userId: _userId, email: _email } = adminResult
@@ -12,44 +12,44 @@ export async function handler(req: Request): Promise<Response> {
 
   try {
     const url = new URL(req.url)
-    const dateParam = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10)
+    const dateParam = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
 
     const { data: present, error: presentErr } = await supabase
-      .from("attendance")
-      .select("id", { count: "exact" })
-      .eq("attendance_date", dateParam)
-      .in("status", ["present", "checked_out"])
+      .from('attendance')
+      .select('id', { count: 'exact' })
+      .eq('attendance_date', dateParam)
+      .in('status', ['present', 'checked_out'])
 
     if (presentErr) throw presentErr
 
     const { count: absentCount, error: absentErr } = await supabase
-      .from("attendance")
-      .select("id", { count: "exact" })
-      .eq("attendance_date", dateParam)
-      .eq("status", "absent")
+      .from('attendance')
+      .select('id', { count: 'exact' })
+      .eq('attendance_date', dateParam)
+      .eq('status', 'absent')
 
     if (absentErr) throw absentErr
 
     const { count: lateCount, error: lateErr } = await supabase
-      .from("attendance")
-      .select("id", { count: "exact" })
-      .eq("attendance_date", dateParam)
-      .eq("status", "late")
+      .from('attendance')
+      .select('id', { count: 'exact' })
+      .eq('attendance_date', dateParam)
+      .eq('status', 'late')
 
     if (lateErr) throw lateErr
 
     const { count: checkedOutCount, error: coErr } = await supabase
-      .from("attendance")
-      .select("id", { count: "exact" })
-      .eq("attendance_date", dateParam)
-      .eq("status", "checked_out")
+      .from('attendance')
+      .select('id', { count: 'exact' })
+      .eq('attendance_date', dateParam)
+      .eq('status', 'checked_out')
 
     if (coErr) throw coErr
 
     const { count: totalTeachers, error: totalErr } = await supabase
-      .from("teachers")
-      .select("id", { count: "exact" })
-      .eq("employment_status", "active")
+      .from('teachers')
+      .select('id', { count: 'exact' })
+      .eq('employment_status', 'active')
 
     if (totalErr) throw totalErr
 
@@ -60,12 +60,12 @@ export async function handler(req: Request): Promise<Response> {
         : 0
 
     const { data: avgData } = await supabase
-      .from("attendance")
-      .select("check_in, working_minutes")
-      .eq("attendance_date", dateParam)
-      .not("check_in", "is", null)
+      .from('attendance')
+      .select('check_in, working_minutes')
+      .eq('attendance_date', dateParam)
+      .not('check_in', 'is', null)
 
-    let avgCheckIn = "-"
+    let avgCheckIn = '-'
     let avgWorkingMinutes = 0
 
     if (avgData && avgData.length > 0) {
@@ -81,7 +81,7 @@ export async function handler(req: Request): Promise<Response> {
         const avgMinutes = Math.round(times.reduce((a, b) => a + b, 0) / times.length)
         const h = Math.floor(avgMinutes / 60)
         const m = avgMinutes % 60
-        avgCheckIn = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+        avgCheckIn = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
       }
 
       const workingMinutes = avgData
@@ -106,14 +106,14 @@ export async function handler(req: Request): Promise<Response> {
       avg_working_minutes: avgWorkingMinutes,
     })
   } catch (err) {
-    console.error("daily-report error:", err)
+    console.error('daily-report error:', err)
     return jsonResponse(
-      { error: err instanceof Error ? err.message : "Internal server error" },
+      { error: err instanceof Error ? err.message : 'Internal server error' },
       500
     )
   }
 }
 
-if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
   Deno.serve(handler)
 }

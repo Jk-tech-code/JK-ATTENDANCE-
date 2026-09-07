@@ -27,14 +27,16 @@ export function PresentAbsentChart({ data }: { data: TeacherStats[] }) {
               <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
               <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
             </BarChart>
-          </ResponsiveContainer>,
+          </ResponsiveContainer>
         )
       })
       .catch(() => {
         if (!cancelled) setError(true)
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [data])
 
   if (error) {

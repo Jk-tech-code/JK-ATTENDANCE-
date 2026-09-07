@@ -11,7 +11,12 @@ interface ExportMenuProps {
   onExportPDF: () => Promise<void>
 }
 
-export function ExportMenu({ label = 'Export', onExportCSV, onExportExcel, onExportPDF }: ExportMenuProps) {
+export function ExportMenu({
+  label = 'Export',
+  onExportCSV,
+  onExportExcel,
+  onExportPDF,
+}: ExportMenuProps) {
   const [open, setOpen] = useState(false)
 
   const items = [
@@ -20,7 +25,11 @@ export function ExportMenu({ label = 'Export', onExportCSV, onExportExcel, onExp
     { label: 'PDF', icon: FileText, action: onExportPDF },
   ]
 
-  const handleAction = async (item: { label: string; icon: typeof FileDown; action: () => Promise<void> }) => {
+  const handleAction = async (item: {
+    label: string
+    icon: typeof FileDown
+    action: () => Promise<void>
+  }) => {
     setOpen(false)
     try {
       await item.action()
@@ -33,7 +42,8 @@ export function ExportMenu({ label = 'Export', onExportCSV, onExportExcel, onExp
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Download className="mr-2 h-4 w-4" />{label}
+        <Download className="mr-2 h-4 w-4" />
+        {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen} title="Export As">
         <div className="space-y-2">

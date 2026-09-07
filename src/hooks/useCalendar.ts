@@ -29,8 +29,7 @@ export function useCreateCalendarEntry() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: Parameters<typeof createCalendarEntry>[0]) =>
-      createCalendarEntry(input),
+    mutationFn: (input: Parameters<typeof createCalendarEntry>[0]) => createCalendarEntry(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.all })
     },
@@ -42,13 +41,8 @@ export function useUpdateCalendarEntry() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
-      id,
-      input,
-    }: {
-      id: string
-      input: Parameters<typeof updateCalendarEntry>[1]
-    }) => updateCalendarEntry(id, input),
+    mutationFn: ({ id, input }: { id: string; input: Parameters<typeof updateCalendarEntry>[1] }) =>
+      updateCalendarEntry(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: calendarKeys.all })
     },

@@ -32,9 +32,8 @@ function setupClient(handlers: Parameters<typeof configureClient>[0] = {}): Clie
 }
 
 // Import AFTER the global handle exists.
-const { createSupabaseAdmin, verifyAuth, isAdmin, isAdminViaRpc } = await import(
-  '../_shared/supabase'
-)
+const { createSupabaseAdmin, verifyAuth, isAdmin, isAdminViaRpc } =
+  await import('../_shared/supabase')
 
 describe('createSupabaseAdmin', () => {
   beforeEach(() => {

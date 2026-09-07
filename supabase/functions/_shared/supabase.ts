@@ -1,13 +1,11 @@
-import { createClient } from "jsr:@supabase/supabase-js@2"
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 export function createSupabaseAdmin() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables"
-    )
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
@@ -16,8 +14,8 @@ export function createSupabaseAdmin() {
 }
 
 export async function verifyAuth(authHeader: string | null) {
-  if (!authHeader?.startsWith("Bearer ")) {
-    return { user: null, error: "Missing or invalid Authorization header" }
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { user: null, error: 'Missing or invalid Authorization header' }
   }
 
   const token = authHeader.slice(7)
@@ -25,7 +23,7 @@ export async function verifyAuth(authHeader: string | null) {
   const { data, error } = await supabase.auth.getUser(token)
 
   if (error || !data.user) {
-    return { user: null, error: "Invalid or expired token" }
+    return { user: null, error: 'Invalid or expired token' }
   }
 
   return { user: data.user, error: null }
@@ -43,14 +41,14 @@ export async function isAdmin(
   userId: string
 ): Promise<boolean> {
   const { data, error } = await supabase
-    .from("teachers")
-    .select("id")
+    .from('teachers')
+    .select('id')
     .or(`id.eq.${userId},user_id.eq.${userId},auth_user_id.eq.${userId}`)
-    .eq("role", "admin")
+    .eq('role', 'admin')
     .maybeSingle()
 
   if (error) {
-    console.error("[isAdmin] Direct query failed:", error.message)
+    console.error('[isAdmin] Direct query failed:', error.message)
     return isAdminViaRpc(supabase)
   }
   return data !== null
@@ -62,14 +60,14 @@ export async function isAdmin(
  * (e.g. if the role column query fails).
  */
 export async function isAdminViaRpc(
-  supabase: ReturnType<typeof createSupabaseAdmin>,
+  supabase: ReturnType<typeof createSupabaseAdmin>
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("is_admin")
+  const { data, error } = await supabase.rpc('is_admin')
   if (error) {
-    console.error("[isAdminViaRpc] RPC failed:", error.message)
+    console.error('[isAdminViaRpc] RPC failed:', error.message)
     return false
   }
   return data === true
 }
 
-export { jsonResponse } from "./cors.ts"
+export { jsonResponse } from './cors.ts'

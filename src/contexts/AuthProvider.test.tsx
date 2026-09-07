@@ -49,7 +49,7 @@ function renderWithClient() {
       <AuthProvider>
         <Consumer />
       </AuthProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
 }
 
@@ -117,10 +117,12 @@ describe('AuthProvider query cache clearing', () => {
     // First render wires up onAuthStateChange and captures the
     // handler so we can invoke it manually.
     let capturedHandler: ((event: string, session: unknown) => void) | null = null
-    mockOnAuthStateChange.mockImplementation((handler: (event: string, session: unknown) => void) => {
-      capturedHandler = handler
-      return { data: { subscription: { unsubscribe: () => {} } } }
-    })
+    mockOnAuthStateChange.mockImplementation(
+      (handler: (event: string, session: unknown) => void) => {
+        capturedHandler = handler
+        return { data: { subscription: { unsubscribe: () => {} } } }
+      }
+    )
 
     queryClient.setQueryData(['some-key'], 'some-value')
     expect(queryClient.getQueryData(['some-key'])).toBe('some-value')

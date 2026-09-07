@@ -23,17 +23,17 @@ createRoot(document.getElementById('root')!).render(
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <NotificationProvider>
-            <RealtimeProvider>
-            <ThemeProvider>
-              <Suspense fallback={<PageLoader />}>
-                <App />
-              </Suspense>
-            </ThemeProvider>
-            </RealtimeProvider>
+              <RealtimeProvider>
+                <ThemeProvider>
+                  <Suspense fallback={<PageLoader />}>
+                    <App />
+                  </Suspense>
+                </ThemeProvider>
+              </RealtimeProvider>
             </NotificationProvider>
           </AuthProvider>
         </QueryClientProvider>
       </HelmetProvider>
     </ErrorBoundary>
-  </StrictMode>,
+  </StrictMode>
 )

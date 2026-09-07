@@ -18,7 +18,7 @@ function walk(dir: string, out: string[] = []): string[] {
 describe('frontend secret hygiene', () => {
   it('does not include SUPABASE_SERVICE_ROLE_KEY in any frontend file', () => {
     const files = walk(join(process.cwd(), 'src')).filter(
-      (f) => !f.endsWith('frontendSecrets.test.ts'),
+      (f) => !f.endsWith('frontendSecrets.test.ts')
     )
     const offenders: string[] = []
     for (const f of files) {
@@ -32,7 +32,7 @@ describe('frontend secret hygiene', () => {
 
   it('does not include a hardcoded service_role JWT in any frontend file', () => {
     const files = walk(join(process.cwd(), 'src')).filter(
-      (f) => !f.endsWith('frontendSecrets.test.ts'),
+      (f) => !f.endsWith('frontendSecrets.test.ts')
     )
     const offenders: string[] = []
     for (const f of files) {

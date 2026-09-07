@@ -50,3 +50,11 @@ test.txt
 test_cal.txt
 lint.txt
 test_full.txt
+
+# Playwright artifacts
+test-results/
+playwright-report/
+
+# Misc scratch files
+diff_files.txt
+*.swp

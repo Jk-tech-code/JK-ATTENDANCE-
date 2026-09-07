@@ -40,14 +40,20 @@ describe('initSentry', () => {
   })
 
   it('initializes when DSN is a valid https URL', async () => {
-    vi.stubEnv('VITE_SENTRY_DSN', 'https://e406b00ee253cce786b6d6552292e0bb@o4512028237365248.ingest.de.sentry.io/4512028251848784')
+    vi.stubEnv(
+      'VITE_SENTRY_DSN',
+      'https://e406b00ee253cce786b6d6552292e0bb@o4512028237365248.ingest.de.sentry.io/4512028251848784'
+    )
     const { initSentry } = await import('./sentry')
     initSentry()
     expect(initMock).toHaveBeenCalledTimes(1)
   })
 
   it('swallows initialization errors so the app keeps working', async () => {
-    vi.stubEnv('VITE_SENTRY_DSN', 'https://e406b00ee253cce786b6d6552292e0bb@o4512028237365248.ingest.de.sentry.io/4512028251848784')
+    vi.stubEnv(
+      'VITE_SENTRY_DSN',
+      'https://e406b00ee253cce786b6d6552292e0bb@o4512028237365248.ingest.de.sentry.io/4512028251848784'
+    )
     initMock.mockImplementation(() => {
       throw new Error('Sentry exploded')
     })

@@ -128,9 +128,7 @@ export async function signOut(): Promise<{ error: string | null }> {
   return { error: error?.message ?? null }
 }
 
-export async function resetPassword(
-  email: string
-): Promise<{ error: string | null }> {
+export async function resetPassword(email: string): Promise<{ error: string | null }> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/reset-password`,
   })

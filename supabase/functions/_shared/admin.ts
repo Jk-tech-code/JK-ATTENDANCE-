@@ -1,5 +1,5 @@
-import { createSupabaseAdmin, verifyAuth, isAdmin } from "./supabase.ts"
-import { handleCors, jsonResponse } from "./cors.ts"
+import { createSupabaseAdmin, verifyAuth, isAdmin } from './supabase.ts'
+import { handleCors, jsonResponse } from './cors.ts'
 
 export interface AdminVerificationResult {
   isAdmin: boolean
@@ -30,13 +30,13 @@ export async function verifyAdminRequest(
   const admin = await isAdmin(supabase, auth.user!.id)
 
   if (!admin) {
-    return jsonResponse({ error: "Forbidden: Admin access required" }, 403)
+    return jsonResponse({ error: 'Forbidden: Admin access required' }, 403)
   }
 
   return {
     isAdmin: true,
     userId: auth.user!.id,
-    email: auth.user!.email ?? "",
+    email: auth.user!.email ?? '',
   }
 }
 
@@ -56,24 +56,24 @@ export async function verifyAdminRequest(
  */
 export async function adminMiddleware(
   req: Request,
-  allowedMethod: string = "POST"
+  allowedMethod: string = 'POST'
 ): Promise<AdminVerificationResult | Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
-  if (req.method === "OPTIONS") {
-    return new Response("ok", {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
       headers: {
-        "Access-Control-Allow-Origin": Deno.env.get("CORS_ORIGIN") ?? "*",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        'Access-Control-Allow-Origin': Deno.env.get('CORS_ORIGIN') ?? '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
       },
     })
   }
 
   if (req.method !== allowedMethod) {
-    return jsonResponse({ error: "Method not allowed" }, 405)
+    return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  return verifyAdminRequest(req.headers.get("Authorization"))
+  return verifyAdminRequest(req.headers.get('Authorization'))
 }

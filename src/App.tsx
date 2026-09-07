@@ -47,7 +47,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'admin') return <Navigate to="/dashboard" replace />
-  return <AdminLayout><RouteErrorBoundary>{children}</RouteErrorBoundary></AdminLayout>
+  return (
+    <AdminLayout>
+      <RouteErrorBoundary>{children}</RouteErrorBoundary>
+    </AdminLayout>
+  )
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -68,24 +72,104 @@ export default function App() {
     <BrowserRouter>
       <Helmet>
         <title>JK Attendance System</title>
-        <meta name="description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
+        <meta
+          name="description"
+          content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration."
+        />
       </Helmet>
       <Toaster position="top-right" richColors />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPasswordPage />
+            </PublicRoute>
+          }
+        />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/help" element={<HelpPage />} />
-        <Route path="/admin" element={<AdminRoute><AdminOverviewPage /></AdminRoute>} />
-        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
-        <Route path="/admin/teachers" element={<AdminRoute><TeachersPage /></AdminRoute>} />
-        <Route path="/admin/attendance" element={<AdminRoute><AttendanceRecordsPage /></AdminRoute>} />
-        <Route path="/admin/calendar" element={<AdminRoute><CalendarPage /></AdminRoute>} />
-        <Route path="/admin/holidays" element={<AdminRoute><HolidayManagementPage /></AdminRoute>} />
-        <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
-        <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminOverviewPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminRoute>
+              <AdminDashboardPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/teachers"
+          element={
+            <AdminRoute>
+              <TeachersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/attendance"
+          element={
+            <AdminRoute>
+              <AttendanceRecordsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/calendar"
+          element={
+            <AdminRoute>
+              <CalendarPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/holidays"
+          element={
+            <AdminRoute>
+              <HolidayManagementPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <AdminRoute>
+              <ReportsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminRoute>
+              <SettingsPage />
+            </AdminRoute>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

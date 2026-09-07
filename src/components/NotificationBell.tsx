@@ -1,18 +1,32 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNotifications } from '@/hooks/useNotifications'
 import { Button } from '@/components/ui/button'
-import { Bell, CheckCheck, Info, CheckCircle2, AlertTriangle, AlertCircle, Trash2, X } from 'lucide-react'
+import {
+  Bell,
+  CheckCheck,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const typeConfig: Record<string, { icon: typeof Info; color: string; bg: string }> = {
   info: { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/20' },
-  success: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
+  success: {
+    icon: CheckCircle2,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/20',
+  },
   warning: { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/20' },
   error: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/20' },
 }
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } = useNotifications()
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } =
+    useNotifications()
   const [open, setOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -112,13 +126,17 @@ export function NotificationBell() {
                       !n.read ? 'bg-accent/20' : ''
                     }`}
                   >
-                    <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${cfg.bg}`}>
+                    <div
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${cfg.bg}`}
+                    >
                       <Icon className={`h-3.5 w-3.5 ${cfg.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${!n.read ? 'font-medium' : ''}`}>{n.title}</p>
                       {n.message && (
-                        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                          {n.message}
+                        </p>
                       )}
                       <p className="mt-1 text-[10px] text-muted-foreground/60">{timeAgo}</p>
                     </div>

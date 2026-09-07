@@ -11,28 +11,27 @@
 // frontend queries. The report_store table is admin-read-only via RLS.
 // ============================================
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createSupabaseAdmin } from "../_shared/supabase.ts"
-import { handleCors, jsonResponse } from "../_shared/cors.ts"
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { createSupabaseAdmin } from '../_shared/supabase.ts'
+import { handleCors, jsonResponse } from '../_shared/cors.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
   // Optional: protect with CRON_SECRET (same pattern as process-end-of-day)
-  const cronSecret = Deno.env.get("CRON_SECRET")
+  const cronSecret = Deno.env.get('CRON_SECRET')
   if (!cronSecret) {
-    console.error("CRON_SECRET environment variable is not set. Rejecting request.")
-    return jsonResponse({ error: "Server misconfigured: CRON_SECRET not set" }, 500)
+    console.error('CRON_SECRET environment variable is not set. Rejecting request.')
+    return jsonResponse({ error: 'Server misconfigured: CRON_SECRET not set' }, 500)
   }
   // SECURITY: compare secrets with a constant-time check and accept
   // either the x-api-key header or an Authorization: Bearer header.
   // (Originally this was a plain `!==` check; see timing.ts.)
   const authHeader =
-    req.headers.get("x-api-key") ??
-    req.headers.get("authorization")?.replace("Bearer ", "")
+    req.headers.get('x-api-key') ?? req.headers.get('authorization')?.replace('Bearer ', '')
   if (authHeader !== cronSecret) {
-    return jsonResponse({ error: "Unauthorized" }, 401)
+    return jsonResponse({ error: 'Unauthorized' }, 401)
   }
 
   try {
@@ -41,36 +40,36 @@ export async function handler(req: Request): Promise<Response> {
     // Parse request body
     let body: { type?: string; year?: number; month?: number } = {}
     try {
-      if (req.method === "POST") {
+      if (req.method === 'POST') {
         body = await req.json()
       }
     } catch {
       // No body or invalid JSON — use defaults
     }
 
-    const type = body.type ?? "daily"
+    const type = body.type ?? 'daily'
 
-    if (type === "daily") {
+    if (type === 'daily') {
       const result = await generateDailyReport(supabase)
-      await storeReport(supabase, "daily", result.date, result.date, result)
+      await storeReport(supabase, 'daily', result.date, result.date, result)
       return jsonResponse({ success: true, report: result })
     }
 
-    if (type === "monthly") {
+    if (type === 'monthly') {
       const now = new Date()
       const year = body.year ?? now.getFullYear()
       const month = body.month ?? now.getMonth() + 1
       const result = await generateMonthlyReport(supabase, year, month)
-      const periodStart = `${year}-${String(month).padStart(2, "0")}-01`
+      const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
       const periodEnd = new Date(year, month, 0).toISOString().slice(0, 10)
-      await storeReport(supabase, "monthly", periodStart, periodEnd, result)
+      await storeReport(supabase, 'monthly', periodStart, periodEnd, result)
       return jsonResponse({ success: true, report: result })
     }
 
     return jsonResponse({ error: `Unknown report type: ${type}` }, 400)
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error"
-    console.error("cron-report error:", message)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('cron-report error:', message)
     return jsonResponse({ error: message }, 500)
   }
 }
@@ -80,49 +79,47 @@ async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdm
   const dateParam = new Date().toISOString().slice(0, 10)
 
   const { count: presentCount } = await supabase
-    .from("attendance")
-    .select("id", { count: "exact" })
-    .eq("attendance_date", dateParam)
-    .in("status", ["present", "checked_out"])
+    .from('attendance')
+    .select('id', { count: 'exact' })
+    .eq('attendance_date', dateParam)
+    .in('status', ['present', 'checked_out'])
 
   const { count: absentCount } = await supabase
-    .from("attendance")
-    .select("id", { count: "exact" })
-    .eq("attendance_date", dateParam)
-    .eq("status", "absent")
+    .from('attendance')
+    .select('id', { count: 'exact' })
+    .eq('attendance_date', dateParam)
+    .eq('status', 'absent')
 
   const { count: lateCount } = await supabase
-    .from("attendance")
-    .select("id", { count: "exact" })
-    .eq("attendance_date", dateParam)
-    .eq("status", "late")
+    .from('attendance')
+    .select('id', { count: 'exact' })
+    .eq('attendance_date', dateParam)
+    .eq('status', 'late')
 
   const { count: checkedOutCount } = await supabase
-    .from("attendance")
-    .select("id", { count: "exact" })
-    .eq("attendance_date", dateParam)
-    .eq("status", "checked_out")
+    .from('attendance')
+    .select('id', { count: 'exact' })
+    .eq('attendance_date', dateParam)
+    .eq('status', 'checked_out')
 
   const { count: totalTeachers } = await supabase
-    .from("teachers")
-    .select("id", { count: "exact" })
-    .eq("employment_status", "active")
+    .from('teachers')
+    .select('id', { count: 'exact' })
+    .eq('employment_status', 'active')
 
   const pCount = presentCount ?? 0
   const lCount = lateCount ?? 0
   const attendanceRate =
-    totalTeachers && totalTeachers > 0
-      ? Math.round(((pCount + lCount) / totalTeachers) * 100)
-      : 0
+    totalTeachers && totalTeachers > 0 ? Math.round(((pCount + lCount) / totalTeachers) * 100) : 0
 
   // Average check-in time and working minutes
   const { data: avgData } = await supabase
-    .from("attendance")
-    .select("check_in, working_minutes")
-    .eq("attendance_date", dateParam)
-    .not("check_in", "is", null)
+    .from('attendance')
+    .select('check_in, working_minutes')
+    .eq('attendance_date', dateParam)
+    .not('check_in', 'is', null)
 
-  let avgCheckIn = "-"
+  let avgCheckIn = '-'
   let avgWorkingMinutes = 0
 
   if (avgData && avgData.length > 0) {
@@ -138,7 +135,7 @@ async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdm
       const avgMinutes = Math.round(times.reduce((a, b) => a + b, 0) / times.length)
       const h = Math.floor(avgMinutes / 60)
       const m = avgMinutes % 60
-      avgCheckIn = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+      avgCheckIn = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     }
 
     const workingMinutes = avgData
@@ -146,7 +143,7 @@ async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdm
       .filter((m): m is number => m !== null)
     if (workingMinutes.length > 0) {
       avgWorkingMinutes = Math.round(
-        workingMinutes.reduce((a, b) => a + b, 0) / workingMinutes.length,
+        workingMinutes.reduce((a, b) => a + b, 0) / workingMinutes.length
       )
     }
   }
@@ -168,45 +165,41 @@ async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdm
 async function generateMonthlyReport(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   year: number,
-  month: number,
+  month: number
 ) {
-  const startDate = `${year}-${String(month).padStart(2, "0")}-01`
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
   const endDate = new Date(year, month, 0).toISOString().slice(0, 10)
 
   const { data: allAttendance } = await supabase
-    .from("attendance")
-    .select("teacher_id, status, check_in, check_out, working_minutes, late_minutes")
-    .gte("attendance_date", startDate)
-    .lte("attendance_date", endDate)
+    .from('attendance')
+    .select('teacher_id, status, check_in, check_out, working_minutes, late_minutes')
+    .gte('attendance_date', startDate)
+    .lte('attendance_date', endDate)
 
   const { data: teachers } = await supabase
-    .from("teachers")
-    .select("id, full_name, staff_number")
-    .eq("employment_status", "active")
+    .from('teachers')
+    .select('id, full_name, staff_number')
+    .eq('employment_status', 'active')
 
   const presentCount =
-    allAttendance?.filter((a) =>
-      ["present", "checked_out"].includes(a.status ?? ""),
-    ).length ?? 0
-  const lateCount = allAttendance?.filter((a) => a.status === "late").length ?? 0
-  const absentCount = allAttendance?.filter((a) => a.status === "absent").length ?? 0
+    allAttendance?.filter((a) => ['present', 'checked_out'].includes(a.status ?? '')).length ?? 0
+  const lateCount = allAttendance?.filter((a) => a.status === 'late').length ?? 0
+  const absentCount = allAttendance?.filter((a) => a.status === 'absent').length ?? 0
 
   const teacherStats = (teachers ?? []).map((teacher) => {
     const records = allAttendance?.filter((a) => a.teacher_id === teacher.id) ?? []
     const present = records.filter((r) =>
-      ["present", "checked_out"].includes(r.status ?? ""),
+      ['present', 'checked_out'].includes(r.status ?? '')
     ).length
-    const late = records.filter((r) => r.status === "late").length
-    const absent = records.filter((r) => r.status === "absent").length
+    const late = records.filter((r) => r.status === 'late').length
+    const absent = records.filter((r) => r.status === 'absent').length
     const total = records.length
     const workingMinutes = records
       .map((r) => r.working_minutes)
       .filter((m): m is number => m !== null)
     const avgHours =
       workingMinutes.length > 0
-        ? Math.round(
-            (workingMinutes.reduce((a, b) => a + b, 0) / workingMinutes.length) * 10,
-          ) / 10
+        ? Math.round((workingMinutes.reduce((a, b) => a + b, 0) / workingMinutes.length) * 10) / 10
         : 0
 
     return {
@@ -227,9 +220,8 @@ async function generateMonthlyReport(
     .filter((m): m is number => m !== null)
   const overallAvgHours =
     allWorkingMinutes && allWorkingMinutes.length > 0
-      ? Math.round(
-          (allWorkingMinutes.reduce((a, b) => a + b, 0) / allWorkingMinutes.length) * 10,
-        ) / 10
+      ? Math.round((allWorkingMinutes.reduce((a, b) => a + b, 0) / allWorkingMinutes.length) * 10) /
+        10
       : 0
 
   return {
@@ -258,9 +250,9 @@ async function storeReport(
   reportType: string,
   periodStart: string,
   periodEnd: string,
-  data: Record<string, unknown>,
+  data: Record<string, unknown>
 ) {
-  const { error } = await supabase.from("report_store").insert({
+  const { error } = await supabase.from('report_store').insert({
     report_type: reportType,
     period_start: periodStart,
     period_end: periodEnd,
@@ -273,7 +265,7 @@ async function storeReport(
   }
 }
 
-if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
-  console.log("cron-report invoked")
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
+  console.log('cron-report invoked')
   Deno.serve(handler)
 }

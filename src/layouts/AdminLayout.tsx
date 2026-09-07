@@ -47,7 +47,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg"
+      >
         Skip to main content
       </a>
       <aside
@@ -60,13 +63,23 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div role="banner" className="flex h-14 items-center justify-between border-b px-4">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <img src="/4_transparent_background.png" alt="JK Attendance" loading="lazy" className="h-8 w-8 object-contain" />
+              <img
+                src="/4_transparent_background.png"
+                alt="JK Attendance"
+                loading="lazy"
+                className="h-8 w-8 object-contain"
+              />
               <span className="text-sm font-semibold">Admin</span>
             </div>
           )}
           {collapsed && (
             <div className="mx-auto">
-              <img src="/4_transparent_background.png" alt="JK Attendance" loading="lazy" className="h-8 w-8 object-contain" />
+              <img
+                src="/4_transparent_background.png"
+                alt="JK Attendance"
+                loading="lazy"
+                className="h-8 w-8 object-contain"
+              />
             </div>
           )}
           <button
@@ -74,11 +87,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className="rounded-md p-1 hover:bg-accent"
           >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
 

@@ -26,10 +26,7 @@ export async function createHoliday(input: {
 }
 
 export async function deleteHoliday(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('school_holidays')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.from('school_holidays').delete().eq('id', id)
 
   if (error) throw new Error(error.message)
 }

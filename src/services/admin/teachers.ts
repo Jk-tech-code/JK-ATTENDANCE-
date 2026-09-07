@@ -34,7 +34,7 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
     const safe = params.search.replace(/[\\%_(),]/g, (c) => '\\' + c)
     const pattern = `%${safe}%`
     query = query.or(
-      `full_name.ilike.${pattern},staff_number.ilike.${pattern},email.ilike.${pattern}`,
+      `full_name.ilike.${pattern},staff_number.ilike.${pattern},email.ilike.${pattern}`
     )
   }
   if (params.employmentStatus) {
@@ -167,7 +167,7 @@ async function callInviteEdgeFunction(input: {
     console.error('[inviteTeacher] Fetch failed:', fetchErr)
     throw new Error(
       (fetchErr as Error)?.message?.includes('fetch') ||
-      (fetchErr as Error)?.message?.includes('network')
+        (fetchErr as Error)?.message?.includes('network')
         ? 'Cannot reach server. Check your internet connection.'
         : (fetchErr as Error).message
     )

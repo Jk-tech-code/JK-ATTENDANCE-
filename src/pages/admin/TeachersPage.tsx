@@ -10,7 +10,13 @@ import { Label } from '@/components/ui/label'
 import { Dialog } from '@/components/ui/dialog'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useTeachers, useCreateTeacher, useUpdateTeacher, useDeleteTeacher, useInviteTeacher } from '@/hooks/useTeachers'
+import {
+  useTeachers,
+  useCreateTeacher,
+  useUpdateTeacher,
+  useDeleteTeacher,
+  useInviteTeacher,
+} from '@/hooks/useTeachers'
 import { InviteTeacherModal, type InviteTeacherFormData } from '@/components/InviteTeacherModal'
 import type { Teacher } from '@/types'
 import { Plus, Pencil, Trash2, Search, UserPlus, Users } from 'lucide-react'
@@ -70,11 +76,12 @@ export default function TeachersPage() {
     if (!teachers) return []
     if (!debouncedSearch.trim()) return teachers
     const q = debouncedSearch.toLowerCase()
-    return teachers.filter(t =>
-      t.full_name.toLowerCase().includes(q) ||
-      t.staff_number.toLowerCase().includes(q) ||
-      t.email.toLowerCase().includes(q) ||
-      (t.department ?? '').toLowerCase().includes(q)
+    return teachers.filter(
+      (t) =>
+        t.full_name.toLowerCase().includes(q) ||
+        t.staff_number.toLowerCase().includes(q) ||
+        t.email.toLowerCase().includes(q) ||
+        (t.department ?? '').toLowerCase().includes(q)
     )
   }, [teachers, debouncedSearch])
 
@@ -160,133 +167,185 @@ export default function TeachersPage() {
         <meta name="robots" content="noindex, follow" />
       </Helmet>
       <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Teachers</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setInviteOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />Invite Teacher
-          </Button>
-          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add Teacher</Button>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Teachers</h1>
+          <div className="flex gap-2">
+            <Button onClick={() => setInviteOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Teacher
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Teacher
+            </Button>
+          </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <CardTitle>All Teachers</CardTitle>
+              <div className="relative ml-auto max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search teachers..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 h-9"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3 p-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : !teachers || teachers.length === 0 ? (
+              <EmptyState
+                title="No teachers yet"
+                description="Add your first teacher to get started."
+                icon={<Users className="h-12 w-12" />}
+                action={{ label: 'Add Teacher', onClick: openCreate }}
+              />
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                title="No matching teachers"
+                description="Try a different search term."
+                icon={<Search className="h-12 w-12" />}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <VirtualizedTeacherTable
+                  teachers={filtered}
+                  onEdit={openEdit}
+                  onDelete={(t) => setDeleteTarget(t)}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            if (!o && !isSubmitting) reset()
+            setOpen(o)
+          }}
+          title={editing ? 'Edit Teacher' : 'Add Teacher'}
+        >
+          <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-staff-number">
+                  Staff Number <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-staff-number"
+                  {...register('staff_number')}
+                  className={errors.staff_number ? 'border-destructive' : ''}
+                />
+                {errors.staff_number && (
+                  <p className="text-xs text-destructive">{errors.staff_number.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-full-name">
+                  Full Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-full-name"
+                  {...register('full_name')}
+                  className={errors.full_name ? 'border-destructive' : ''}
+                />
+                {errors.full_name && (
+                  <p className="text-xs text-destructive">{errors.full_name.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">
+                  Email <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  {...register('email')}
+                  disabled={!!editing}
+                  className={errors.email ? 'border-destructive' : ''}
+                />
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-department">Department</Label>
+                <Input id="edit-department" {...register('department')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  {...register('phone')}
+                  className={errors.phone ? 'border-destructive' : ''}
+                />
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-reporting-time">Reporting Time</Label>
+                <Input id="edit-reporting-time" type="time" {...register('reporting_time')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <select
+                  id="edit-status"
+                  {...register('employment_status')}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              loading={isSubmitting}
+              disabled={!isValid || isSubmitting}
+            >
+              {editing ? 'Update' : 'Create'} Teacher
+            </Button>
+          </form>
+        </Dialog>
+
+        <InviteTeacherModal
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          onSubmit={handleInvite}
+        />
+
+        <AlertDialog
+          open={!!deleteTarget}
+          onOpenChange={(o) => {
+            if (!o) setDeleteTarget(null)
+          }}
+          title="Delete Teacher"
+          description={`Are you sure you want to delete ${deleteTarget?.full_name}? This will permanently remove their record and all associated attendance data.`}
+          confirmLabel="Delete"
+          variant="destructive"
+          onConfirm={handleDelete}
+          loading={deleting}
+        />
       </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <CardTitle>All Teachers</CardTitle>
-            <div className="relative ml-auto max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search teachers..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-8 h-9"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3 p-4">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-            </div>
-          ) : !teachers || teachers.length === 0 ? (
-            <EmptyState
-              title="No teachers yet"
-              description="Add your first teacher to get started."
-              icon={<Users className="h-12 w-12" />}
-              action={{ label: "Add Teacher", onClick: openCreate }}
-            />
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              title="No matching teachers"
-              description="Try a different search term."
-              icon={<Search className="h-12 w-12" />}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <VirtualizedTeacherTable
-                teachers={filtered}
-                onEdit={openEdit}
-                onDelete={(t) => setDeleteTarget(t)}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={open} onOpenChange={(o) => { if (!o && !isSubmitting) reset(); setOpen(o); }} title={editing ? 'Edit Teacher' : 'Add Teacher'}>
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-staff-number">Staff Number <span className="text-destructive">*</span></Label>
-              <Input id="edit-staff-number" {...register('staff_number')} className={errors.staff_number ? 'border-destructive' : ''} />
-              {errors.staff_number && <p className="text-xs text-destructive">{errors.staff_number.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-full-name">Full Name <span className="text-destructive">*</span></Label>
-              <Input id="edit-full-name" {...register('full_name')} className={errors.full_name ? 'border-destructive' : ''} />
-              {errors.full_name && <p className="text-xs text-destructive">{errors.full_name.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email <span className="text-destructive">*</span></Label>
-              <Input id="edit-email" type="email" {...register('email')} disabled={!!editing} className={errors.email ? 'border-destructive' : ''} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-department">Department</Label>
-              <Input id="edit-department" {...register('department')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
-              <Input id="edit-phone" {...register('phone')} className={errors.phone ? 'border-destructive' : ''} />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-reporting-time">Reporting Time</Label>
-              <Input id="edit-reporting-time" type="time" {...register('reporting_time')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <select
-                id="edit-status"
-                {...register('employment_status')}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-          </div>
-          <Button type="submit" className="w-full" loading={isSubmitting} disabled={!isValid || isSubmitting}>
-            {editing ? 'Update' : 'Create'} Teacher
-          </Button>
-        </form>
-      </Dialog>
-
-      <InviteTeacherModal
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
-        onSubmit={handleInvite}
-      />
-
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}
-        title="Delete Teacher"
-        description={`Are you sure you want to delete ${deleteTarget?.full_name}? This will permanently remove their record and all associated attendance data.`}
-        confirmLabel="Delete"
-        variant="destructive"
-        onConfirm={handleDelete}
-        loading={deleting}
-      />
-    </div>
     </>
   )
 }
 
-function VirtualizedTeacherTable({ teachers, onEdit, onDelete }: {
+function VirtualizedTeacherTable({
+  teachers,
+  onEdit,
+  onDelete,
+}: {
   teachers: Teacher[]
   onEdit: (t: Teacher) => void
   onDelete: (t: Teacher) => void
@@ -300,7 +359,16 @@ function VirtualizedTeacherTable({ teachers, onEdit, onDelete }: {
     overscan: 10,
   })
 
-  const columnWidths = ['flex-[1.2]', 'flex-[2]', 'flex-[2]', 'flex-[1.5]', 'flex-[1.2]', 'flex-[0.9]', 'flex-[1]', 'w-24 shrink-0']
+  const columnWidths = [
+    'flex-[1.2]',
+    'flex-[2]',
+    'flex-[2]',
+    'flex-[1.5]',
+    'flex-[1.2]',
+    'flex-[0.9]',
+    'flex-[1]',
+    'w-24 shrink-0',
+  ]
 
   return (
     <div>
@@ -338,18 +406,42 @@ function VirtualizedTeacherTable({ teachers, onEdit, onDelete }: {
                 }}
                 className="flex items-center border-b text-sm hover:bg-muted/50"
               >
-                <div className={`${columnWidths[0]} min-w-0 px-2 py-2 truncate`}>{t.staff_number}</div>
-                <div className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}>{t.full_name}</div>
-                <div className={`${columnWidths[2]} min-w-0 px-2 py-2 truncate text-muted-foreground`}>{t.email}</div>
-                <div className={`${columnWidths[3]} min-w-0 px-2 py-2 truncate text-muted-foreground`}>{t.department ?? '-'}</div>
-                <div className={`${columnWidths[4]} min-w-0 px-2 py-2 truncate text-muted-foreground`}>{t.phone ?? '-'}</div>
-                <div className={`${columnWidths[5]} min-w-0 px-2 py-2 truncate`}>{t.reporting_time ?? '07:20'}</div>
+                <div className={`${columnWidths[0]} min-w-0 px-2 py-2 truncate`}>
+                  {t.staff_number}
+                </div>
+                <div className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}>
+                  {t.full_name}
+                </div>
+                <div
+                  className={`${columnWidths[2]} min-w-0 px-2 py-2 truncate text-muted-foreground`}
+                >
+                  {t.email}
+                </div>
+                <div
+                  className={`${columnWidths[3]} min-w-0 px-2 py-2 truncate text-muted-foreground`}
+                >
+                  {t.department ?? '-'}
+                </div>
+                <div
+                  className={`${columnWidths[4]} min-w-0 px-2 py-2 truncate text-muted-foreground`}
+                >
+                  {t.phone ?? '-'}
+                </div>
+                <div className={`${columnWidths[5]} min-w-0 px-2 py-2 truncate`}>
+                  {t.reporting_time ?? '07:20'}
+                </div>
                 <div className={`${columnWidths[6]} min-w-0 px-2 py-2`}>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    t.employment_status === 'active' ? 'bg-green-100 text-green-700' :
-                    t.employment_status === 'inactive' ? 'bg-gray-100 text-gray-600' :
-                    'bg-red-100 text-red-700'
-                  }`}>{t.employment_status}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      t.employment_status === 'active'
+                        ? 'bg-green-100 text-green-700'
+                        : t.employment_status === 'inactive'
+                          ? 'bg-gray-100 text-gray-600'
+                          : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {t.employment_status}
+                  </span>
                 </div>
                 <div className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(t)} title="Edit">

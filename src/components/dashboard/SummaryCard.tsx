@@ -35,9 +35,7 @@ export function SummaryCard() {
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="mb-3 text-xs font-medium text-muted-foreground">
-          This Month
-        </p>
+        <p className="mb-3 text-xs font-medium text-muted-foreground">This Month</p>
         <div className="grid grid-cols-4 gap-3">
           {summaryItems.map(({ key, label, icon: Icon, color }) => {
             const value = summary[key as keyof typeof summary] ?? 0

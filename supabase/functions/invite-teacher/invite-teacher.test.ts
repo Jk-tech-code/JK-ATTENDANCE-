@@ -5,9 +5,17 @@ type Client = {
   auth: {
     getUser: (token: string) => Promise<{ data: { user: unknown }; error: unknown }>
     admin: {
-      listUsers?: (page?: number, perPage?: number) => Promise<{ data: { users: unknown[] }; error: unknown }>
-      getUserByEmail: (email: string) => Promise<{ data: { user: unknown }; error: { status?: number; message: string } | null }>
-      inviteUserByEmail: (email: string, opts: unknown) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
+      listUsers?: (
+        page?: number,
+        perPage?: number
+      ) => Promise<{ data: { users: unknown[] }; error: unknown }>
+      getUserByEmail: (
+        email: string
+      ) => Promise<{ data: { user: unknown }; error: { status?: number; message: string } | null }>
+      inviteUserByEmail: (
+        email: string,
+        opts: unknown
+      ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
   }
@@ -61,98 +69,106 @@ function configureClient(opts: {
   // deleteUser call counter (rollback assertion)
   onDeleteUser?: () => void
 }): Client {
-// Counter is shared across from('teachers') calls. The handler may
-// call from() multiple times (adminMiddleware does isAdmin; the
-// function body does duplicate-check). Without sharing the counter,
-// every call would see count=1 and return the isAdmin chain.
-const teacherIdSelectCount = { count: 0 }
-const client: Client = {
-  auth: {
-    getUser: opts.getUserError
-      ? async () => ({ data: { user: null }, error: opts.getUserError })
-      : async () => ({
-          data: {
-            user: {
-              id: opts.caller?.id ?? 'admin-1',
-              email: opts.caller?.email ?? 'admin@school.com',
+  // Counter is shared across from('teachers') calls. The handler may
+  // call from() multiple times (adminMiddleware does isAdmin; the
+  // function body does duplicate-check). Without sharing the counter,
+  // every call would see count=1 and return the isAdmin chain.
+  const teacherIdSelectCount = { count: 0 }
+  const client: Client = {
+    auth: {
+      getUser: opts.getUserError
+        ? async () => ({ data: { user: null }, error: opts.getUserError })
+        : async () => ({
+            data: {
+              user: {
+                id: opts.caller?.id ?? 'admin-1',
+                email: opts.caller?.email ?? 'admin@school.com',
+              },
             },
-          },
-          error: null,
-        }),
-    admin: {
-      getUserByEmail: async (email: string) => {
-        if (opts.getUserByEmailError) return { data: { user: null }, error: opts.getUserByEmailError }
-        return {
-          data: { user: opts.existingAuthUser ? { id: opts.existingAuthUser.id, email } : null },
-          error: null,
-        }
-      },
-      inviteUserByEmail: async () => {
-        if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
-        return { data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null }, error: null }
-      },
-      deleteUser: async () => {
-        opts.onDeleteUser?.()
-        return { error: null }
+            error: null,
+          }),
+      admin: {
+        getUserByEmail: async (email: string) => {
+          if (opts.getUserByEmailError)
+            return { data: { user: null }, error: opts.getUserByEmailError }
+          return {
+            data: { user: opts.existingAuthUser ? { id: opts.existingAuthUser.id, email } : null },
+            error: null,
+          }
+        },
+        inviteUserByEmail: async () => {
+          if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
+          return {
+            data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null },
+            error: null,
+          }
+        },
+        deleteUser: async () => {
+          opts.onDeleteUser?.()
+          return { error: null }
+        },
       },
     },
-  },
-  rpc: async () => ({ data: null, error: null }),
-  from: (table: string) => {
-    if (table !== 'teachers') {
-      throw new Error(`Unexpected from(${table})`)
-    }
-    return {
-      select: (cols: string) => {
-        if (cols === 'id') {
-          teacherIdSelectCount.count += 1
-          if (teacherIdSelectCount.count === 1) {
-            // isAdmin: .or(...).eq('role','admin').maybeSingle()
+    rpc: async () => ({ data: null, error: null }),
+    from: (table: string) => {
+      if (table !== 'teachers') {
+        throw new Error(`Unexpected from(${table})`)
+      }
+      return {
+        select: (cols: string) => {
+          if (cols === 'id') {
+            teacherIdSelectCount.count += 1
+            if (teacherIdSelectCount.count === 1) {
+              // isAdmin: .or(...).eq('role','admin').maybeSingle()
+              return {
+                or: () => ({
+                  eq: () => ({
+                    maybeSingle: async () => ({
+                      data: opts.isAdmin ?? null,
+                      error: null,
+                    }),
+                  }),
+                }),
+              }
+            }
+            // Duplicate teacher: .or(...).maybeSingle()
             return {
               or: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({
-                    data: opts.isAdmin ?? null,
-                    error: null,
-                  }),
+                maybeSingle: async () => ({
+                  data: opts.existingTeacher ?? null,
+                  error: null,
                 }),
               }),
             }
           }
-          // Duplicate teacher: .or(...).maybeSingle()
-          return {
-            or: () => ({
-              maybeSingle: async () => ({
-                data: opts.existingTeacher ?? null,
+          // For the happy-path insert test we override .from below to
+          // wrap .insert() so the test can capture the inserted payload.
+          throw new Error('Unexpected select cols: ' + cols)
+        },
+        insert: (record: Record<string, unknown>) => ({
+          select: () => ({
+            single: async () => {
+              if (opts.insertError) {
+                return { data: null, error: opts.insertError }
+              }
+              return {
+                data:
+                  opts.insertedTeacher ??
+                  ({
+                    id: record.id as string,
+                    full_name: record.full_name as string,
+                    email: record.email as string,
+                  } as never),
                 error: null,
-              }),
-            }),
-          }
-        }
-        // For the happy-path insert test we override .from below to
-        // wrap .insert() so the test can capture the inserted payload.
-        throw new Error('Unexpected select cols: ' + cols)
-      },
-      insert: (record: Record<string, unknown>) => ({
-        select: () => ({
-          single: async () => {
-            if (opts.insertError) {
-              return { data: null, error: opts.insertError }
-            }
-            return {
-              data:
-                opts.insertedTeacher ??
-                ({ id: record.id as string, full_name: record.full_name as string, email: record.email as string } as never),
-              error: null,
-            }
-          },
+              }
+            },
+          }),
         }),
-      }),
-    }
-  },
-}
-globalThis.__MOCK_SUPABASE__.createClient = () => client
-return client
+      }
+    },
+  }
+  globalThis.__MOCK_SUPABASE__.createClient = () => client
+  return client
 }
 
 const { handler } = await import('./index')
@@ -181,7 +197,9 @@ describe('invite-teacher', () => {
   describe('admin gating', () => {
     it('rejects unauthenticated callers', async () => {
       configureClient({ getUserError: { message: 'no token' } })
-      const res = await handler(makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }))
+      const res = await handler(
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' })
+      )
       expect(res.status).toBe(401)
     })
 
@@ -191,7 +209,7 @@ describe('invite-teacher', () => {
         isAdmin: null,
       })
       const res = await handler(
-        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer teacher-1'),
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer teacher-1')
       )
       // Debug: surface what the handler is actually returning.
       if (res.status !== 403) {
@@ -207,7 +225,7 @@ describe('invite-teacher', () => {
         new Request('https://example.com/functions/v1/invite-teacher', {
           method: 'GET',
           headers: { authorization: 'Bearer admin' },
-        }),
+        })
       )
       // CORS preflight handling may return 204; for GET we expect 405.
       expect([204, 405]).toContain(res.status)
@@ -219,9 +237,7 @@ describe('invite-teacher', () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
       })
-      const res = await handler(
-        makeRequest({ full_name: 'T', email: 't@x.com' }, 'Bearer admin'),
-      )
+      const res = await handler(makeRequest({ full_name: 'T', email: 't@x.com' }, 'Bearer admin'))
       expect(res.status).toBe(400)
     })
 
@@ -230,7 +246,7 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
       })
       const res = await handler(
-        makeRequest({ staff_number: 'S-1', email: 't@x.com' }, 'Bearer admin'),
+        makeRequest({ staff_number: 'S-1', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(400)
     })
@@ -240,7 +256,7 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
       })
       const res = await handler(
-        makeRequest({ staff_number: 'S-1', full_name: 'T' }, 'Bearer admin'),
+        makeRequest({ staff_number: 'S-1', full_name: 'T' }, 'Bearer admin')
       )
       expect(res.status).toBe(400)
     })
@@ -253,10 +269,7 @@ describe('invite-teacher', () => {
         existingAuthUser: { id: 'auth-1', email: 't@x.com' },
       })
       const res = await handler(
-        makeRequest(
-          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
-          'Bearer admin',
-        ),
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(409)
     })
@@ -273,10 +286,7 @@ describe('invite-teacher', () => {
         insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
       })
       const res = await handler(
-        makeRequest(
-          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
-          'Bearer admin',
-        ),
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(201)
     })
@@ -288,10 +298,7 @@ describe('invite-teacher', () => {
         existingTeacher: { id: 'teacher-existing' },
       })
       const res = await handler(
-        makeRequest(
-          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
-          'Bearer admin',
-        ),
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(409)
     })
@@ -320,7 +327,9 @@ describe('invite-teacher', () => {
               ...builder,
               insert: (record: Record<string, unknown>) => {
                 insertedRecord = record
-                return (builder as unknown as { insert: (r: Record<string, unknown>) => unknown }).insert(record)
+                return (
+                  builder as unknown as { insert: (r: Record<string, unknown>) => unknown }
+                ).insert(record)
               },
             }
           }
@@ -339,8 +348,8 @@ describe('invite-teacher', () => {
             phone: '+1234567890',
             reporting_time: '07:30',
           },
-          'Bearer admin',
-        ),
+          'Bearer admin'
+        )
       )
       if (res.status !== 201) {
         const body = await res.json()
@@ -380,10 +389,7 @@ describe('invite-teacher', () => {
       })
 
       const res = await handler(
-        makeRequest(
-          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
-          'Bearer admin',
-        ),
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(400)
       expect(deleteCount).toBe(1)
@@ -399,10 +405,7 @@ describe('invite-teacher', () => {
         inviteError: { message: 'smtp down' },
       })
       const res = await handler(
-        makeRequest(
-          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
-          'Bearer admin',
-        ),
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(400)
     })

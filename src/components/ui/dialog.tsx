@@ -11,7 +11,8 @@ interface DialogProps {
   className?: string
 }
 
-const focusableSelector = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const focusableSelector =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export function Dialog({ open, onOpenChange, children, title, className }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -23,20 +24,23 @@ export function Dialog({ open, onOpenChange, children, title, className }: Dialo
     return Array.from(contentRef.current.querySelectorAll<HTMLElement>(focusableSelector))
   }, [])
 
-  const trapFocus = useCallback((e: KeyboardEvent) => {
-    if (e.key !== 'Tab') return
-    const elements = getFocusableElements()
-    if (elements.length === 0) return
-    const first = elements[0]
-    const last = elements[elements.length - 1]
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault()
-      last.focus()
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault()
-      first.focus()
-    }
-  }, [getFocusableElements])
+  const trapFocus = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const elements = getFocusableElements()
+      if (elements.length === 0) return
+      const first = elements[0]
+      const last = elements[elements.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    },
+    [getFocusableElements]
+  )
 
   useEffect(() => {
     if (open) {

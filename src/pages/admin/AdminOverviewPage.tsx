@@ -53,7 +53,10 @@ export default function AdminOverviewPage() {
     <>
       <Helmet>
         <title>Admin Overview — JK Attendance System</title>
-        <meta name="description" content="Admin dashboard for Glorious Group of Schools attendance system" />
+        <meta
+          name="description"
+          content="Admin dashboard for Glorious Group of Schools attendance system"
+        />
         <meta name="robots" content="noindex, follow" />
       </Helmet>
       <div className="space-y-6">

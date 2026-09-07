@@ -4,15 +4,34 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 
-const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
+const siteUrl =
+  typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
 
 const faqs = [
-  { q: 'How does GPS check-in work?', a: 'When you tap "Check In" on the dashboard, the system records your GPS location. If you are within the school\'s allowed radius, check-in is accepted. Otherwise, it is flagged.' },
-  { q: 'What if I forget to check out?', a: 'The system auto-checks you out at the end of the day. You can also manually undo a checkout within a short window.' },
-  { q: 'How is my status determined?', a: 'Checked in before reporting time + grace period = Present. After grace period = Late. No check-in = Absent.' },
-  { q: 'Can I edit my profile?', a: 'Contact your school administrator to update your profile details.' },
-  { q: 'Who can see my attendance records?', a: 'You and school administrators. Your records are private to others.' },
-  { q: 'How do I reset my password?', a: 'Click "Forgot Password" on the login page and follow the email instructions.' },
+  {
+    q: 'How does GPS check-in work?',
+    a: 'When you tap "Check In" on the dashboard, the system records your GPS location. If you are within the school\'s allowed radius, check-in is accepted. Otherwise, it is flagged.',
+  },
+  {
+    q: 'What if I forget to check out?',
+    a: 'The system auto-checks you out at the end of the day. You can also manually undo a checkout within a short window.',
+  },
+  {
+    q: 'How is my status determined?',
+    a: 'Checked in before reporting time + grace period = Present. After grace period = Late. No check-in = Absent.',
+  },
+  {
+    q: 'Can I edit my profile?',
+    a: 'Contact your school administrator to update your profile details.',
+  },
+  {
+    q: 'Who can see my attendance records?',
+    a: 'You and school administrators. Your records are private to others.',
+  },
+  {
+    q: 'How do I reset my password?',
+    a: 'Click "Forgot Password" on the login page and follow the email instructions.',
+  },
 ]
 
 const faqJsonLd = {
@@ -33,11 +52,17 @@ export default function HelpPage() {
     <>
       <Helmet>
         <title>Help & FAQ — JK Attendance System</title>
-        <meta name="description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta
+          name="description"
+          content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more."
+        />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`${siteUrl}/help`} />
         <meta property="og:title" content="Help & FAQ — JK Attendance System" />
-        <meta property="og:description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta
+          property="og:description"
+          content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more."
+        />
         <meta property="og:url" content={`${siteUrl}/help`} />
         <meta property="og:image" content={`${siteUrl}/og-image.png`} />
         <meta property="og:image:width" content="1200" />
@@ -45,20 +70,32 @@ export default function HelpPage() {
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Help & FAQ — JK Attendance System" />
-        <meta name="twitter:description" content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more." />
+        <meta
+          name="twitter:description"
+          content="Frequently asked questions about JK Attendance System - GPS check-in, attendance status, password reset, and more."
+        />
         <meta name="twitter:image" content={`${siteUrl}/og-image.png`} />
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
         <div className="flex items-center gap-4">
-          <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="mr-1 h-4 w-4" />Back</Button></Link>
+          <Link to="/">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Back
+            </Button>
+          </Link>
           <h1 className="text-2xl font-bold">Help & FAQ</h1>
         </div>
         <div className="grid gap-4">
           {faqs.map((f, i) => (
             <Card key={i}>
-              <CardHeader><CardTitle className="text-base">{f.q}</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground">{f.a}</p></CardContent>
+              <CardHeader>
+                <CardTitle className="text-base">{f.q}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{f.a}</p>
+              </CardContent>
             </Card>
           ))}
         </div>

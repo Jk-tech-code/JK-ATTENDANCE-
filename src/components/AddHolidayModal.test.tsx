@@ -16,7 +16,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof AddHolidayModal>
       editMode={false}
       onSubmit={onSubmit}
       {...props}
-    />,
+    />
   )
   return { onSubmit, onOpenChange, ...utils }
 }

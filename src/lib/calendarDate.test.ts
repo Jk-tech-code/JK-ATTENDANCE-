@@ -215,9 +215,9 @@ describe('DayAttendance summary — attendance rate', () => {
       { status: 'absent' },
     ]
 
-    const present = records.filter(r => ['present', 'checked_out'].includes(r.status)).length
-    const late = records.filter(r => r.status === 'late').length
-    const absent = records.filter(r => r.status === 'absent').length
+    const present = records.filter((r) => ['present', 'checked_out'].includes(r.status)).length
+    const late = records.filter((r) => r.status === 'late').length
+    const absent = records.filter((r) => r.status === 'absent').length
     const total = records.length
     const rate = total > 0 ? Math.round(((present + late) / total) * 100) : 0
 
@@ -236,12 +236,8 @@ describe('DayAttendance summary — attendance rate', () => {
   })
 
   it('includes checked_out in present count', () => {
-    const records = [
-      { status: 'checked_out' },
-      { status: 'present' },
-      { status: 'absent' },
-    ]
-    const present = records.filter(r => ['present', 'checked_out'].includes(r.status)).length
+    const records = [{ status: 'checked_out' }, { status: 'present' }, { status: 'absent' }]
+    const present = records.filter((r) => ['present', 'checked_out'].includes(r.status)).length
     expect(present).toBe(2)
   })
 })

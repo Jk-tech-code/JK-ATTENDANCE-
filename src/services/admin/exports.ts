@@ -27,8 +27,17 @@ function rowFromRecord(r: AttendanceWithTeacher): string[] {
 }
 
 export function exportToCSV(records: AttendanceWithTeacher[], filename: string) {
-  const headers = ['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']
-  const rows = records.map(r => [
+  const headers = [
+    'Teacher',
+    'Staff No.',
+    'Date',
+    'Check In',
+    'Check Out',
+    'Status',
+    'Late (min)',
+    'Working (min)',
+  ]
+  const rows = records.map((r) => [
     r.teacher?.full_name ?? '',
     r.teacher?.staff_number ?? '',
     r.attendance_date,
@@ -38,9 +47,7 @@ export function exportToCSV(records: AttendanceWithTeacher[], filename: string) 
     r.late_minutes ?? 0,
     r.working_minutes ?? 0,
   ])
-  const csv = [headers, ...rows]
-    .map(row => row.map(csvEscape).join(','))
-    .join('\r\n')
+  const csv = [headers, ...rows].map((row) => row.map(csvEscape).join(',')).join('\r\n')
   // Prepend BOM so Excel opens UTF-8 (including accented names) correctly.
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -52,9 +59,23 @@ export function exportToCSV(records: AttendanceWithTeacher[], filename: string) 
 }
 
 // ─── Excel ───────────────────────────────────────────────────
-export async function exportToExcel(records: AttendanceWithTeacher[], filename: string): Promise<void> {
-  const headers = [['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']]
-  const rows = records.map(r => rowFromRecord(r))
+export async function exportToExcel(
+  records: AttendanceWithTeacher[],
+  filename: string
+): Promise<void> {
+  const headers = [
+    [
+      'Teacher',
+      'Staff No.',
+      'Date',
+      'Check In',
+      'Check Out',
+      'Status',
+      'Late (min)',
+      'Working (min)',
+    ],
+  ]
+  const rows = records.map((r) => rowFromRecord(r))
   const wsData = [...headers, ...rows]
 
   const XLSX = await import('xlsx')
@@ -65,10 +86,22 @@ export async function exportToExcel(records: AttendanceWithTeacher[], filename: 
 }
 
 // ─── PDF ─────────────────────────────────────────────────────
-export async function exportToPDF(records: AttendanceWithTeacher[], filename: string): Promise<void> {
+export async function exportToPDF(
+  records: AttendanceWithTeacher[],
+  filename: string
+): Promise<void> {
   try {
-    const headers = ['Teacher', 'Staff No.', 'Date', 'Check In', 'Check Out', 'Status', 'Late (min)', 'Working (min)']
-    const rows = records.map(r => rowFromRecord(r))
+    const headers = [
+      'Teacher',
+      'Staff No.',
+      'Date',
+      'Check In',
+      'Check Out',
+      'Status',
+      'Late (min)',
+      'Working (min)',
+    ]
+    const rows = records.map((r) => rowFromRecord(r))
 
     const totals = records.reduce(
       (acc, r) => {
@@ -102,25 +135,28 @@ export async function exportToPDF(records: AttendanceWithTeacher[], filename: st
       body: rows,
       styles: { fontSize: 7 },
       headStyles: { fillColor: [59, 130, 246] },
-      foot: [[
-        `Present: ${totals.present}`,
-        '',
-        '',
-        '',
-        '',
-        `Absent: ${totals.absent}`,
-        `Late: ${totals.late}`,
-        `Total: ${records.length}`,
-      ]],
-      footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 7 },
+      foot: [
+        [
+          `Present: ${totals.present}`,
+          '',
+          '',
+          '',
+          '',
+          `Absent: ${totals.absent}`,
+          `Late: ${totals.late}`,
+          `Total: ${records.length}`,
+        ],
+      ],
+      footStyles: {
+        fillColor: [243, 244, 246],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+        fontSize: 7,
+      },
       didDrawPage: (data) => {
         const pageHeight = doc.internal.pageSize.getHeight()
         doc.setFontSize(8)
-        doc.text(
-          `Page ${data.pageNumber}`,
-          marginLeft,
-          pageHeight - 10
-        )
+        doc.text(`Page ${data.pageNumber}`, marginLeft, pageHeight - 10)
       },
     })
 
@@ -132,7 +168,10 @@ export async function exportToPDF(records: AttendanceWithTeacher[], filename: st
 }
 
 // ─── Export all pages ────────────────────────────────────────
-export async function exportAllAttendance(format: 'csv' | 'xlsx' | 'pdf', filename: string): Promise<void> {
+export async function exportAllAttendance(
+  format: 'csv' | 'xlsx' | 'pdf',
+  filename: string
+): Promise<void> {
   const records = await getAllAttendanceRecords()
   if (format === 'csv') exportToCSV(records, filename)
   else if (format === 'xlsx') await exportToExcel(records, filename)

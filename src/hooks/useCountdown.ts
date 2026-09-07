@@ -16,10 +16,7 @@ export function useCountdownTo(expiresAt: string | null | undefined): number | n
       return
     }
     const tick = () => {
-      const remaining = Math.max(
-        0,
-        Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000),
-      )
+      const remaining = Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000))
       setSeconds(remaining)
     }
     tick()

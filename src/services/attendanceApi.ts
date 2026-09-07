@@ -39,21 +39,28 @@ async function callFunction<T>(
     })
   } catch (fetchErr) {
     const msg = (fetchErr as Error)?.message ?? ''
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network')) {
-      throw new Error('Server unavailable. Check your internet connection or the function may not be deployed.')
+    if (
+      msg.includes('Failed to fetch') ||
+      msg.includes('NetworkError') ||
+      msg.includes('network')
+    ) {
+      throw new Error(
+        'Server unavailable. Check your internet connection or the function may not be deployed.'
+      )
     }
     throw fetchErr as Error
   }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ error: response.statusText }))
-    const statusMsg = response.status === 401
-      ? 'Session expired. Please log in again.'
-      : response.status === 403
-        ? 'Permission denied. You do not have access to this resource.'
-        : response.status === 404
-          ? `Function not found. The edge function '${name}' may not be deployed.`
-          : errorBody.error ?? `Edge Function error: ${response.status}`
+    const statusMsg =
+      response.status === 401
+        ? 'Session expired. Please log in again.'
+        : response.status === 403
+          ? 'Permission denied. You do not have access to this resource.'
+          : response.status === 404
+            ? `Function not found. The edge function '${name}' may not be deployed.`
+            : (errorBody.error ?? `Edge Function error: ${response.status}`)
     throw new Error(statusMsg)
   }
 
@@ -164,7 +171,10 @@ export async function createNotification(
   })
 }
 
-export async function getNotifications(teacherId?: string, limit = 20): Promise<{ notifications: any[] }> {
+export async function getNotifications(
+  teacherId?: string,
+  limit = 20
+): Promise<{ notifications: any[] }> {
   return callFunction<{ notifications: any[] }>('attendance-notification', {
     params: {
       ...(teacherId ? { teacher_id: teacherId } : {}),
@@ -251,12 +261,14 @@ export async function validateAttendance(
   })
 }
 
-export async function getAttendanceAnalytics(options: {
-  month?: number
-  year?: number
-  teacher_id?: string
-  provider?: 'openai' | 'deepseek'
-} = {}): Promise<AIAnalysisResult> {
+export async function getAttendanceAnalytics(
+  options: {
+    month?: number
+    year?: number
+    teacher_id?: string
+    provider?: 'openai' | 'deepseek'
+  } = {}
+): Promise<AIAnalysisResult> {
   return callFunction<AIAnalysisResult>('attendance-ai-analysis', {
     method: 'POST',
     body: options,

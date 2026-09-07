@@ -1,11 +1,14 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { getDailyReportEdge, getMonthlyReportEdge, getAttendanceAnalytics } from '@/services/attendanceApi'
+import {
+  getDailyReportEdge,
+  getMonthlyReportEdge,
+  getAttendanceAnalytics,
+} from '@/services/attendanceApi'
 
 export const reportKeys = {
   all: ['reports'] as const,
   daily: (date: string) => [...reportKeys.all, 'daily', date] as const,
-  monthly: (year: number, month: number) =>
-    [...reportKeys.all, 'monthly', year, month] as const,
+  monthly: (year: number, month: number) => [...reportKeys.all, 'monthly', year, month] as const,
 }
 
 export function useDailyReport(date: string) {
@@ -31,7 +34,6 @@ export function useMonthlyReport(year: number, month: number) {
 
 export function useAiAnalysis() {
   return useMutation({
-    mutationFn: (options: { year: number; month: number }) =>
-      getAttendanceAnalytics(options),
+    mutationFn: (options: { year: number; month: number }) => getAttendanceAnalytics(options),
   })
 }

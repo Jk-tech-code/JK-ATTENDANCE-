@@ -74,8 +74,8 @@ function configureClient(opts: {
         b.limit = () => makeBuilder()
         b.range = () => makeBuilder()
         b.or = () => makeBuilder()
-        b.maybeSingle = async () => ({ data: data ? data[0] ?? null : null, error: null })
-        b.single = async () => ({ data: data ? data[0] ?? null : null, error: null })
+        b.maybeSingle = async () => ({ data: data ? (data[0] ?? null) : null, error: null })
+        b.single = async () => ({ data: data ? (data[0] ?? null) : null, error: null })
         ;(b as { then: unknown }).then = thenable.then.bind(thenable)
         return b
       }
@@ -147,7 +147,7 @@ describe('delete-teacher', () => {
           authorization: 'Bearer teacher-1',
         },
         body: JSON.stringify({ teacher_id: 't-1' }),
-      }),
+      })
     )
     expect(res.status).toBe(403)
   })
@@ -165,7 +165,7 @@ describe('delete-teacher', () => {
           authorization: 'Bearer admin',
         },
         body: JSON.stringify({}),
-      }),
+      })
     )
     expect(res.status).toBe(400)
   })
@@ -186,7 +186,7 @@ describe('delete-teacher', () => {
           authorization: 'Bearer admin',
         },
         body: JSON.stringify({ teacher_id: 't-99' }),
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -207,7 +207,7 @@ describe('daily-report', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/daily-report', {
         headers: { authorization: 'Bearer teacher-1' },
-      }),
+      })
     )
     expect(res.status).toBe(403)
   })
@@ -221,7 +221,7 @@ describe('daily-report', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/daily-report?date=2026-09-01', {
         headers: { authorization: 'Bearer admin' },
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -243,7 +243,7 @@ describe('monthly-report', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/monthly-report', {
         headers: { authorization: 'Bearer teacher-1' },
-      }),
+      })
     )
     expect(res.status).toBe(403)
   })
@@ -254,7 +254,7 @@ describe('monthly-report', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/monthly-report?month=13', {
         headers: { authorization: 'Bearer admin' },
-      }),
+      })
     )
     expect(res.status).toBe(400)
   })
@@ -268,7 +268,7 @@ describe('monthly-report', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/monthly-report?year=2026&month=9', {
         headers: { authorization: 'Bearer admin' },
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -285,9 +285,7 @@ describe('verify-admin', () => {
   it('rejects requests without auth', async () => {
     configureClient({ getUserError: { message: 'no token' } })
     const { handler } = await import('./verify-admin/index')
-    const res = await handler(
-      makeRequest('https://example.com/functions/v1/verify-admin'),
-    )
+    const res = await handler(makeRequest('https://example.com/functions/v1/verify-admin'))
     expect(res.status).toBe(401)
   })
 
@@ -300,7 +298,7 @@ describe('verify-admin', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/verify-admin', {
         headers: { authorization: 'Bearer teacher-1' },
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -317,7 +315,7 @@ describe('verify-admin', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/verify-admin', {
         headers: { authorization: 'Bearer admin' },
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -334,7 +332,7 @@ describe('calendar-check', () => {
     configureClient({ getUserError: { message: 'no token' } })
     const { handler } = await import('./calendar-check/index')
     const res = await handler(
-      makeRequest('https://example.com/functions/v1/calendar-check?date=2026-09-01'),
+      makeRequest('https://example.com/functions/v1/calendar-check?date=2026-09-01')
     )
     expect(res.status).toBe(401)
   })
@@ -345,7 +343,7 @@ describe('calendar-check', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/calendar-check?date=garbage', {
         headers: { authorization: 'Bearer user' },
-      }),
+      })
     )
     expect(res.status).toBe(400)
   })
@@ -363,7 +361,7 @@ describe('calendar-check', () => {
     const res = await handler(
       makeRequest('https://example.com/functions/v1/calendar-check?date=2026-09-01', {
         headers: { authorization: 'Bearer user' },
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -383,7 +381,7 @@ describe('cron-report', () => {
       makeRequest('https://example.com/functions/v1/cron-report', {
         method: 'POST',
         headers: { 'x-api-key': 'whatever' },
-      }),
+      })
     )
     expect(res.status).toBe(500)
   })
@@ -396,7 +394,7 @@ describe('cron-report', () => {
       makeRequest('https://example.com/functions/v1/cron-report', {
         method: 'POST',
         headers: { 'x-api-key': 'wrong' },
-      }),
+      })
     )
     expect(res.status).toBe(401)
   })
@@ -413,7 +411,7 @@ describe('cron-report', () => {
           'content-type': 'application/json',
         },
         body: JSON.stringify({ type: 'unknown' }),
-      }),
+      })
     )
     expect(res.status).toBe(400)
   })
@@ -431,7 +429,7 @@ describe('attendance-ai-analysis (PII protection)', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({}),
-      }),
+      })
     )
     expect(res.status).toBe(401)
   })
@@ -450,7 +448,7 @@ describe('attendance-ai-analysis (PII protection)', () => {
           authorization: 'Bearer teacher-1',
         },
         body: JSON.stringify({}),
-      }),
+      })
     )
     expect(res.status).toBe(403)
   })
@@ -469,7 +467,7 @@ describe('attendance-ai-analysis (PII protection)', () => {
           authorization: 'Bearer admin',
         },
         body: JSON.stringify({ year: 2026, month: 9 }),
-      }),
+      })
     )
     expect(res.status).toBe(200)
     const body = await res.json()

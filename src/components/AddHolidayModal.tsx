@@ -98,9 +98,16 @@ export function AddHolidayModal({
       onOpenChange={handleClose}
       title={editMode ? 'Edit Entry' : dayType === 'holiday' ? 'Add Holiday' : 'Add Event'}
     >
-      <form onSubmit={handleSubmit(onFormSubmit, onValidationError)} noValidate className="space-y-4">
+      <form
+        onSubmit={handleSubmit(onFormSubmit, onValidationError)}
+        noValidate
+        className="space-y-4"
+      >
         {errors.root && (
-          <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div
+            role="alert"
+            className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {errors.root.message}
           </div>
         )}
@@ -117,7 +124,9 @@ export function AddHolidayModal({
             className={errors.calendar_date ? 'border-destructive' : ''}
           />
           {errors.calendar_date && (
-            <p id="ahm-date-error" role="alert" className="text-xs text-destructive">{errors.calendar_date.message}</p>
+            <p id="ahm-date-error" role="alert" className="text-xs text-destructive">
+              {errors.calendar_date.message}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -138,7 +147,9 @@ export function AddHolidayModal({
             )}
           </select>
           {errors.day_type && (
-            <p role="alert" className="text-xs text-destructive">{errors.day_type.message}</p>
+            <p role="alert" className="text-xs text-destructive">
+              {errors.day_type.message}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -154,7 +165,9 @@ export function AddHolidayModal({
             className={errors.title ? 'border-destructive' : ''}
           />
           {errors.title && (
-            <p id="ahm-title-error" role="alert" className="text-xs text-destructive">{errors.title.message}</p>
+            <p id="ahm-title-error" role="alert" className="text-xs text-destructive">
+              {errors.title.message}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -168,7 +181,9 @@ export function AddHolidayModal({
             placeholder="Optional description"
           />
           {errors.description && (
-            <p id="ahm-description-error" role="alert" className="text-xs text-destructive">{errors.description.message}</p>
+            <p id="ahm-description-error" role="alert" className="text-xs text-destructive">
+              {errors.description.message}
+            </p>
           )}
         </div>
         <Button

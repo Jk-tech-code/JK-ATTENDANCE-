@@ -5,13 +5,13 @@ import {
   updateTeacher,
   deleteTeacher,
   inviteTeacher,
-  type GetTeachersParams
+  type GetTeachersParams,
 } from '@/services/admin'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const teacherKeys = {
   all: ['teachers'] as const,
-  list: (params?: GetTeachersParams) => [...['teachers', 'list'] as const, params] as const,
+  list: (params?: GetTeachersParams) => [...(['teachers', 'list'] as const), params] as const,
 }
 
 // ─── Read ────────────────────────────────────────────────────

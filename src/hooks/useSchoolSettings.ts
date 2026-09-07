@@ -38,11 +38,7 @@ export interface AttendanceGpsRecord {
 
 // ─── Read: school settings ───────────────────────────────────
 async function fetchSchoolSettings(): Promise<SchoolSettingsFormData | null> {
-  const { data, error } = await supabase
-    .from('school_settings')
-    .select('*')
-    .limit(1)
-    .single()
+  const { data, error } = await supabase.from('school_settings').select('*').limit(1).single()
 
   if (error) return null
   return data as SchoolSettingsFormData
@@ -62,7 +58,7 @@ async function fetchAttendanceGpsRecords(): Promise<AttendanceGpsRecord[]> {
   const { data, error } = await supabase
     .from('attendance')
     .select(
-      'id, teacher_id, attendance_date, check_in, teacher_latitude, teacher_longitude, distance_from_school, location_status, device, browser, gps_accuracy',
+      'id, teacher_id, attendance_date, check_in, teacher_latitude, teacher_longitude, distance_from_school, location_status, device, browser, gps_accuracy'
     )
     .not('teacher_latitude', 'is', null)
     .order('created_at', { ascending: false })
@@ -90,7 +86,7 @@ export function useUpdateSchoolSettings() {
       // Reuse the cached settings row when available to avoid a round-trip;
       // only fall back to a fresh fetch if the cache is empty.
       const cached = queryClient.getQueryData<SchoolSettingsFormData | null>(
-        schoolSettingsKeys.settings(),
+        schoolSettingsKeys.settings()
       )
       const id = input.id ?? cached?.id ?? (await fetchSchoolSettings())?.id
       if (!id) throw new Error('No school settings record found')

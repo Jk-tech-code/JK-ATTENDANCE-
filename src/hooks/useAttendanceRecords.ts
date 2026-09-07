@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { getAttendanceRecords, getTeachers } from '@/services/admin'
-import type { AttendanceFilters, AttendanceWithTeacher, PaginatedAttendance } from '@/services/admin'
+import type {
+  AttendanceFilters,
+  AttendanceWithTeacher,
+  PaginatedAttendance,
+} from '@/services/admin'
 import { useMemo } from 'react'
 
 // ─── Query keys ──────────────────────────────────────────────
 export const attendanceRecordsKeys = {
   all: ['attendance-records'] as const,
-  list: (filters: AttendanceFilters) =>
-    [...attendanceRecordsKeys.all, 'list', filters] as const,
+  list: (filters: AttendanceFilters) => [...attendanceRecordsKeys.all, 'list', filters] as const,
   teachers: () => [...attendanceRecordsKeys.all, 'teachers'] as const,
 }
 
@@ -44,7 +47,9 @@ export interface UseAttendanceRecordsReturn {
   error: Error | null
 }
 
-export function useAttendanceRecordsWithFilters(filters: AttendanceFilters): UseAttendanceRecordsReturn {
+export function useAttendanceRecordsWithFilters(
+  filters: AttendanceFilters
+): UseAttendanceRecordsReturn {
   const recordsQuery = useAttendanceRecords(filters)
 
   return useMemo(() => {
@@ -62,5 +67,11 @@ export function useAttendanceRecordsWithFilters(filters: AttendanceFilters): Use
       isLoading: recordsQuery.isLoading,
       error: recordsQuery.error as Error | null,
     }
-  }, [recordsQuery.data, recordsQuery.isLoading, recordsQuery.error, filters.page, filters.page_size])
+  }, [
+    recordsQuery.data,
+    recordsQuery.isLoading,
+    recordsQuery.error,
+    filters.page,
+    filters.page_size,
+  ])
 }

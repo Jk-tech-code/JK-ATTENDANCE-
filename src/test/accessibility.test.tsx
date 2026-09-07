@@ -18,9 +18,7 @@ import { ClockWidget } from '@/components/dashboard/ClockWidget'
 function renderWithProviders(component: React.ReactElement) {
   return render(
     <HelmetProvider>
-      <BrowserRouter>
-        {component}
-      </BrowserRouter>
+      <BrowserRouter>{component}</BrowserRouter>
     </HelmetProvider>
   )
 }
@@ -36,9 +34,12 @@ async function runAxe(container: HTMLElement): Promise<axe.AxeResults> {
 
 function assertNoViolations(results: axe.AxeResults) {
   if (results.violations.length > 0) {
-    const formatted = results.violations.map(v =>
-      `[${v.id}] ${v.description}: ${v.nodes.length} node(s)\n  ${v.nodes.map(n => n.html).join('\n  ')}`
-    ).join('\n')
+    const formatted = results.violations
+      .map(
+        (v) =>
+          `[${v.id}] ${v.description}: ${v.nodes.length} node(s)\n  ${v.nodes.map((n) => n.html).join('\n  ')}`
+      )
+      .join('\n')
     throw new Error(`Accessibility violations found:\n${formatted}`)
   }
 }
@@ -93,9 +94,7 @@ describe('Accessibility - UI Components', () => {
   })
 
   it('Badge has sufficient color contrast', async () => {
-    const { container } = renderWithProviders(
-      <Badge variant="success">Active</Badge>
-    )
+    const { container } = renderWithProviders(<Badge variant="success">Active</Badge>)
     const results = await runAxe(container)
     assertNoViolations(results)
   })
@@ -176,35 +175,23 @@ describe('Accessibility - Dashboard Components', () => {
 
 describe('Accessibility - Color and Contrast', () => {
   it('success badge has sufficient contrast', async () => {
-    const { container } = renderWithProviders(
-      <Badge variant="success">Present</Badge>
-    )
+    const { container } = renderWithProviders(<Badge variant="success">Present</Badge>)
     const results = await runAxe(container)
-    const contrastViolations = results.violations.filter(
-      v => v.id === 'color-contrast'
-    )
+    const contrastViolations = results.violations.filter((v) => v.id === 'color-contrast')
     expect(contrastViolations).toHaveLength(0)
   })
 
   it('destructive badge has sufficient contrast', async () => {
-    const { container } = renderWithProviders(
-      <Badge variant="destructive">Absent</Badge>
-    )
+    const { container } = renderWithProviders(<Badge variant="destructive">Absent</Badge>)
     const results = await runAxe(container)
-    const contrastViolations = results.violations.filter(
-      v => v.id === 'color-contrast'
-    )
+    const contrastViolations = results.violations.filter((v) => v.id === 'color-contrast')
     expect(contrastViolations).toHaveLength(0)
   })
 
   it('secondary badge has sufficient contrast', async () => {
-    const { container } = renderWithProviders(
-      <Badge variant="secondary">Late</Badge>
-    )
+    const { container } = renderWithProviders(<Badge variant="secondary">Late</Badge>)
     const results = await runAxe(container)
-    const contrastViolations = results.violations.filter(
-      v => v.id === 'color-contrast'
-    )
+    const contrastViolations = results.violations.filter((v) => v.id === 'color-contrast')
     expect(contrastViolations).toHaveLength(0)
   })
 })

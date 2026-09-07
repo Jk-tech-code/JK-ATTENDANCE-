@@ -23,15 +23,15 @@ export interface PaginatedAttendance {
   page_size: number
 }
 
-export async function getAttendanceRecords(filters: AttendanceFilters = {}): Promise<PaginatedAttendance> {
+export async function getAttendanceRecords(
+  filters: AttendanceFilters = {}
+): Promise<PaginatedAttendance> {
   const page = filters.page ?? 1
   const page_size = filters.page_size ?? 20
   const from = (page - 1) * page_size
   const to = from + page_size - 1
 
-  let query = supabase
-    .from('attendance')
-    .select('*, teacher:teachers(*)', { count: 'exact' })
+  let query = supabase.from('attendance').select('*, teacher:teachers(*)', { count: 'exact' })
 
   if (filters.date) query = query.eq('attendance_date', filters.date)
   if (filters.status) query = query.eq('status', filters.status)
@@ -43,7 +43,12 @@ export async function getAttendanceRecords(filters: AttendanceFilters = {}): Pro
     .range(from, to)
 
   if (error) throw new Error(error.message)
-  return { records: (data ?? []) as unknown as AttendanceWithTeacher[], total: count ?? 0, page, page_size }
+  return {
+    records: (data ?? []) as unknown as AttendanceWithTeacher[],
+    total: count ?? 0,
+    page,
+    page_size,
+  }
 }
 
 // PostgREST's hard cap is 1000 rows per request; pass anything higher
@@ -59,16 +64,14 @@ export const POSTGREST_MAX_PAGE_SIZE = 1000
 // `fetchPage` is injected so tests can drive the loop directly without
 // having to stub the entire Supabase client.
 export async function getAllAttendanceRecords(
-  filters: Omit<AttendanceFilters, 'page' | 'page_size'> = {},
+  filters: Omit<AttendanceFilters, 'page' | 'page_size'> = {}
 ): Promise<AttendanceWithTeacher[]> {
   return pageAllAttendance(filters, getAttendanceRecords)
 }
 
 export async function pageAllAttendance(
   filters: Omit<AttendanceFilters, 'page' | 'page_size'>,
-  fetchPage: (
-    f: AttendanceFilters,
-  ) => Promise<{ records: AttendanceWithTeacher[] }>,
+  fetchPage: (f: AttendanceFilters) => Promise<{ records: AttendanceWithTeacher[] }>
 ): Promise<AttendanceWithTeacher[]> {
   const all: AttendanceWithTeacher[] = []
   let page = 1

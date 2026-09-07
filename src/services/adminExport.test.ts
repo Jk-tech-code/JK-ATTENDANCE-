@@ -35,10 +35,10 @@ describe('pageAllAttendance (PostgREST 1000-row cap fix)', () => {
   it('pages through >1000 records without truncation', async () => {
     const fullPage1 = Array.from({ length: POSTGREST_MAX_PAGE_SIZE }, (_, i) => makeRecord(i + 1))
     const fullPage2 = Array.from({ length: POSTGREST_MAX_PAGE_SIZE }, (_, i) =>
-      makeRecord(i + 1 + POSTGREST_MAX_PAGE_SIZE),
+      makeRecord(i + 1 + POSTGREST_MAX_PAGE_SIZE)
     )
     const partialPage3 = Array.from({ length: 237 }, (_, i) =>
-      makeRecord(i + 1 + POSTGREST_MAX_PAGE_SIZE * 2),
+      makeRecord(i + 1 + POSTGREST_MAX_PAGE_SIZE * 2)
     )
 
     const fetchPage = vi
@@ -58,7 +58,7 @@ describe('pageAllAttendance (PostgREST 1000-row cap fix)', () => {
   it('stops when a page returns fewer rows than the cap (no infinite loop)', async () => {
     const fullPage = Array.from({ length: POSTGREST_MAX_PAGE_SIZE }, (_, i) => makeRecord(i + 1))
     const halfPage = Array.from({ length: 500 }, (_, i) =>
-      makeRecord(i + 1 + POSTGREST_MAX_PAGE_SIZE),
+      makeRecord(i + 1 + POSTGREST_MAX_PAGE_SIZE)
     )
 
     const fetchPage = vi

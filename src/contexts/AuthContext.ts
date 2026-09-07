@@ -6,7 +6,10 @@ export interface AuthContextType {
   loading: boolean
   profileError: string | null
   refreshProfile: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<{ error: string | null; user: AuthUser | null }>
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null; user: AuthUser | null }>
   signOut: () => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<void>
 }

@@ -3,18 +3,25 @@ import { Helmet } from 'react-helmet-async'
 import { Button } from '@/components/ui/button'
 import { MapPin, ClipboardCheck, BarChart, Shield } from 'lucide-react'
 
-const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
+const siteUrl =
+  typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
 
 export default function LandingPage() {
   return (
     <>
       <Helmet>
         <title>JK Attendance System — School Attendance Management</title>
-        <meta name="description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
+        <meta
+          name="description"
+          content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration."
+        />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`${siteUrl}/`} />
         <meta property="og:title" content="JK Attendance System — School Attendance Management" />
-        <meta property="og:description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
+        <meta
+          property="og:description"
+          content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration."
+        />
         <meta property="og:url" content={`${siteUrl}/`} />
         <meta property="og:image" content={`${siteUrl}/og-image.png`} />
         <meta property="og:image:width" content="1200" />
@@ -24,18 +31,22 @@ export default function LandingPage() {
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="JK Attendance System — School Attendance Management" />
-        <meta name="twitter:description" content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration." />
+        <meta
+          name="twitter:description"
+          content="Modern school attendance management platform for teacher attendance tracking, reporting, analytics, and school administration."
+        />
         <meta name="twitter:image" content={`${siteUrl}/og-image.png`} />
         <script type="application/ld+json">
           {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "Glorious Group of Schools",
-            "url": siteUrl,
-            "logo": `${siteUrl}/og-image.png`,
-            "description": "JK Attendance System — GPS-based teacher attendance tracking for Glorious Group of Schools",
-            "foundingDate": "2025",
-            "knowsAbout": ["School Management", "Attendance Tracking", "GPS Geofencing"],
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Glorious Group of Schools',
+            url: siteUrl,
+            logo: `${siteUrl}/og-image.png`,
+            description:
+              'JK Attendance System — GPS-based teacher attendance tracking for Glorious Group of Schools',
+            foundingDate: '2025',
+            knowsAbout: ['School Management', 'Attendance Tracking', 'GPS Geofencing'],
           })}
         </script>
       </Helmet>
@@ -44,31 +55,60 @@ export default function LandingPage() {
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
             <span className="text-lg font-bold">JK Attendance</span>
             <nav className="flex gap-4">
-              <Link to="/login"><Button variant="ghost">Sign In</Button></Link>
-              <Link to="/help"><Button variant="outline">Help</Button></Link>
+              <Link to="/login">
+                <Button variant="ghost">Sign In</Button>
+              </Link>
+              <Link to="/help">
+                <Button variant="outline">Help</Button>
+              </Link>
             </nav>
           </div>
         </header>
 
         <main className="flex-1">
           <section className="mx-auto max-w-6xl px-4 py-20 text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">GPS Attendance Tracking for Schools</h1>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+              GPS Attendance Tracking for Schools
+            </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              Track teacher check-in/out with GPS geofencing, generate reports, and get AI-powered attendance insights — all in one place.
+              Track teacher check-in/out with GPS geofencing, generate reports, and get AI-powered
+              attendance insights — all in one place.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-              <Link to="/login"><Button size="lg">Get Started</Button></Link>
-              <Link to="/help"><Button variant="outline" size="lg">Learn More</Button></Link>
+              <Link to="/login">
+                <Button size="lg">Get Started</Button>
+              </Link>
+              <Link to="/help">
+                <Button variant="outline" size="lg">
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </section>
 
           <section className="mx-auto max-w-6xl px-4 py-16">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { icon: MapPin, title: 'GPS Geofencing', desc: 'Teachers check in only within school radius' },
-                { icon: ClipboardCheck, title: 'Auto Status', desc: 'Present, late, or absent — determined automatically' },
-                { icon: BarChart, title: 'AI Reports', desc: 'Monthly analytics with AI-powered recommendations' },
-                { icon: Shield, title: 'Admin Control', desc: 'Manage teachers, settings, and view all records' },
+                {
+                  icon: MapPin,
+                  title: 'GPS Geofencing',
+                  desc: 'Teachers check in only within school radius',
+                },
+                {
+                  icon: ClipboardCheck,
+                  title: 'Auto Status',
+                  desc: 'Present, late, or absent — determined automatically',
+                },
+                {
+                  icon: BarChart,
+                  title: 'AI Reports',
+                  desc: 'Monthly analytics with AI-powered recommendations',
+                },
+                {
+                  icon: Shield,
+                  title: 'Admin Control',
+                  desc: 'Manage teachers, settings, and view all records',
+                },
               ].map((f) => (
                 <div key={f.title} className="rounded-lg border p-6 text-center">
                   <f.icon className="mx-auto h-8 w-8 text-primary" />

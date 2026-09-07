@@ -66,7 +66,8 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
   return (
     <Dialog open={open} onOpenChange={handleClose} title="Invite Teacher">
       <p className="text-sm text-muted-foreground mb-4">
-        An invitation email will be sent to the teacher with a secure link to create their password and activate their account.
+        An invitation email will be sent to the teacher with a secure link to create their password
+        and activate their account.
       </p>
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -106,9 +107,7 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
               {...register('email')}
               className={errors.email ? 'border-destructive' : ''}
             />
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="invite-department">Department</Label>
@@ -121,16 +120,19 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
               {...register('phone')}
               className={errors.phone ? 'border-destructive' : ''}
             />
-            {errors.phone && (
-              <p className="text-xs text-destructive">{errors.phone.message}</p>
-            )}
+            {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="invite-reporting-time">Reporting Time</Label>
             <Input id="invite-reporting-time" type="time" {...register('reporting_time')} />
           </div>
         </div>
-        <Button type="submit" className="w-full" loading={isSubmitting} disabled={!isValid || isSubmitting}>
+        <Button
+          type="submit"
+          className="w-full"
+          loading={isSubmitting}
+          disabled={!isValid || isSubmitting}
+        >
           Invite & Create Account
         </Button>
       </form>

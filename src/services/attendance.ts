@@ -29,9 +29,7 @@ export interface CheckInWithLocationResult {
   }
 }
 
-export async function getTodayAttendance(
-  teacherId: string
-): Promise<Attendance | null> {
+export async function getTodayAttendance(teacherId: string): Promise<Attendance | null> {
   const today = formatISODate(new Date())
   const { data, error } = await supabase
     .from('attendance')

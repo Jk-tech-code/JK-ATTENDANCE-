@@ -14,31 +14,19 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     // Subscribe to all changes on the teachers table
     const channel = supabase
       .channel('admin-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'teachers' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['teachers'] })
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-          queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'attendance' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-          queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
-          queryClient.invalidateQueries({ queryKey: ['attendance'] })
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'school_calendar' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['calendar'] })
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teachers' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['teachers'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        queryClient.invalidateQueries({ queryKey: ['attendance-records'] })
+        queryClient.invalidateQueries({ queryKey: ['attendance'] })
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'school_calendar' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['calendar'] })
+      })
       .subscribe()
 
     return () => {
