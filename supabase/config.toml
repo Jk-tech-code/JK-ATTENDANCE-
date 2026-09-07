@@ -4,15 +4,11 @@ verify_jwt = false
 import_map = "./functions/deno.json"
 entrypoint = "./functions/process-end-of-day/index.ts"
 
-[functions.record-attendance]
-enabled = true
-verify_jwt = true
-import_map = "./functions/deno.json"
-
 [functions.daily-report]
 enabled = true
 verify_jwt = true
 import_map = "./functions/deno.json"
+entrypoint = "./functions/daily-report/index.ts"
 
 [functions.monthly-report]
 enabled = true

@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import type { Attendance } from '@/types'
 
 const EDGE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
 
@@ -61,31 +60,16 @@ async function callFunction<T>(
   return response.json()
 }
 
-export interface RecordAttendanceInput {
-  teacher_id: string
-  attendance_date: string
-  check_in?: string
-  check_out?: string
-  status: 'present' | 'late' | 'absent' | 'checked_out'
-  latitude?: number
-  longitude?: number
-  device?: string
-  browser?: string
-  notes?: string
-}
-
-export interface RecordAttendanceResult {
-  success: boolean
-  message: string
-  attendance: Attendance
-}
-
-export async function recordAttendance(input: RecordAttendanceInput): Promise<RecordAttendanceResult> {
-  return callFunction<RecordAttendanceResult>('record-attendance', {
-    method: 'POST',
-    body: input,
-  })
-}
+// Note: there is intentionally no `recordAttendance()` helper here.
+// All attendance writes go through the SECURITY DEFINER RPCs in
+// src/services/attendance.ts (checkInWithLocation, checkOut,
+// undoCheckOut), which enforce GPS validation, school-radius checks,
+// and per-teacher rate limits. Migration 00048 locks down the
+// attendance table to RPC-only writes (REVOKE INSERT/UPDATE/DELETE
+// FROM authenticated, anon), and the record-attendance edge
+// function that used to do raw table writes has been removed.
+// See docs/adr/0002-remove-record-attendance.md for the full
+// rationale and what to use instead.
 
 export interface DailyReport {
   date: string

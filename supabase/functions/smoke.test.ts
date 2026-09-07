@@ -9,9 +9,11 @@
  *   - monthly-report: admin gating, month validation
  *   - verify-admin: anyone authenticated can call, returns role
  *   - calendar-check: auth required, date format validation
- *   - record-attendance: admin gating, missing fields
  *   - cron-report: CRON_SECRET gating
  *   - attendance-ai-analysis: admin gating, no PII sent to AI
+ *
+ * (record-attendance was removed in favor of RPC-only writes —
+ * see docs/adr/0002-remove-record-attendance.md.)
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
@@ -366,46 +368,6 @@ describe('calendar-check', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.date).toBe('2026-09-01')
-  })
-})
-
-describe('record-attendance', () => {
-  beforeEach(setupAdminEnv)
-  afterEach(clearAdminEnv)
-
-  it('rejects non-admin callers', async () => {
-    configureClient({
-      caller: { id: 'teacher-1' },
-      isAdmin: null,
-    })
-    const { handler } = await import('./record-attendance/index')
-    const res = await handler(
-      makeRequest('https://example.com/functions/v1/record-attendance', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: 'Bearer teacher-1',
-        },
-        body: JSON.stringify({ teacher_id: 't-1', attendance_date: '2026-09-01', status: 'present' }),
-      }),
-    )
-    expect(res.status).toBe(403)
-  })
-
-  it('returns 400 when required fields are missing', async () => {
-    configureClient({ isAdmin: { id: 'admin-1', role: 'admin' } })
-    const { handler } = await import('./record-attendance/index')
-    const res = await handler(
-      makeRequest('https://example.com/functions/v1/record-attendance', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: 'Bearer admin',
-        },
-        body: JSON.stringify({ teacher_id: 't-1' }),
-      }),
-    )
-    expect(res.status).toBe(400)
   })
 })
 

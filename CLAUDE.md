@@ -59,7 +59,6 @@ npx vitest run src/services/attendance.test.ts
 #### Edge Functions (`supabase/functions/`)
 | Function | Purpose |
 |----------|---------|
-| `record-attendance` | Server-side attendance recording |
 | `attendance-validator` | Business logic: late/early/complete status |
 | `check_in_with_location` | **Core RPC** — Haversine GPS validation in Postgres |
 | `process-end-of-day` | Cron: auto-check-out absent teachers |
