@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { MapPin, ClipboardCheck, BarChart, Shield } from 'lucide-react'
 
 const siteUrl =
-  typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
+  typeof window !== 'undefined' ? window.location.origin : 'https://jk-attendance.vercel.app'
 
 export default function LandingPage() {
   return (

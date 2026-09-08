@@ -35,7 +35,7 @@ describe('handleCors', () => {
     expect(res).not.toBeNull()
     expect(res!.status).toBe(204)
     // Default fallback is the vercel.app origin when CORS_ORIGIN is unset.
-    expect(res!.headers.get('Access-Control-Allow-Origin')).toBe('https://jkattendance.vercel.app')
+    expect(res!.headers.get('Access-Control-Allow-Origin')).toBe('https://jk-attendance.vercel.app')
     expect(res!.headers.get('Access-Control-Allow-Methods')).toContain('OPTIONS')
   })
 
@@ -53,12 +53,12 @@ describe('handleCors', () => {
     expect(res!.status).toBe(403)
   })
 
-  it('falls back to the hardcoded jkattendance.vercel.app origin when CORS_ORIGIN is unset', () => {
+  it('falls back to the hardcoded jk-attendance.vercel.app origin when CORS_ORIGIN is unset', () => {
     // No CORS_ORIGIN set.
     const req = makeRequest('GET')
     expect(handleCors(req)).toBeNull()
     const headers = corsHeaders()
-    expect(headers['Access-Control-Allow-Origin']).toBe('https://jkattendance.vercel.app')
+    expect(headers['Access-Control-Allow-Origin']).toBe('https://jk-attendance.vercel.app')
   })
 })
 

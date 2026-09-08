@@ -193,9 +193,7 @@ describe('updateCalendarEntry', () => {
 
   it('surfaces a friendly error on PGRST202 (missing RPC)', async () => {
     mockRpcError('PGRST202', 'Could not find function public.update_calendar_entry')
-    await expect(
-      updateCalendarEntry('row-1', { title: 'x' })
-    ).rejects.toThrow(/not available yet/)
+    await expect(updateCalendarEntry('row-1', { title: 'x' })).rejects.toThrow(/not available yet/)
   })
 })
 

@@ -2,7 +2,7 @@ export function handleCors(req: Request): Response | null {
   const origin = req.headers.get('origin') ?? ''
   const configuredOrigin = Deno.env.get('CORS_ORIGIN') || ''
 
-  const allowedOrigin = configuredOrigin || 'https://jkattendance.vercel.app'
+  const allowedOrigin = configuredOrigin || 'https://jk-attendance.vercel.app'
 
   const headers = {
     'Access-Control-Allow-Origin': allowedOrigin,
@@ -27,7 +27,7 @@ export function handleCors(req: Request): Response | null {
 
 export function corsHeaders(): Record<string, string> {
   const configuredOrigin = Deno.env.get('CORS_ORIGIN') || ''
-  const allowedOrigin = configuredOrigin || 'https://jkattendance.vercel.app'
+  const allowedOrigin = configuredOrigin || 'https://jk-attendance.vercel.app'
 
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
@@ -41,7 +41,8 @@ export function corsHeaders(): Record<string, string> {
 export function jsonResponse(data: unknown, status = 200): Response {
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': Deno.env.get('CORS_ORIGIN') || 'https://jkattendance.vercel.app',
+    'Access-Control-Allow-Origin':
+      Deno.env.get('CORS_ORIGIN') || 'https://jk-attendance.vercel.app',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-region',
     'Access-Control-Max-Age': '86400',

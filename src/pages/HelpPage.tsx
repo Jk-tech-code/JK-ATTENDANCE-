@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 
 const siteUrl =
-  typeof window !== 'undefined' ? window.location.origin : 'https://jkattendance.vercel.app'
+  typeof window !== 'undefined' ? window.location.origin : 'https://jk-attendance.vercel.app'
 
 const faqs = [
   {

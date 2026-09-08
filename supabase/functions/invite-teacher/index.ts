@@ -67,7 +67,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // Create auth user via inviteUserByEmail
-    const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jkattendance.vercel.app'
+    const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
     console.warn(
       '[invite-teacher] Inviting:',
       input.email,

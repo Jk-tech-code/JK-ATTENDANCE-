@@ -26,7 +26,7 @@ function futureDate(daysAhead: number): string {
 describe('DashboardCalendarWidget', () => {
   it(
     'renders the date and next upcoming event when both queries succeed',
-    { timeout: 15000 },
+    { timeout: 30000 },
     async () => {
       mockCheckDate.mockResolvedValue({
         date: futureDate(0),

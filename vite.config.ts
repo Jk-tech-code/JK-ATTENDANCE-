@@ -10,10 +10,12 @@ const env = loadEnv('', process.cwd(), '')
 const requiredEnvVars = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
 for (const envVar of requiredEnvVars) {
   if (!env[envVar]) {
-    console.warn(`Warning: ${envVar} is not set. Build will proceed but app may not work at runtime.`)
+    console.warn(
+      `Warning: ${envVar} is not set. Build will proceed but app may not work at runtime.`
+    )
   }
 }
-const siteUrl = env.VITE_SITE_URL || 'https://jkattendance.vercel.app'
+const siteUrl = env.VITE_SITE_URL || 'https://jk-attendance.vercel.app'
 
 export default defineConfig({
   plugins: [
@@ -69,17 +71,8 @@ export default defineConfig({
     sitemap({
       hostname: siteUrl,
       readable: true,
-      dynamicRoutes: [
-        '/',
-        '/login',
-        '/help',
-      ],
-      exclude: [
-        '/admin/*',
-        '/dashboard',
-        '/reset-password',
-        '/forgot-password',
-      ],
+      dynamicRoutes: ['/', '/login', '/help'],
+      exclude: ['/admin/*', '/dashboard', '/reset-password', '/forgot-password'],
       generateRobotsTxt: false,
     }),
   ],
@@ -95,9 +88,15 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id: string) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'vendor-react'
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/'))
+            return 'vendor-react'
           if (id.includes('node_modules/react-router')) return 'vendor-router'
-          if (id.includes('node_modules/lucide-react') || id.includes('node_modules/sonner') || id.includes('node_modules/class-variance-authority')) return 'vendor-ui'
+          if (
+            id.includes('node_modules/lucide-react') ||
+            id.includes('node_modules/sonner') ||
+            id.includes('node_modules/class-variance-authority')
+          )
+            return 'vendor-ui'
           if (id.includes('node_modules/recharts')) return 'vendor-charts'
           if (id.includes('node_modules/jspdf')) return 'vendor-pdf'
           if (id.includes('node_modules/xlsx')) return 'vendor-xlsx'

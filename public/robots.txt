@@ -6,4 +6,4 @@ Disallow: /login
 Disallow: /forgot-password
 Disallow: /reset-password
 
-Sitemap: https://jkattendance.vercel.app/sitemap.xml
+Sitemap: https://jk-attendance.vercel.app/sitemap.xml
