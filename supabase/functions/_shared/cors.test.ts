@@ -37,6 +37,7 @@ describe('handleCors', () => {
     // Default fallback is the vercel.app origin when CORS_ORIGIN is unset.
     expect(res!.headers.get('Access-Control-Allow-Origin')).toBe('https://jk-attendance.vercel.app')
     expect(res!.headers.get('Access-Control-Allow-Methods')).toContain('OPTIONS')
+    expect(res!.headers.get('Access-Control-Allow-Headers')).toContain('x-api-key')
   })
 
   it('returns null for non-OPTIONS when origin matches configured CORS_ORIGIN', () => {

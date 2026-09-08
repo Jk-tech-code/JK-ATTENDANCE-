@@ -1,4 +1,4 @@
-﻿-- ============================================
+-- ============================================
 -- JK Attendance - Migration 00048
 -- SECURITY: Lock down attendance table to prevent GPS bypass
 -- 

@@ -7,30 +7,30 @@
 //
 // Without body, defaults to today's daily report.
 //
-// Stores results in the report_store table for persistence and
-// frontend queries. The report_store table is admin-read-only via RLS.
+// Stores results in the report_store table via UPSERT (idempotent
+// re-runs overwrite the previous report for the same period).
+// The report_store table is admin-read-only via RLS.
 // ============================================
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
+import { timingSafeEqualStrings } from '../_shared/timing.ts'
+import { todayEat, currentYearEat, currentMonthEat } from '../_shared/timezone.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
-  // Optional: protect with CRON_SECRET (same pattern as process-end-of-day)
+  // Only accept the secret via the dedicated x-api-key header — never reuse
+  // the Authorization header (which carries JWTs on every other function).
   const cronSecret = Deno.env.get('CRON_SECRET')
   if (!cronSecret) {
     console.error('CRON_SECRET environment variable is not set. Rejecting request.')
     return jsonResponse({ error: 'Server misconfigured: CRON_SECRET not set' }, 500)
   }
-  // SECURITY: compare secrets with a constant-time check and accept
-  // either the x-api-key header or an Authorization: Bearer header.
-  // (Originally this was a plain `!==` check; see timing.ts.)
-  const authHeader =
-    req.headers.get('x-api-key') ?? req.headers.get('authorization')?.replace('Bearer ', '')
-  if (authHeader !== cronSecret) {
+  const apiKey = req.headers.get('x-api-key')
+  if (!apiKey || !timingSafeEqualStrings(apiKey, cronSecret)) {
     return jsonResponse({ error: 'Unauthorized' }, 401)
   }
 
@@ -56,13 +56,12 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     if (type === 'monthly') {
-      const now = new Date()
-      const year = body.year ?? now.getFullYear()
-      const month = body.month ?? now.getMonth() + 1
+      const year = body.year ?? currentYearEat()
+      const month = body.month ?? currentMonthEat()
       const result = await generateMonthlyReport(supabase, year, month)
       const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
-      const periodEnd = new Date(year, month, 0).toISOString().slice(0, 10)
-      await storeReport(supabase, 'monthly', periodStart, periodEnd, result)
+      const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
+      await storeReport(supabase, 'monthly', periodStart, endDate, result)
       return jsonResponse({ success: true, report: result })
     }
 
@@ -76,7 +75,7 @@ export async function handler(req: Request): Promise<Response> {
 
 // ─── Daily Report Generation ─────────────────────────────────
 async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdmin>) {
-  const dateParam = new Date().toISOString().slice(0, 10)
+  const dateParam = todayEat()
 
   const { count: presentCount } = await supabase
     .from('attendance')
@@ -168,7 +167,7 @@ async function generateMonthlyReport(
   month: number
 ) {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-  const endDate = new Date(year, month, 0).toISOString().slice(0, 10)
+  const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
 
   const { data: allAttendance } = await supabase
     .from('attendance')
@@ -244,7 +243,7 @@ async function generateMonthlyReport(
   }
 }
 
-// ─── Store report in report_store table ──────────────────────
+// ─── Store report in report_store table (UPSERT) ──────────────
 async function storeReport(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   reportType: string,
@@ -252,12 +251,15 @@ async function storeReport(
   periodEnd: string,
   data: Record<string, unknown>
 ) {
-  const { error } = await supabase.from('report_store').insert({
-    report_type: reportType,
-    period_start: periodStart,
-    period_end: periodEnd,
-    data,
-  })
+  const { error } = await supabase.from('report_store').upsert(
+    {
+      report_type: reportType,
+      period_start: periodStart,
+      period_end: periodEnd,
+      data,
+    },
+    { onConflict: 'report_type,period_start' }
+  )
 
   if (error) {
     console.error(`Failed to store ${reportType} report:`, error.message)

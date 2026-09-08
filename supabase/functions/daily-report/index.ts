@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
 import { adminMiddleware } from '../_shared/admin.ts'
+import { todayEat } from '../_shared/timezone.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const adminResult = await adminMiddleware(req, 'GET')
@@ -12,7 +13,7 @@ export async function handler(req: Request): Promise<Response> {
 
   try {
     const url = new URL(req.url)
-    const dateParam = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
+    const dateParam = url.searchParams.get('date') ?? todayEat()
 
     const { data: present, error: presentErr } = await supabase
       .from('attendance')

@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
 import { adminMiddleware } from '../_shared/admin.ts'
+import { currentYearEat, currentMonthEat, daysInMonth } from '../_shared/timezone.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const adminResult = await adminMiddleware(req, 'GET')
@@ -12,16 +13,16 @@ export async function handler(req: Request): Promise<Response> {
 
   try {
     const url = new URL(req.url)
-    const year = parseInt(url.searchParams.get('year') ?? String(new Date().getFullYear()))
-    const month = parseInt(url.searchParams.get('month') ?? String(new Date().getMonth() + 1))
+    const year = parseInt(url.searchParams.get('year') ?? String(currentYearEat()))
+    const month = parseInt(url.searchParams.get('month') ?? String(currentMonthEat()))
 
     if (month < 1 || month > 12) {
       return jsonResponse({ error: 'Invalid month: must be 1-12' }, 400)
     }
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = new Date(year, month, 0).toISOString().slice(0, 10)
-    const daysInMonth = new Date(year, month, 0).getDate()
+    const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
+    const monthDays = daysInMonth(year, month)
 
     const [{ data: holidays }, { data: allAttendance }, { data: teachers }] = await Promise.all([
       supabase.from('school_holidays').select('date').gte('date', startDate).lte('date', endDate),
@@ -37,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
     ])
 
     const holidayDates = new Set((holidays ?? []).map((h: { date: string }) => h.date))
-    const workingDays = Math.max(0, daysInMonth - holidayDates.size)
+    const workingDays = Math.max(0, monthDays - holidayDates.size)
 
     const presentCount =
       allAttendance?.filter((a) => ['present', 'checked_out'].includes(a.status ?? '')).length ?? 0
