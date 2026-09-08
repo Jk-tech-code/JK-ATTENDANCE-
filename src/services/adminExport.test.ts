@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 
-vi.mock('../supabase', () => ({
+vi.mock('@/services/supabase', () => ({
   supabase: {},
 }))
 
