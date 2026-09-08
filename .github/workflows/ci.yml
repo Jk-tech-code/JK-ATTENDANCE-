@@ -24,6 +24,9 @@ jobs:
         run: npm test -- --run
       - name: Build
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
   # Format check runs separately so it can be required without
   # blocking the rest of the pipeline. Set to required: true once
@@ -55,6 +58,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
