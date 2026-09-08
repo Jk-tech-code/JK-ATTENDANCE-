@@ -219,11 +219,7 @@ describe('cron-report', () => {
     process.env.CRON_SECRET = 'correct-secret'
     configureClient({})
     const res = await handler(
-      makeRequest(
-        'POST',
-        { 'x-api-key': 'correct-secret' },
-        { type: 'unknown' }
-      )
+      makeRequest('POST', { 'x-api-key': 'correct-secret' }, { type: 'unknown' })
     )
     expect(res.status).toBe(400)
     const body = await res.json()
