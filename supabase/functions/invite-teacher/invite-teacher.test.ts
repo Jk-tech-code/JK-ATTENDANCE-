@@ -106,25 +106,25 @@ function configureClient(opts: {
         select: (cols: string) => {
           if (cols === 'id') {
             teacherIdSelectCount.count += 1
-            if (teacherIdSelectCount.count === 1) {
-              // isAdmin: .or(...).eq('role','admin').maybeSingle()
-              return {
-                or: () => ({
-                  eq: () => ({
-                    maybeSingle: async () => ({
-                      data: opts.isAdmin ?? null,
-                      error: null,
-                    }),
-                  }),
-                }),
-              }
-            }
             // Duplicate teacher: .or(...).maybeSingle()
             return {
               or: () => ({
                 maybeSingle: async () => ({
                   data: opts.existingTeacher ?? null,
                   error: null,
+                }),
+              }),
+            }
+          }
+          if (cols === 'role') {
+            // verifyAdminRequest queries select('role').or(...).in(...).maybeSingle()
+            return {
+              or: () => ({
+                in: () => ({
+                  maybeSingle: async () => ({
+                    data: opts.isAdmin ? { role: opts.isAdmin.role ?? 'admin' } : null,
+                    error: null,
+                  }),
                 }),
               }),
             }

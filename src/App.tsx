@@ -20,6 +20,7 @@ const ReportsPage = lazy(() => import('@/pages/admin/ReportsPage'))
 const CalendarPage = lazy(() => import('@/pages/admin/CalendarPage'))
 const HolidayManagementPage = lazy(() => import('@/pages/admin/HolidayManagementPage'))
 const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'))
+const AdminManagementPage = lazy(() => import('@/pages/admin/AdminManagementPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,7 +46,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />
+  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/dashboard" replace />
   return (
     <AdminLayout>
       <RouteErrorBoundary>{children}</RouteErrorBoundary>
@@ -62,7 +63,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (user) return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />
+  if (user) return <Navigate to={user.role === 'admin' || user.role === 'superadmin' ? '/admin' : '/dashboard'} replace />
   return <RouteErrorBoundary>{children}</RouteErrorBoundary>
 }
 
@@ -159,6 +160,14 @@ export default function App() {
           element={
             <AdminRoute>
               <SettingsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/admins"
+          element={
+            <AdminRoute>
+              <AdminManagementPage />
             </AdminRoute>
           }
         />

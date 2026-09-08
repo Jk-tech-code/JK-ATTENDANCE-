@@ -40,7 +40,6 @@ function configureClient(opts: {
   teacher?: TeacherRow | null
   settings?: SettingsRow | null
 }): Client {
-  let idCalls = 0
   const client: Client = {
     auth: {
       getUser: opts.getUserError
@@ -56,23 +55,30 @@ function configureClient(opts: {
         return {
           select: (cols: string) => {
             if (cols === 'id') {
-              idCalls += 1
-              const callNumber = idCalls
-              const data = callNumber === 1 ? (opts.isAdmin ?? null) : (opts.callerTeacher ?? null)
-              // The isAdmin query chains: .or(...).eq('role','admin').maybeSingle()
-              // The callerTeacher query chains: .or(...).maybeSingle()
-              if (callNumber === 1) {
-                return {
-                  or: () => ({
-                    eq: () => ({
-                      maybeSingle: async () => ({ data, error: null }),
-                    }),
-                  }),
-                }
-              }
+              // isAdmin() uses select('id').or(...).in('role',[...]).maybeSingle()
+              // callerTeacher uses select('id').or(...).maybeSingle()
               return {
                 or: () => ({
-                  maybeSingle: async () => ({ data, error: null }),
+                  in: () => ({
+                    maybeSingle: async () => ({
+                      data: opts.isAdmin ?? null,
+                      error: null,
+                    }),
+                  }),
+                  maybeSingle: async () => ({ data: opts.callerTeacher ?? null, error: null }),
+                }),
+              }
+            }
+            if (cols === 'role') {
+              // verifyAdminRequest queries select('role').or(...).in(...).maybeSingle()
+              return {
+                or: () => ({
+                  in: () => ({
+                    maybeSingle: async () => ({
+                      data: opts.isAdmin ? { role: opts.isAdmin.role ?? 'admin' } : null,
+                      error: null,
+                    }),
+                  }),
                 }),
               }
             }

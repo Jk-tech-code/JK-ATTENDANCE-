@@ -1,10 +1,12 @@
-import { createSupabaseAdmin, verifyAuth, isAdmin } from './supabase.ts'
+import { createSupabaseAdmin, verifyAuth } from './supabase.ts'
 import { handleCors, jsonResponse } from './cors.ts'
 
 export interface AdminVerificationResult {
   isAdmin: boolean
+  isSuperadmin: boolean
   userId: string
   email: string
+  role: string
   error?: string
 }
 
@@ -27,16 +29,28 @@ export async function verifyAdminRequest(
   }
 
   const supabase = createSupabaseAdmin()
-  const admin = await isAdmin(supabase, auth.user!.id)
+  const userId = auth.user!.id
 
-  if (!admin) {
+  // Query the teacher record to get the role
+  const { data: teacher } = await supabase
+    .from('teachers')
+    .select('role')
+    .or(`id.eq.${userId},user_id.eq.${userId},auth_user_id.eq.${userId}`)
+    .in('role', ['admin', 'superadmin'])
+    .maybeSingle()
+
+  if (!teacher) {
     return jsonResponse({ error: 'Forbidden: Admin access required' }, 403)
   }
 
+  const role = teacher.role ?? 'admin'
+
   return {
     isAdmin: true,
-    userId: auth.user!.id,
+    isSuperadmin: role === 'superadmin',
+    userId,
     email: auth.user!.email ?? '',
+    role,
   }
 }
 

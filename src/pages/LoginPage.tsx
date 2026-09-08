@@ -42,7 +42,7 @@ export default function LoginPage() {
       return
     }
     const { user } = result
-    if (user && user.role === 'admin') {
+    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
       navigate('/admin', { replace: true })
     } else {
       navigate('/dashboard', { replace: true })

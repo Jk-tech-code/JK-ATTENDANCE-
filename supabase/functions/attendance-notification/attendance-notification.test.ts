@@ -46,26 +46,32 @@ function configureClient(opts: {
         return {
           select: (cols: string) => {
             if (cols === 'id') {
-              teacherIdSelectCount.count += 1
-              if (teacherIdSelectCount.count === 1) {
-                // isAdmin: .or(...).eq('role','admin').maybeSingle()
-                return {
-                  or: () => ({
-                    eq: () => ({
-                      maybeSingle: async () => ({
-                        data: opts.isAdmin ?? null,
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }
-              }
-              // callerTeacher lookup: .or(...).maybeSingle()
+              // isAdmin() uses select('id').or(...).in('role',[...]).maybeSingle()
+              // callerTeacher uses select('id').or(...).maybeSingle()
               return {
                 or: () => ({
+                  in: () => ({
+                    maybeSingle: async () => ({
+                      data: opts.isAdmin ?? null,
+                      error: null,
+                    }),
+                  }),
                   maybeSingle: async () => ({
                     data: opts.callerTeacher ?? null,
                     error: null,
+                  }),
+                }),
+              }
+            }
+            if (cols === 'role') {
+              // verifyAdminRequest queries select('role').or(...).in(...).maybeSingle()
+              return {
+                or: () => ({
+                  in: () => ({
+                    maybeSingle: async () => ({
+                      data: opts.isAdmin ? { role: opts.isAdmin.role ?? 'admin' } : null,
+                      error: null,
+                    }),
                   }),
                 }),
               }

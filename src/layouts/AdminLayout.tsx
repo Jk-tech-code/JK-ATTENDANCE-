@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Sun,
   Moon,
+  Shield,
 } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/admin/holidays', label: 'Holidays', icon: Sun },
   { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/admin/admins', label: 'Admin Management', icon: Shield },
   { href: '/admin/settings', label: 'Settings', icon: MapPin },
 ]
 

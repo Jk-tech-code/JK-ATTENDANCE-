@@ -44,7 +44,7 @@ export async function isAdmin(
     .from('teachers')
     .select('id')
     .or(`id.eq.${userId},user_id.eq.${userId},auth_user_id.eq.${userId}`)
-    .eq('role', 'admin')
+    .in('role', ['admin', 'superadmin'])
     .maybeSingle()
 
   if (error) {

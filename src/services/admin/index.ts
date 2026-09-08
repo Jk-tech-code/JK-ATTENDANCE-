@@ -13,6 +13,7 @@
 //                          AttendanceFilters / AttendanceWithTeacher types
 //   - exports.ts         — exportToCSV, exportToExcel, exportToPDF,
 //                          exportAllAttendance
+//   - admins.ts          — getAdminUsers, createAdminAccount
 //
 // New code should import directly from the focused submodule so the
 // dependency graph stays narrow. The barrel is kept to avoid
@@ -24,3 +25,4 @@ export * from './holidays'
 export * from './schoolSettings'
 export * from './attendance'
 export * from './exports'
+export * from './admins'

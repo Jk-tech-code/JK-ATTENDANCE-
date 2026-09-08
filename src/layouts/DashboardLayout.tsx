@@ -59,7 +59,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </span>
             </div>
-            {user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.role === 'superadmin') && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -67,7 +67,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 className="gap-1.5 text-xs"
               >
                 <Shield className="h-3.5 w-3.5" />
-                Admin
+                {user?.role === 'superadmin' ? 'Superadmin' : 'Admin'}
               </Button>
             )}
             <Button

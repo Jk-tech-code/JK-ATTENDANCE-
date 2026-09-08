@@ -118,30 +118,30 @@ describe('isAdmin', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY
   })
 
-  it('returns true when the teachers query finds a row with role=admin', async () => {
+  it('returns true when the teachers query finds a row with role in [admin, superadmin]', async () => {
     let capturedOr: string | null = null
-    let capturedEq: [string, string] | null = null
+    let capturedIn: [string, string[]] | null = null
 
     const maybeSingle = () => Promise.resolve({ data: { id: 't-1' }, error: null })
-    const eq = (_role: string, value: string) => {
-      capturedEq = ['role', value]
+    const inFn = (_col: string, values: string[]) => {
+      capturedIn = [_col, values]
       return { maybeSingle }
     }
     const or = (filter: string) => {
       capturedOr = filter
-      return { eq }
+      return { in: inFn }
     }
     const client = setupClient({ from: () => ({ select: () => ({ or }) }) })
 
     expect(await isAdmin(client, 'u-1')).toBe(true)
     expect(capturedOr).toBe('id.eq.u-1,user_id.eq.u-1,auth_user_id.eq.u-1')
-    expect(capturedEq).toEqual(['role', 'admin'])
+    expect(capturedIn).toEqual(['role', ['admin', 'superadmin']])
   })
 
   it('returns false when the teachers query finds no row', async () => {
     const maybeSingle = () => Promise.resolve({ data: null, error: null })
-    const eq = () => ({ maybeSingle })
-    const or = () => ({ eq })
+    const inFn = () => ({ maybeSingle })
+    const or = () => ({ in: inFn })
     const client = setupClient({ from: () => ({ select: () => ({ or }) }) })
 
     expect(await isAdmin(client, 'u-1')).toBe(false)
@@ -149,8 +149,8 @@ describe('isAdmin', () => {
 
   it('falls back to is_admin RPC when the teachers query errors', async () => {
     const maybeSingle = () => Promise.resolve({ data: null, error: { message: 'rls denied' } })
-    const eq = () => ({ maybeSingle })
-    const or = () => ({ eq })
+    const inFn = () => ({ maybeSingle })
+    const or = () => ({ in: inFn })
     let rpcCalls = 0
     const client = setupClient({
       from: () => ({ select: () => ({ or }) }),
@@ -166,8 +166,8 @@ describe('isAdmin', () => {
 
   it('returns false when both the teachers query and RPC fail', async () => {
     const maybeSingle = () => Promise.resolve({ data: null, error: { message: 'rls' } })
-    const eq = () => ({ maybeSingle })
-    const or = () => ({ eq })
+    const inFn = () => ({ maybeSingle })
+    const or = () => ({ in: inFn })
     const client = setupClient({
       from: () => ({ select: () => ({ or }) }),
       rpc: async () => ({ data: false, error: { message: 'rpc down' } }),

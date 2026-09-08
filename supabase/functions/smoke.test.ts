@@ -25,8 +25,6 @@ type Client = {
   from: (table: string) => unknown
 }
 
-let teacherIdSelectCount = 0
-
 function configureClient(opts: {
   caller?: { id: string; email?: string }
   getUserError?: { message: string }
@@ -34,7 +32,6 @@ function configureClient(opts: {
   tableResults?: Record<string, unknown[]>
   rpcResults?: Record<string, { data: unknown; error: unknown }>
 }): void {
-  teacherIdSelectCount = 0
   const client: Client = {
     auth: {
       getUser: opts.getUserError
@@ -82,30 +79,42 @@ function configureClient(opts: {
 
       if (table === 'teachers') {
         const b = makeBuilder()
-        const originalSelect = b.select as (cols: string) => unknown
-        b.select = (cols: string) => {
+        const originalSelect = b.select as (cols: string, opts?: unknown) => unknown
+        b.select = (cols: string, selectOpts?: unknown) => {
           if (cols === 'id') {
-            teacherIdSelectCount += 1
-            if (teacherIdSelectCount === 1) {
-              // First id-select is the isAdmin check:
-              // .or().eq('role','admin').maybeSingle()
+            // isAdmin() uses: select('id').or(...).in('role',[...]).maybeSingle()
+            // Regular queries use: select('id').or(...).eq(...).maybeSingle()
+            //   or: select('id', { count: 'exact' }).eq(...).in(...)
+            // Return a full builder, but intercept .or().in() for the admin check.
+            const idB = makeBuilder() as Record<string, unknown>
+            const origOr = idB.or as (f: string) => Record<string, unknown>
+            idB.or = (filter: string) => {
+              const orResult = origOr(filter)
               return {
-                or: () => ({
-                  eq: () => ({
-                    maybeSingle: async () => ({
-                      data: opts.isAdmin ?? null,
-                      error: null,
-                    }),
+                ...orResult,
+                in: () => ({
+                  maybeSingle: async () => ({
+                    data: opts.isAdmin ?? null,
+                    error: null,
                   }),
                 }),
               }
             }
-            // Subsequent id-selects are generic queries (e.g.
-            // daily-report's teacher count). Use the regular builder
-            // chain so .eq/.in/.not work as expected.
-            return makeBuilder()
+            return idB
           }
-          return originalSelect(cols)
+          if (cols === 'role') {
+            return {
+              or: () => ({
+                in: () => ({
+                  maybeSingle: async () => ({
+                    data: opts.isAdmin ? { role: opts.isAdmin.role ?? 'admin' } : null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          return originalSelect(cols, selectOpts)
         }
         return b
       }
