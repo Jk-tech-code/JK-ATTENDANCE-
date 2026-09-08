@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 
+vi.mock('../supabase', () => ({
+  supabase: {},
+}))
+
 import { POSTGREST_MAX_PAGE_SIZE, pageAllAttendance } from './admin'
 
 type AttendanceWithTeacher = {
