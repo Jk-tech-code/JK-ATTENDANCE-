@@ -9,9 +9,6 @@ type Client = {
         page?: number,
         perPage?: number
       ) => Promise<{ data: { users: unknown[] }; error: unknown }>
-      getUserByEmail: (
-        email: string
-      ) => Promise<{ data: { user: unknown }; error: { status?: number; message: string } | null }>
       inviteUserByEmail: (
         email: string,
         opts: unknown
@@ -43,7 +40,7 @@ interface InviteInput {
  * invite-teacher's query order:
  *   1) adminMiddleware → verifyAuth (auth.getUser) + isAdmin
  *      (from teachers: select('id').or(...).eq('role','admin').maybeSingle())
- *   2) getUserByEmail(email)
+ *   2) GoTrue REST API lookup by email (fetch)
  *   3) from teachers: select('id').or(email|staff_number.eq.X).maybeSingle()
  *   4) inviteUserByEmail
  *   5) from teachers: insert(...).select().single()
@@ -55,9 +52,8 @@ function configureClient(opts: {
   getUserError?: { message: string }
   // isAdmin check: teacher row found for caller?
   isAdmin?: TeacherRow | null
-  // auth.admin.getUserByEmail result
+  // GoTrue REST API lookup by email — user returned by fetch
   existingAuthUser?: { id: string; email: string } | null
-  getUserByEmailError?: { status?: number; message: string }
   // teachers table duplicate check
   existingTeacher?: TeacherRow | null
   // inviteUserByEmail result
@@ -88,14 +84,6 @@ function configureClient(opts: {
             error: null,
           }),
       admin: {
-        getUserByEmail: async (email: string) => {
-          if (opts.getUserByEmailError)
-            return { data: { user: null }, error: opts.getUserByEmailError }
-          return {
-            data: { user: opts.existingAuthUser ? { id: opts.existingAuthUser.id, email } : null },
-            error: null,
-          }
-        },
         inviteUserByEmail: async () => {
           if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
           return {
@@ -167,6 +155,22 @@ function configureClient(opts: {
       }
     },
   }
+
+  // Mock fetch for the GoTrue REST API email lookup.
+  // The Edge Function calls GET /auth/v1/admin/users?email=... with the
+  // service-role key. We intercept and return the configured existing user.
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    if (url.includes('/auth/v1/admin/users?email=')) {
+      if (opts.existingAuthUser) {
+        return new Response(JSON.stringify([opts.existingAuthUser]), { status: 200 })
+      }
+      return new Response(JSON.stringify([]), { status: 200 })
+    }
+    return originalFetch(input as RequestInfo)
+  }
+
   globalThis.__MOCK_SUPABASE__.createClient = () => client
   return client
 }
@@ -274,13 +278,12 @@ describe('invite-teacher', () => {
       expect(res.status).toBe(409)
     })
 
-    it('treats a getUserByEmail 404 as "no existing user" and continues', async () => {
-      // 404 from getUserByEmail means the email is unused — that's the
-      // happy path, not an error.
+    it('continues when no auth user with the same email exists', async () => {
+      // No match from the GoTrue REST API means the email is unused — that's
+      // the happy path, not an error.
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
-        getUserByEmailError: { status: 404, message: 'not found' },
         existingTeacher: null,
         invitedUser: { id: 'new-auth-1' },
         insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },

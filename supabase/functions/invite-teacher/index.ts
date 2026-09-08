@@ -12,15 +12,40 @@ interface InviteInput {
   reporting_time?: string
 }
 
-function createSupabaseAdmin() {
+function getEnv() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
   }
+  return { supabaseUrl, serviceRoleKey }
+}
+
+function createSupabaseAdmin() {
+  const { supabaseUrl, serviceRoleKey } = getEnv()
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+}
+
+/**
+ * Look up an auth user by email via the GoTrue REST API.
+ * Returns the user object if found, null otherwise.
+ * Uses the server-side admin endpoint which supports email filtering
+ * without enumerating all users.
+ */
+async function lookupAuthUserByEmail(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  email: string
+): Promise<{ id: string; email: string } | null> {
+  const res = await fetch(
+    `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+    { headers: { Authorization: `Bearer ${serviceRoleKey}` } }
+  )
+  if (!res.ok) return null
+  const users: Array<{ id: string; email: string }> = await res.json()
+  return users.length > 0 ? users[0] : null
 }
 
 export async function handler(req: Request): Promise<Response> {
@@ -28,6 +53,7 @@ export async function handler(req: Request): Promise<Response> {
   if (adminResult instanceof Response) return adminResult
 
   const { userId: _userId, email: _adminEmail } = adminResult
+  const { supabaseUrl, serviceRoleKey } = getEnv()
   const supabase = createSupabaseAdmin()
 
   try {
@@ -43,16 +69,11 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // Duplicate check: auth user, teacher email, staff number
-    // FIX: Use getUserByEmail instead of listUsers to prevent email enumeration
-    // listUsers() returns ALL users - an attacker can enumerate valid emails
-    // getUserByEmail() only returns the specific user if they exist (or 404)
-    const { data: existingAuthUser, error: getUserError } =
-      await supabase.auth.admin.getUserByEmail(input.email)
-    if (getUserError && getUserError.status !== 404) {
-      // Unexpected error - log but don't reveal whether email exists
-      console.error('[invite-teacher] getUserByEmail error:', getUserError.message)
-    }
-    if (existingAuthUser?.user) {
+    // Use the GoTrue REST API directly because getUserByEmail() does not
+    // exist in supabase-js. The GoTrue server supports ?email=<addr>
+    // filtering which returns only the matching user (no enumeration).
+    const existingAuthUser = await lookupAuthUserByEmail(supabaseUrl, serviceRoleKey, input.email)
+    if (existingAuthUser) {
       return jsonResponse({ error: 'This staff number or email is already registered' }, 409)
     }
 
