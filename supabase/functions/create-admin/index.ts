@@ -29,10 +29,9 @@ async function lookupAuthUserByEmail(
   serviceRoleKey: string,
   email: string
 ): Promise<{ id: string; email: string } | null> {
-  const res = await fetch(
-    `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
-    { headers: { Authorization: `Bearer ${serviceRoleKey}` } }
-  )
+  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, {
+    headers: { Authorization: `Bearer ${serviceRoleKey}` },
+  })
   if (!res.ok) return null
   const users: Array<{ id: string; email: string }> = await res.json()
   return users.length > 0 ? users[0] : null
@@ -68,7 +67,10 @@ export async function handler(req: Request): Promise<Response> {
     // ── Server-side authorization ─────────────────
     // Admin cannot create Superadmin
     if (input.role === 'superadmin' && callerRole !== 'superadmin') {
-      return jsonResponse({ error: 'You do not have permission to create a superadmin account' }, 403)
+      return jsonResponse(
+        { error: 'You do not have permission to create a superadmin account' },
+        403
+      )
     }
 
     // ── Duplicate check: auth user ────────────────

@@ -39,10 +39,9 @@ async function lookupAuthUserByEmail(
   serviceRoleKey: string,
   email: string
 ): Promise<{ id: string; email: string } | null> {
-  const res = await fetch(
-    `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
-    { headers: { Authorization: `Bearer ${serviceRoleKey}` } }
-  )
+  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, {
+    headers: { Authorization: `Bearer ${serviceRoleKey}` },
+  })
   if (!res.ok) return null
   const users: Array<{ id: string; email: string }> = await res.json()
   return users.length > 0 ? users[0] : null

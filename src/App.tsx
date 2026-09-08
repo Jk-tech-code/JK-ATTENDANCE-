@@ -46,7 +46,8 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/dashboard" replace />
+  if (user.role !== 'admin' && user.role !== 'superadmin')
+    return <Navigate to="/dashboard" replace />
   return (
     <AdminLayout>
       <RouteErrorBoundary>{children}</RouteErrorBoundary>
@@ -63,7 +64,13 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (user) return <Navigate to={user.role === 'admin' || user.role === 'superadmin' ? '/admin' : '/dashboard'} replace />
+  if (user)
+    return (
+      <Navigate
+        to={user.role === 'admin' || user.role === 'superadmin' ? '/admin' : '/dashboard'}
+        replace
+      />
+    )
   return <RouteErrorBoundary>{children}</RouteErrorBoundary>
 }
 

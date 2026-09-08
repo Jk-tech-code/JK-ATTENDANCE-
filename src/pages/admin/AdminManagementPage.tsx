@@ -20,7 +20,11 @@ import { toast } from 'sonner'
 
 const adminSchema = z.object({
   full_name: z.string().min(1, 'Full name is required').max(200, 'Name too long'),
-  email: z.string().min(1, 'Email is required').email('Please enter a valid email address').max(254),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address')
+    .max(254),
   role: z.enum(['admin', 'superadmin']),
 })
 
@@ -138,10 +142,7 @@ export default function AdminManagementPage() {
                   </thead>
                   <tbody>
                     {admins.map((admin: AdminUser) => (
-                      <tr
-                        key={admin.id}
-                        className="border-b last:border-0 hover:bg-muted/50"
-                      >
+                      <tr key={admin.id} className="border-b last:border-0 hover:bg-muted/50">
                         <td className="py-3 font-medium">{admin.full_name}</td>
                         <td className="py-3 text-muted-foreground">{admin.email}</td>
                         <td className="py-3">
@@ -179,8 +180,8 @@ export default function AdminManagementPage() {
             <strong>Admins</strong> can manage attendance, teachers, and administrative functions.
           </p>
           <p>
-            <strong>Superadmins</strong> have full administrative privileges including the ability to
-            manage other administrator accounts.
+            <strong>Superadmins</strong> have full administrative privileges including the ability
+            to manage other administrator accounts.
           </p>
         </div>
       </div>
@@ -229,7 +230,8 @@ export default function AdminManagementPage() {
             />
             {isSuperadmin && selectedRole === 'superadmin' && (
               <p className="text-xs text-amber-600">
-                Superadmins have full control over the system including managing other administrators.
+                Superadmins have full control over the system including managing other
+                administrators.
               </p>
             )}
           </div>
