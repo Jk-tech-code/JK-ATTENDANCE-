@@ -67,6 +67,12 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'staff_number, full_name, and email are required' }, 400)
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(input.email)) {
+      return jsonResponse({ error: 'Please enter a valid email address' }, 400)
+    }
+
     // Duplicate check: auth user, teacher email, staff number
     // Use the GoTrue REST API directly because getUserByEmail() does not
     // exist in supabase-js. The GoTrue server supports ?email=<addr>
@@ -105,7 +111,7 @@ export async function handler(req: Request): Promise<Response> {
 
     if (inviteError) {
       console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
-      return jsonResponse({ error: inviteError.message }, 400)
+      return jsonResponse({ error: 'Unable to send invitation' }, 400)
     }
     if (!inviteData.user) {
       return jsonResponse({ error: 'Invitation failed — no user returned' }, 500)
@@ -136,7 +142,7 @@ export async function handler(req: Request): Promise<Response> {
     if (teacherError) {
       console.error('[invite-teacher] Teacher insert failed, rolling back:', teacherError.message)
       await supabase.auth.admin.deleteUser(authUserId).catch(() => {})
-      return jsonResponse({ error: teacherError.message }, 400)
+      return jsonResponse({ error: 'Teacher record creation failed' }, 400)
     }
 
     return jsonResponse({ teacher }, 201)

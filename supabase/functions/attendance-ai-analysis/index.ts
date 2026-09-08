@@ -2,6 +2,28 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin, verifyAuth, isAdmin } from '../_shared/supabase.ts'
 
+// Simple in-memory rate limiter (resets on cold start, acceptable for Edge Functions)
+const RATE_LIMIT_WINDOW_MS = 60_000 // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10 // 10 requests per minute per user
+const rateLimitStore = new Map<string, { count: number; windowStart: number }>()
+
+function checkRateLimit(userId: string): { allowed: boolean; resetAt: number } {
+  const now = Date.now()
+  const entry = rateLimitStore.get(userId)
+
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitStore.set(userId, { count: 1, windowStart: now })
+    return { allowed: true, resetAt: now + RATE_LIMIT_WINDOW_MS }
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, resetAt: entry.windowStart + RATE_LIMIT_WINDOW_MS }
+  }
+
+  entry.count++
+  return { allowed: true, resetAt: entry.windowStart + RATE_LIMIT_WINDOW_MS }
+}
+
 interface AIAnalysisRequest {
   month?: number
   year?: number
@@ -25,6 +47,16 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'Forbidden: Admin access required' }, 403)
     }
 
+    // Rate limiting
+    const rateLimit = checkRateLimit(auth.user.id)
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        { error: 'Rate limit exceeded. Please wait before requesting another analysis.' },
+        429,
+        { 'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)) }
+      )
+    }
+
     if (req.method !== 'POST') {
       return jsonResponse({ error: 'Method not allowed' }, 405)
     }
@@ -33,6 +65,14 @@ export async function handler(req: Request): Promise<Response> {
     const now = new Date()
     const year = body.year ?? now.getFullYear()
     const month = body.month ?? now.getMonth() + 1
+
+    // Validate year/month ranges
+    if (year < 2000 || year > 2100) {
+      return jsonResponse({ error: 'Invalid year: must be between 2000 and 2100' }, 400)
+    }
+    if (month < 1 || month > 12) {
+      return jsonResponse({ error: 'Invalid month: must be between 1 and 12' }, 400)
+    }
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
     const endDate = new Date(year, month, 0).toISOString().slice(0, 10)

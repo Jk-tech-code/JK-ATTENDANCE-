@@ -58,6 +58,15 @@ export async function handler(req: Request): Promise<Response> {
     if (type === 'monthly') {
       const year = body.year ?? currentYearEat()
       const month = body.month ?? currentMonthEat()
+
+      // Validate year/month ranges
+      if (year < 2000 || year > 2100) {
+        return jsonResponse({ error: 'Invalid year: must be between 2000 and 2100' }, 400)
+      }
+      if (month < 1 || month > 12) {
+        return jsonResponse({ error: 'Invalid month: must be between 1 and 12' }, 400)
+      }
+
       const result = await generateMonthlyReport(supabase, year, month)
       const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
       const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)

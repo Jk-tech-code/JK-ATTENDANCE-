@@ -15,6 +15,12 @@ export async function handler(req: Request): Promise<Response> {
     const url = new URL(req.url)
     const dateParam = url.searchParams.get('date') ?? todayEat()
 
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+    if (!dateRegex.test(dateParam)) {
+      return jsonResponse({ error: 'Invalid date format. Use YYYY-MM-DD' }, 400)
+    }
+
     const { data: present, error: presentErr } = await supabase
       .from('attendance')
       .select('id', { count: 'exact' })

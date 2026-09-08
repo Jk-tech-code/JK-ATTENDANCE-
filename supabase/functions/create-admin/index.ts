@@ -168,7 +168,7 @@ export async function handler(req: Request): Promise<Response> {
     )
   } catch (err) {
     console.error('[create-admin] Unhandled error:', err)
-    return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
+    return jsonResponse({ error: 'Internal server error' }, 500)
   }
 }
 

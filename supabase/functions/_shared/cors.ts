@@ -40,8 +40,12 @@ export function corsHeaders(): Record<string, string> {
   }
 }
 
-export function jsonResponse(data: unknown, status = 200): Response {
-  const headers = {
+export function jsonResponse(
+  data: unknown,
+  status = 200,
+  extraHeaders?: Record<string, string>
+): Response {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin':
       Deno.env.get('CORS_ORIGIN') || 'https://jk-attendance.vercel.app',
@@ -49,6 +53,10 @@ export function jsonResponse(data: unknown, status = 200): Response {
     'Access-Control-Allow-Headers':
       'authorization, x-client-info, apikey, content-type, x-region, x-api-key',
     'Access-Control-Max-Age': '86400',
+  }
+
+  if (extraHeaders) {
+    Object.assign(headers, extraHeaders)
   }
 
   return new Response(JSON.stringify(data), { status, headers })

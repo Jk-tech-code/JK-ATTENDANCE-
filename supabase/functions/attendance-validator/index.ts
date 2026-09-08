@@ -29,6 +29,21 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'Missing required fields: teacher_id, attendance_date' }, 400)
     }
 
+    // Validate attendance_date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+    if (!dateRegex.test(body.attendance_date)) {
+      return jsonResponse({ error: 'Invalid attendance_date format. Use YYYY-MM-DD' }, 400)
+    }
+
+    // Validate time format if provided (HH:MM or HH:MM:SS)
+    const timeRegex = /^\d{2}:\d{2}(:\d{2})?$/
+    if (body.check_in && !timeRegex.test(body.check_in)) {
+      return jsonResponse({ error: 'Invalid check_in format. Use HH:MM or HH:MM:SS' }, 400)
+    }
+    if (body.check_out && !timeRegex.test(body.check_out)) {
+      return jsonResponse({ error: 'Invalid check_out format. Use HH:MM or HH:MM:SS' }, 400)
+    }
+
     const supabase = createSupabaseAdmin()
 
     // Authorization: callers may only validate attendance for their own
