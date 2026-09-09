@@ -61,7 +61,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         Skip to main content
       </a>
-      <header role="banner" className="sticky top-0 z-10 border-b bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <img
@@ -156,7 +156,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </Button>
         </div>
       </Dialog>
-      <main role="main" id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {children}
       </main>
     </div>

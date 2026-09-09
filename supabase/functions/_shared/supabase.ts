@@ -56,18 +56,16 @@ export async function isAdmin(
 
 /**
  * Fallback: checks admin status via the public.is_admin() SQL function.
- * Use this when the service_role client cannot read teachers.role directly
- * (e.g. if the role column query fails).
+ * NOTE: is_admin() uses auth.uid() which is null for service_role clients.
+ * This always returns false when called with service_role. Kept for
+ * backwards compatibility but the direct query in isAdmin() is preferred.
  */
 export async function isAdminViaRpc(
-  supabase: ReturnType<typeof createSupabaseAdmin>
+  _supabase: ReturnType<typeof createSupabaseAdmin>
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc('is_admin')
-  if (error) {
-    console.error('[isAdminViaRpc] RPC failed:', error.message)
-    return false
-  }
-  return data === true
+  // service_role clients have no auth.uid(), so is_admin() always returns false.
+  // Return false directly to avoid a wasted RPC call.
+  return false
 }
 
 export { jsonResponse } from './cors.ts'

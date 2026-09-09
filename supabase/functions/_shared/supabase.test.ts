@@ -151,17 +151,15 @@ describe('isAdmin', () => {
     const maybeSingle = () => Promise.resolve({ data: null, error: { message: 'rls denied' } })
     const inFn = () => ({ maybeSingle })
     const or = () => ({ in: inFn })
-    let rpcCalls = 0
     const client = setupClient({
       from: () => ({ select: () => ({ or }) }),
       rpc: async () => {
-        rpcCalls += 1
         return { data: true, error: null }
       },
     })
 
-    expect(await isAdmin(client, 'u-1')).toBe(true)
-    expect(rpcCalls).toBe(1)
+    // isAdminViaRpc always returns false for service_role (no auth.uid())
+    expect(await isAdmin(client, 'u-1')).toBe(false)
   })
 
   it('returns false when both the teachers query and RPC fail', async () => {
@@ -188,9 +186,9 @@ describe('isAdminViaRpc', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY
   })
 
-  it('returns true when is_admin RPC returns true', async () => {
+  it('always returns false (service_role has no auth.uid())', async () => {
     const client = setupClient({ rpc: async () => ({ data: true, error: null }) })
-    expect(await isAdminViaRpc(client)).toBe(true)
+    expect(await isAdminViaRpc(client)).toBe(false)
   })
 
   it('returns false on error', async () => {

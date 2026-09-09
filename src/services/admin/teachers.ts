@@ -29,9 +29,9 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
 
   if (params.search) {
     // Sanitize search input before injecting into PostgREST filter strings.
-    // PostgREST parses commas / parens as operator separators inside .or(),
-    // so unsanitized input can break the filter or broaden it unexpectedly.
-    const safe = params.search.replace(/[\\%_(),]/g, (c) => '\\' + c)
+    // PostgREST parses commas / parens / single quotes as operator separators
+    // inside .or(), so unsanitized input can break the filter or broaden it.
+    const safe = params.search.replace(/[\\%_()',]/g, (c) => '\\' + c)
     const pattern = `%${safe}%`
     query = query.or(
       `full_name.ilike.${pattern},staff_number.ilike.${pattern},email.ilike.${pattern}`
@@ -53,6 +53,7 @@ export async function getAllTeachers(): Promise<Teacher[]> {
     .from('teachers')
     .select('*')
     .order('full_name', { ascending: true })
+    .limit(500)
 
   if (error) throw new Error(error.message)
   return data as Teacher[]
@@ -104,7 +105,9 @@ export async function deleteTeacher(id: string): Promise<void> {
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   const url = `${supabaseUrl}/functions/v1/delete-teacher`
-  console.warn('[deleteTeacher] Calling:', url, { teacher_id: id })
+  if (import.meta.env.DEV) {
+    console.warn('[deleteTeacher] Calling:', url, { teacher_id: id })
+  }
 
   let res: Response
   try {
@@ -193,7 +196,9 @@ async function callInviteEdgeFunction(input: {
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   const url = `${supabaseUrl}/functions/v1/invite-teacher`
-  console.warn('[inviteTeacher] Calling:', url, { email: input.email })
+  if (import.meta.env.DEV) {
+    console.warn('[inviteTeacher] Calling:', url, { email: input.email })
+  }
 
   let res: Response
   try {

@@ -38,7 +38,11 @@ export default function ResetPasswordPage() {
           access_token: new URLSearchParams(hash.replace('#', '')).get('access_token') ?? '',
           refresh_token: new URLSearchParams(hash.replace('#', '')).get('refresh_token') ?? '',
         })
-        .then(() => setHashReady(true))
+        .then(() => {
+          // Clear tokens from URL to prevent leakage via browser history / Referer header
+          window.history.replaceState(null, '', window.location.pathname)
+          setHashReady(true)
+        })
         .catch(() => setHashReady(true))
     } else {
       setHashReady(true)

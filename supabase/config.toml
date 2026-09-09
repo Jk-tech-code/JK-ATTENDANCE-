@@ -59,3 +59,9 @@ import_map = "./functions/deno.json"
 enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.create-admin]
+enabled = true
+verify_jwt = true
+import_map = "./functions/deno.json"
+entrypoint = "./functions/create-admin/index.ts"

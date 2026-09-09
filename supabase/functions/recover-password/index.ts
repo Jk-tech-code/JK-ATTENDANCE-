@@ -1,22 +1,14 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { jsonResponse } from '../_shared/cors.ts'
+import { handleCors, jsonResponse } from '../_shared/cors.ts'
 
 interface RecoverInput {
   email: string
 }
 
 export async function handler(req: Request): Promise<Response> {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    })
-  }
+  const corsResponse = handleCors(req)
+  if (corsResponse) return corsResponse
 
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)

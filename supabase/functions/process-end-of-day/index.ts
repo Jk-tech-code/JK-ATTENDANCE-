@@ -17,6 +17,10 @@ export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
   if (cors) return cors
 
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405)
+  }
+
   const cronSecret = Deno.env.get('CRON_SECRET')
   if (!cronSecret) {
     console.error('CRON_SECRET environment variable is not set. Rejecting request.')
