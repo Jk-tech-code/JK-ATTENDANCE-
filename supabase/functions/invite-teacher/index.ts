@@ -175,13 +175,14 @@ export async function handler(req: Request): Promise<Response> {
     const effectiveSiteUrl = siteUrl ?? 'https://jk-attendance.vercel.app'
 
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'invite',
+      type: 'magiclink',
       email: input.email,
       options: { redirectTo: `${effectiveSiteUrl}/reset-password` },
     })
 
     if (linkError || !linkData?.properties?.action_link) {
       console.error('[invite-teacher] generateLink failed:', linkError?.message ?? 'no action_link')
+      console.error('[invite-teacher] linkData:', JSON.stringify(linkData, null, 2))
       // Rollback: delete the auth user
       await supabase.auth.admin
         .deleteUser(authUserId)
