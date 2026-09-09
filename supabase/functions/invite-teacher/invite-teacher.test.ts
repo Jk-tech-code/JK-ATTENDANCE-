@@ -5,13 +5,10 @@ type Client = {
   auth: {
     getUser: (token: string) => Promise<{ data: { user: unknown }; error: unknown }>
     admin: {
-      createUser: (
+      inviteUserByEmail: (
+        email: string,
         opts: unknown
       ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
-      generateLink: (opts: unknown) => Promise<{
-        data: { properties?: { action_link?: string } } | null
-        error: { message: string } | null
-      }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
   }
@@ -39,16 +36,12 @@ function configureClient(opts: {
   isAdmin?: TeacherRow | null
   existingAuthUser?: { id: string; email: string } | null
   existingTeacher?: TeacherRow | null
-  createUserResult?: { id: string } | null
-  createUserError?: { message: string }
-  generateLinkResult?: { action_link?: string } | null
-  generateLinkError?: { message: string }
+  invitedUser?: { id: string } | null
+  inviteError?: { message: string }
   insertedTeacher?: TeacherRow | { id: string; full_name: string; email: string } | null
   insertError?: { message: string }
   onDeleteUser?: () => void
-  resendSuccess?: boolean
 }): Client {
-  const teacherIdSelectCount = { count: 0 }
   const client: Client = {
     auth: {
       getUser: opts.getUserError
@@ -63,23 +56,10 @@ function configureClient(opts: {
             error: null,
           }),
       admin: {
-        createUser: async () => {
-          if (opts.createUserError) return { data: { user: null }, error: opts.createUserError }
+        inviteUserByEmail: async () => {
+          if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
           return {
-            data: { user: opts.createUserResult ? { id: opts.createUserResult.id } : null },
-            error: null,
-          }
-        },
-        generateLink: async () => {
-          if (opts.generateLinkError) return { data: null, error: opts.generateLinkError }
-          return {
-            data: {
-              properties: {
-                action_link:
-                  opts.generateLinkResult?.action_link ??
-                  'https://example.com/reset-password#token=abc',
-              },
-            },
+            data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null },
             error: null,
           }
         },
@@ -97,7 +77,6 @@ function configureClient(opts: {
       return {
         select: (cols: string) => {
           if (cols === 'id') {
-            teacherIdSelectCount.count += 1
             return {
               or: () => ({
                 maybeSingle: async () => ({
@@ -144,7 +123,7 @@ function configureClient(opts: {
     },
   }
 
-  // Mock fetch for GoTrue REST API lookup AND Resend API
+  // Mock fetch for GoTrue REST API lookup (no Resend needed)
   const originalFetch = globalThis.fetch
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
@@ -153,12 +132,6 @@ function configureClient(opts: {
         return new Response(JSON.stringify([opts.existingAuthUser]), { status: 200 })
       }
       return new Response(JSON.stringify([]), { status: 200 })
-    }
-    if (url.includes('api.resend.com/emails')) {
-      if (opts.resendSuccess === false) {
-        return new Response(JSON.stringify({ message: 'SMTP error' }), { status: 500 })
-      }
-      return new Response(JSON.stringify({ id: 'email-123' }), { status: 200 })
     }
     return originalFetch(input as RequestInfo, init)
   }
@@ -183,14 +156,12 @@ describe('invite-teacher', () => {
   beforeEach(() => {
     process.env.SUPABASE_URL = 'https://test.supabase.co'
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'
-    process.env.RESEND_API_KEY = 're_test_key'
     process.env.SITE_URL = 'https://jk-attendance.vercel.app'
   })
 
   afterEach(() => {
     delete process.env.SUPABASE_URL
     delete process.env.SUPABASE_SERVICE_ROLE_KEY
-    delete process.env.RESEND_API_KEY
     delete process.env.SITE_URL
   })
 
@@ -267,8 +238,7 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        createUserResult: { id: 'new-auth-1' },
-        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
+        invitedUser: { id: 'new-auth-1' },
         insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
       })
       const res = await handler(
@@ -291,14 +261,13 @@ describe('invite-teacher', () => {
   })
 
   describe('happy path', () => {
-    it('creates user, generates link, sends email, creates teacher record', async () => {
+    it('invites user, creates teacher record', async () => {
       let insertedRecord: Record<string, unknown> | null = null
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        createUserResult: { id: 'new-auth-1' },
-        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
+        invitedUser: { id: 'new-auth-1' },
         insertedTeacher: null,
       })
 
@@ -367,8 +336,7 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        createUserResult: { id: 'new-auth-1' },
-        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
+        invitedUser: { id: 'new-auth-1' },
         insertError: { message: 'teachers_insert_failed' },
         onDeleteUser: () => {
           deleteCount += 1
@@ -383,74 +351,18 @@ describe('invite-teacher', () => {
     })
   })
 
-  describe('createUser failures', () => {
-    it('returns 409 when createUser reports duplicate', async () => {
+  describe('inviteUserByEmail failures', () => {
+    it('returns 400 when inviteUserByEmail fails', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        createUserError: { message: 'User already registered' },
-      })
-      const res = await handler(
-        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
-      )
-      expect(res.status).toBe(409)
-    })
-
-    it('returns 400 when createUser fails generically', async () => {
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-        existingAuthUser: null,
-        existingTeacher: null,
-        createUserError: { message: 'Database error' },
+        inviteError: { message: 'invite failed' },
       })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(400)
-    })
-  })
-
-  describe('generateLink failures', () => {
-    it('returns 400 and rolls back when generateLink fails', async () => {
-      let deleteCount = 0
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-        existingAuthUser: null,
-        existingTeacher: null,
-        createUserResult: { id: 'new-auth-1' },
-        generateLinkError: { message: 'link generation failed' },
-        onDeleteUser: () => {
-          deleteCount += 1
-        },
-      })
-      const res = await handler(
-        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
-      )
-      expect(res.status).toBe(400)
-      expect(deleteCount).toBe(1)
-    })
-  })
-
-  describe('email send failures', () => {
-    it('returns 500 and rolls back when Resend API fails', async () => {
-      let deleteCount = 0
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-        existingAuthUser: null,
-        existingTeacher: null,
-        createUserResult: { id: 'new-auth-1' },
-        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
-        resendSuccess: false,
-        onDeleteUser: () => {
-          deleteCount += 1
-        },
-      })
-      const res = await handler(
-        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
-      )
-      expect(res.status).toBe(500)
-      expect(deleteCount).toBe(1)
     })
   })
 })

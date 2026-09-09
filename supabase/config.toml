@@ -55,11 +55,6 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/deno.json"
 
-[functions.send-email]
-enabled = true
-verify_jwt = true
-import_map = "./functions/deno.json"
-
 [functions.recover-password]
 enabled = true
 verify_jwt = false
