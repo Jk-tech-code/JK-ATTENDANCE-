@@ -1,10 +1,16 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, Shield, Moon, Sun } from 'lucide-react'
+import { LogOut, User, Shield, Moon, Sun, Key } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { NotificationBell } from '@/components/NotificationBell'
+import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { supabase } from '@/services/supabase'
+import { toast } from 'sonner'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -13,10 +19,36 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const [pwOpen, setPwOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/login', { replace: true })
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+    setPwLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setPwLoading(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Password changed successfully')
+    setPwOpen(false)
+    setNewPassword('')
+    setConfirmPassword('')
   }
 
   const { theme, toggleTheme } = useTheme()
@@ -73,6 +105,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setPwOpen(true)}
+              aria-label="Change password"
+              title="Change password"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Key className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleSignOut}
               aria-label="Sign out"
               title="Sign out"
@@ -82,6 +124,38 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </header>
+
+      <Dialog open={pwOpen} onOpenChange={setPwOpen} title="Change Password">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="new-pw">New Password</Label>
+            <Input
+              id="new-pw"
+              type="password"
+              placeholder="Min. 8 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-pw">Confirm Password</Label>
+            <Input
+              id="confirm-pw"
+              type="password"
+              placeholder="Repeat password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleChangePassword}
+            disabled={pwLoading || !newPassword || !confirmPassword}
+          >
+            {pwLoading ? 'Saving...' : 'Save New Password'}
+          </Button>
+        </div>
+      </Dialog>
       <main role="main" id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {children}
       </main>

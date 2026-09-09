@@ -1,55 +1,11 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Helmet } from 'react-helmet-async'
-import { resetPassword } from '@/services/auth'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Link } from 'react-router-dom'
-import { Loader2, CheckCircle2 } from 'lucide-react'
-
-const forgotSchema = z.object({
-  email: z.string().email('Enter a valid email address'),
-})
-
-type ForgotForm = z.infer<typeof forgotSchema>
+import { CheckCircle2 } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ForgotForm>({
-    resolver: zodResolver(forgotSchema),
-  })
-
-  const onSubmit = async (data: ForgotForm) => {
-    setError(null)
-    const result = await resetPassword(data.email)
-    if (result.error) {
-      const msg = result.error.toLowerCase()
-      if (msg.includes('email') && msg.includes('not found')) {
-        setError('No account found with this email address.')
-      } else if (msg.includes('rate limit') || msg.includes('too many')) {
-        setError('Too many requests. Please wait a moment and try again.')
-      } else if (msg.includes('for security purposes')) {
-        setError(result.error)
-      } else {
-        console.error('[ForgotPassword] Raw error:', result.error)
-        setError('Unable to send reset email. Please try again or contact support.')
-      }
-      return
-    }
-    setSent(true)
-  }
-
   return (
     <>
       <Helmet>
@@ -59,59 +15,20 @@ export default function ForgotPasswordPage() {
       </Helmet>
       <AuthLayout
         title="Reset password"
-        subtitle="Enter your email and we'll send you a reset link"
+        subtitle="Contact your administrator to reset your password"
       >
         <Card>
           <CardContent className="pt-6">
-            {sent ? (
-              <div className="space-y-4 text-center">
-                <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
-                <p className="text-sm text-muted-foreground">
-                  Check your email for the reset link.
-                </p>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link to="/login">Back to login</Link>
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@school.com"
-                    aria-invalid={errors.email ? 'true' : undefined}
-                    aria-describedby={errors.email ? 'email-error' : undefined}
-                    {...register('email')}
-                  />
-                  {errors.email && (
-                    <p id="email-error" className="text-xs text-destructive" role="alert">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
-
-                {error && <p className="text-sm text-destructive">{error}</p>}
-
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
-                    </>
-                  ) : (
-                    'Send reset link'
-                  )}
-                </Button>
-
-                <p className="text-center text-xs text-muted-foreground">
-                  Remember your password?{' '}
-                  <Link to="/login" className="underline-offset-4 hover:underline">
-                    Sign in
-                  </Link>
-                </p>
-              </form>
-            )}
+            <div className="space-y-4 text-center">
+              <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
+              <p className="text-sm text-muted-foreground">
+                Email-based password reset is not currently available. Please contact your school
+                administrator to have a new temporary password generated for your account.
+              </p>
+              <Button variant="outline" className="w-full" asChild>
+                <Link to="/login">Back to login</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </AuthLayout>

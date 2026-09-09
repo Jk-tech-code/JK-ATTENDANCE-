@@ -20,7 +20,7 @@ import {
 } from '@/hooks/useTeachers'
 import { InviteTeacherModal, type InviteTeacherFormData } from '@/components/InviteTeacherModal'
 import type { Teacher } from '@/types'
-import { Plus, Pencil, Trash2, Search, UserPlus, Users, Mail } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, UserPlus, Users, Mail, Copy, CheckCircle2 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
@@ -62,6 +62,11 @@ export default function TeachersPage() {
   const [open, setOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null)
+  const [createdTeacher, setCreatedTeacher] = useState<{
+    name: string
+    email: string
+    tempPassword: string
+  } | null>(null)
 
   const {
     register,
@@ -123,11 +128,16 @@ export default function TeachersPage() {
         await updateMutation.mutateAsync({ id: editing.id, input: trimmed })
         toast.success('Teacher updated successfully')
       } else {
-        await createMutation.mutateAsync(trimmed)
-        toast.success('Teacher created and invitation sent', {
-          description: `${trimmed.email} will receive a link to create their password and sign in.`,
-          duration: 10000,
-        })
+        const result = await createMutation.mutateAsync(trimmed)
+        if (result.temp_password) {
+          setCreatedTeacher({
+            name: trimmed.full_name,
+            email: trimmed.email,
+            tempPassword: result.temp_password,
+          })
+        } else {
+          toast.success('Teacher account created')
+        }
       }
       setOpen(false)
     } catch (err) {
@@ -149,8 +159,8 @@ export default function TeachersPage() {
   const handleInvite = async (data: InviteTeacherFormData) => {
     try {
       await inviteMutation.mutateAsync(data)
-      toast.success('Invitation email sent', {
-        description: `${data.email} will receive a link to create their password and sign in.`,
+      toast.success('Teacher account created', {
+        description: `${data.email} can now log in with their temporary password.`,
         duration: 10000,
       })
     } catch (err) {
@@ -160,15 +170,20 @@ export default function TeachersPage() {
 
   const handleResendInvite = async (teacher: Teacher) => {
     try {
-      await resendMutation.mutateAsync({
+      const result = await resendMutation.mutateAsync({
         staff_number: teacher.staff_number,
         full_name: teacher.full_name,
         email: teacher.email,
       })
-      toast.success('Invitation resent', {
-        description: `${teacher.email} will receive a new invitation link.`,
-        duration: 10000,
-      })
+      if (result.temp_password) {
+        setCreatedTeacher({
+          name: teacher.full_name,
+          email: teacher.email,
+          tempPassword: result.temp_password,
+        })
+      } else {
+        toast.success('New temporary password generated')
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     }
@@ -354,6 +369,51 @@ export default function TeachersPage() {
           onConfirm={handleDelete}
           loading={deleting}
         />
+
+        <Dialog
+          open={!!createdTeacher}
+          onOpenChange={(o) => {
+            if (!o) setCreatedTeacher(null)
+          }}
+          title="Teacher Account Created"
+        >
+          {createdTeacher && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Share this temporary password with <strong>{createdTeacher.name}</strong>:
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded bg-background px-3 py-2 text-sm font-mono border">
+                    {createdTeacher.tempPassword}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdTeacher.tempPassword)
+                      toast.success('Password copied')
+                    }}
+                    title="Copy password"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                The teacher should log in at <strong>{createdTeacher.email}</strong> and change this
+                password from their dashboard menu.
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => setCreatedTeacher(null)}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Done
+              </Button>
+            </div>
+          )}
+        </Dialog>
       </div>
     </>
   )

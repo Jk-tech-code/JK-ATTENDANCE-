@@ -5,10 +5,13 @@ type Client = {
   auth: {
     getUser: (token: string) => Promise<{ data: { user: unknown }; error: unknown }>
     admin: {
-      inviteUserByEmail: (
-        email: string,
+      createUser: (
         opts: unknown
       ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
+      updateUserById: (
+        id: string,
+        opts: unknown
+      ) => Promise<{ error: { message: string } | null }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
   }
@@ -19,6 +22,7 @@ type Client = {
 interface TeacherRow {
   id: string
   role?: string
+  full_name?: string
 }
 
 interface InviteInput {
@@ -37,9 +41,9 @@ function configureClient(opts: {
   isAdmin?: TeacherRow | null
   existingAuthUser?: { id: string; email: string } | null
   existingTeacher?: TeacherRow | null
-  invitedUser?: { id: string } | null
-  inviteError?: { message: string }
-  inviteErrorWithUser?: { id: string } | null
+  createdUser?: { id: string } | null
+  createUserError?: { message: string }
+  updateUserError?: { message: string }
   insertedTeacher?: TeacherRow | { id: string; full_name: string; email: string } | null
   insertError?: { message: string }
   onDeleteUser?: () => void
@@ -59,16 +63,16 @@ function configureClient(opts: {
             error: null,
           }),
       admin: {
-        inviteUserByEmail: async () => {
-          if (opts.inviteError) {
-            // Return user data if inviteErrorWithUser is set (for cleanup test)
-            const user = opts.inviteErrorWithUser ? { id: opts.inviteErrorWithUser.id } : null
-            return { data: { user }, error: opts.inviteError }
-          }
+        createUser: async () => {
+          if (opts.createUserError) return { data: { user: null }, error: opts.createUserError }
           return {
-            data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null },
+            data: { user: opts.createdUser ? { id: opts.createdUser.id } : null },
             error: null,
           }
+        },
+        updateUserById: async () => {
+          if (opts.updateUserError) return { error: opts.updateUserError }
+          return { error: null }
         },
         deleteUser: async () => {
           opts.onDeleteUser?.()
@@ -99,6 +103,16 @@ function configureClient(opts: {
               }),
             }
           }
+          if (cols === 'id, full_name') {
+            return {
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: opts.existingTeacher ?? null,
+                  error: null,
+                }),
+              }),
+            }
+          }
           if (cols === 'role') {
             return {
               or: () => ({
@@ -107,17 +121,6 @@ function configureClient(opts: {
                     data: opts.isAdmin ? { role: opts.isAdmin.role ?? 'admin' } : null,
                     error: null,
                   }),
-                }),
-              }),
-            }
-          }
-          if (cols === '*') {
-            return {
-              order: () => ({
-                range: async () => ({
-                  data: opts.existingTeacher ? [opts.existingTeacher] : [],
-                  error: null,
-                  count: opts.existingTeacher ? 1 : 0,
                 }),
               }),
             }
@@ -277,7 +280,7 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        invitedUser: { id: 'new-auth-1' },
+        createdUser: { id: 'new-auth-1' },
         insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
       })
       const res = await handler(
@@ -300,13 +303,13 @@ describe('invite-teacher', () => {
   })
 
   describe('happy path', () => {
-    it('invites user, creates teacher record', async () => {
+    it('creates user with temp password and teacher record', async () => {
       let insertedRecord: Record<string, unknown> | null = null
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        invitedUser: { id: 'new-auth-1' },
+        createdUser: { id: 'new-auth-1' },
         insertedTeacher: null,
       })
 
@@ -351,6 +354,9 @@ describe('invite-teacher', () => {
       }
       const body = await res.json()
       expect(body.teacher.id).toBe('new-auth-1')
+      expect(body.temp_password).toBeDefined()
+      expect(typeof body.temp_password).toBe('string')
+      expect(body.temp_password.length).toBeGreaterThanOrEqual(8)
       expect(insertedRecord).toMatchObject({
         id: 'new-auth-1',
         user_id: 'new-auth-1',
@@ -375,7 +381,7 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        invitedUser: { id: 'new-auth-1' },
+        createdUser: { id: 'new-auth-1' },
         insertError: { message: 'teachers_insert_failed' },
         onDeleteUser: () => {
           deleteCount += 1
@@ -390,13 +396,13 @@ describe('invite-teacher', () => {
     })
   })
 
-  describe('inviteUserByEmail failures', () => {
-    it('returns 400 when inviteUserByEmail fails', async () => {
+  describe('createUser failures', () => {
+    it('returns 400 when createUser fails', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        inviteError: { message: 'invite failed' },
+        createUserError: { message: 'create user failed' },
       })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
@@ -404,31 +410,12 @@ describe('invite-teacher', () => {
       expect(res.status).toBe(400)
     })
 
-    it('cleans up orphaned auth user when inviteUserByEmail creates user then fails', async () => {
-      let deleteCount = 0
+    it('returns 409 when createUser fails with duplicate error', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        inviteError: { message: 'email delivery failed' },
-        inviteErrorWithUser: { id: 'orphaned-user-1' },
-        onDeleteUser: () => {
-          deleteCount += 1
-        },
-      })
-      const res = await handler(
-        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
-      )
-      expect(res.status).toBe(400)
-      expect(deleteCount).toBe(1)
-    })
-
-    it('returns 409 when inviteUserByEmail fails with duplicate error', async () => {
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-        existingAuthUser: null,
-        existingTeacher: null,
-        inviteError: { message: 'User already exists' },
+        createUserError: { message: 'User already exists' },
       })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
@@ -437,7 +424,7 @@ describe('invite-teacher', () => {
     })
   })
 
-  describe('resend invite', () => {
+  describe('resend (reset password)', () => {
     it('returns 404 when no auth user found for resend', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
@@ -467,12 +454,11 @@ describe('invite-teacher', () => {
       expect(res.status).toBe(404)
     })
 
-    it('resends invite successfully', async () => {
+    it('resets password successfully', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: { id: 'auth-1', email: 't@x.com' },
-        existingTeacher: { id: 'teacher-1' },
-        invitedUser: { id: 'auth-1' },
+        existingTeacher: { id: 'teacher-1', full_name: 'T' },
       })
       const res = await handler(
         makeRequest(
@@ -482,15 +468,18 @@ describe('invite-teacher', () => {
       )
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.message).toBe('Invitation resent successfully')
+      expect(body.message).toBe('New temporary password generated')
+      expect(body.temp_password).toBeDefined()
+      expect(typeof body.temp_password).toBe('string')
+      expect(body.temp_password.length).toBeGreaterThanOrEqual(8)
     })
 
-    it('returns 400 when resend invite email fails', async () => {
+    it('returns 400 when password reset fails', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: { id: 'auth-1', email: 't@x.com' },
-        existingTeacher: { id: 'teacher-1' },
-        inviteError: { message: 'email service unavailable' },
+        existingTeacher: { id: 'teacher-1', full_name: 'T' },
+        updateUserError: { message: 'update failed' },
       })
       const res = await handler(
         makeRequest(

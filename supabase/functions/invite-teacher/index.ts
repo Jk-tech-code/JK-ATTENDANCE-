@@ -30,6 +30,21 @@ function createSupabaseAdmin() {
   })
 }
 
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  const symbols = '!@#$%&*'
+  let pw = ''
+  const arr = new Uint8Array(16)
+  crypto.getRandomValues(arr)
+  for (let i = 0; i < 14; i++) pw += chars[arr[i] % chars.length]
+  // Ensure at least one digit, one uppercase, one symbol
+  pw += '2'
+  pw += 'A'
+  pw += symbols[arr[14] % symbols.length]
+  pw += symbols[arr[15] % symbols.length]
+  return pw
+}
+
 async function lookupAuthUserByEmail(
   supabaseUrl: string,
   serviceRoleKey: string,
@@ -62,7 +77,7 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'staff_number, full_name, and email are required' }, 400)
     }
 
-    // ── Resend invite mode ──────────────────────────────────────
+    // ── Resend mode: generate new temp password ─────────────────
     if (input.resend_email) {
       const existingAuthUser = await lookupAuthUserByEmail(
         supabaseUrl,
@@ -78,30 +93,24 @@ export async function handler(req: Request): Promise<Response> {
 
       const { data: teacher } = await supabase
         .from('teachers')
-        .select('id')
+        .select('id, full_name')
         .eq('email', input.resend_email)
         .maybeSingle()
 
       if (!teacher) {
-        return jsonResponse(
-          { error: 'No teacher record found for this email.' },
-          404
-        )
+        return jsonResponse({ error: 'No teacher record found for this email.' }, 404)
       }
 
-      const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
-      const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-        input.resend_email,
-        {
-          redirectTo: `${siteUrl}/reset-password`,
-          data: { role: 'teacher', full_name: input.full_name },
-        }
+      const newTempPassword = generateTempPassword()
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        existingAuthUser.id,
+        { password: newTempPassword }
       )
 
-      if (inviteError) {
-        console.error('[invite-teacher] Resend invite failed:', inviteError.message)
+      if (updateError) {
+        console.error('[invite-teacher] Reset password failed:', updateError.message)
         return jsonResponse(
-          { error: `Failed to resend invitation: ${inviteError.message}` },
+          { error: `Failed to reset password: ${updateError.message}` },
           400
         )
       }
@@ -114,7 +123,14 @@ export async function handler(req: Request): Promise<Response> {
         })
         .eq('id', teacher.id)
 
-      return jsonResponse({ message: 'Invitation resent successfully' }, 200)
+      return jsonResponse(
+        {
+          message: 'New temporary password generated',
+          temp_password: newTempPassword,
+          teacher_name: teacher.full_name,
+        },
+        200
+      )
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -139,46 +155,29 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'This staff number or email is already registered' }, 409)
     }
 
-    // Invite auth user via Supabase Auth (handles email delivery automatically)
-    const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
+    // Create auth user with temporary password (no email sent)
+    const tempPassword = generateTempPassword()
 
-    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-      input.email,
-      {
-        redirectTo: `${siteUrl}/reset-password`,
-        data: { role: 'teacher', full_name: input.full_name },
-      }
-    )
+    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+      email: input.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { role: 'teacher', full_name: input.full_name },
+    })
 
-    if (inviteError) {
-      console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
-      // inviteUserByEmail may create the auth user before failing on email delivery.
-      // Clean up any orphaned auth user so retries don't hit duplicate-user errors.
-      if (inviteData?.user?.id) {
-        console.warn(
-          '[invite-teacher] Cleaning up orphaned auth user:',
-          inviteData.user.id
-        )
-        await supabase.auth.admin
-          .deleteUser(inviteData.user.id)
-          .catch((err: unknown) =>
-            console.error('[invite-teacher] Cleanup deleteUser failed:', err)
-          )
-      }
-      const msg = inviteError.message.toLowerCase()
+    if (userError) {
+      console.error('[invite-teacher] createUser failed:', userError.message)
+      const msg = userError.message.toLowerCase()
       if (msg.includes('already') || msg.includes('duplicate') || msg.includes('exists')) {
         return jsonResponse({ error: 'A user with this email already exists.' }, 409)
       }
-      return jsonResponse(
-        { error: `Invitation email failed: ${inviteError.message}` },
-        400
-      )
+      return jsonResponse({ error: `Account creation failed: ${userError.message}` }, 400)
     }
-    if (!inviteData.user) {
-      return jsonResponse({ error: 'Teacher account creation failed — no user returned.' }, 500)
+    if (!userData.user) {
+      return jsonResponse({ error: 'Account creation failed — no user returned.' }, 500)
     }
 
-    const authUserId = inviteData.user.id
+    const authUserId = userData.user.id
 
     // Create teacher record
     const { data: teacher, error: teacherError } = await supabase
@@ -210,15 +209,17 @@ export async function handler(req: Request): Promise<Response> {
       await supabase.auth.admin
         .deleteUser(authUserId)
         .catch((err: unknown) => console.error('[invite-teacher] Rollback deleteUser failed:', err))
-      // Distinguish constraint violations (likely duplicates) from other errors
       const msg = teacherError.message.toLowerCase()
       if (msg.includes('duplicate') || msg.includes('unique') || msg.includes('already')) {
-        return jsonResponse({ error: 'A teacher with this email or staff number already exists.' }, 409)
+        return jsonResponse(
+          { error: 'A teacher with this email or staff number already exists.' },
+          409
+        )
       }
       return jsonResponse({ error: 'Teacher record creation failed. Please try again.' }, 400)
     }
 
-    return jsonResponse({ teacher }, 201)
+    return jsonResponse({ teacher, temp_password: tempPassword }, 201)
   } catch (err) {
     console.error('[invite-teacher] Unhandled error:', err)
     return jsonResponse({ error: 'Internal server error' }, 500)

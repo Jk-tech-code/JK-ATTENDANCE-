@@ -68,7 +68,9 @@ export interface CreateTeacherInput {
   employment_status?: string
 }
 
-export async function createTeacher(input: CreateTeacherInput): Promise<Teacher> {
+export async function createTeacher(
+  input: CreateTeacherInput
+): Promise<{ teacher: Teacher; temp_password?: string }> {
   return callInviteEdgeFunction(input)
 }
 
@@ -131,9 +133,8 @@ export async function inviteTeacher(input: {
   department?: string
   phone?: string
   reporting_time?: string
-}): Promise<{ teacher: Teacher }> {
-  const teacher = await callInviteEdgeFunction(input)
-  return { teacher }
+}): Promise<{ teacher: Teacher; temp_password?: string }> {
+  return callInviteEdgeFunction(input)
 }
 
 // ─── Resend invite ──────────────────────────────────────────
@@ -141,7 +142,7 @@ export async function resendInvite(input: {
   staff_number: string
   full_name: string
   email: string
-}): Promise<void> {
+}): Promise<{ temp_password?: string }> {
   const { data: session } = await supabase.auth.getSession()
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
@@ -163,7 +164,7 @@ export async function resendInvite(input: {
     throw new Error('Cannot reach server. Check your internet connection.')
   }
 
-  let body: { message?: string; error?: string }
+  let body: { message?: string; error?: string; temp_password?: string }
   try {
     body = await res.json()
   } catch {
@@ -173,6 +174,8 @@ export async function resendInvite(input: {
   if (!res.ok) {
     throw new Error(body?.error ?? `Request failed (${res.status})`)
   }
+
+  return { temp_password: body.temp_password }
 }
 
 // ─── Shared edge function caller ─────────────────────────────
@@ -183,7 +186,7 @@ async function callInviteEdgeFunction(input: {
   department?: string
   phone?: string
   reporting_time?: string
-}): Promise<Teacher> {
+}): Promise<{ teacher: Teacher; temp_password?: string }> {
   const { data: session } = await supabase.auth.getSession()
   const token = session?.session?.access_token
   if (!token) throw new Error('Not authenticated')
@@ -212,7 +215,7 @@ async function callInviteEdgeFunction(input: {
     )
   }
 
-  let body: { teacher?: Teacher; error?: string }
+  let body: { teacher?: Teacher; error?: string; temp_password?: string }
   try {
     body = await res.json()
   } catch {
@@ -235,5 +238,5 @@ async function callInviteEdgeFunction(input: {
     throw new Error('Server response missing teacher record')
   }
 
-  return body.teacher
+  return { teacher: body.teacher, temp_password: body.temp_password }
 }

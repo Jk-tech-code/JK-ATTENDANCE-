@@ -68,10 +68,10 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose} title="Invite Teacher">
+    <Dialog open={open} onOpenChange={handleClose} title="Add Teacher">
       <p className="text-sm text-muted-foreground mb-4">
-        An invitation email will be sent to the teacher with a secure link to create their password
-        and activate their account.
+        A temporary password will be generated. Share it with the teacher so they can log in and
+        change it from their dashboard.
       </p>
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -137,7 +137,7 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
           loading={isSubmitting}
           disabled={!isValid || isSubmitting}
         >
-          Invite & Create Account
+          Create Account
         </Button>
       </form>
     </Dialog>
