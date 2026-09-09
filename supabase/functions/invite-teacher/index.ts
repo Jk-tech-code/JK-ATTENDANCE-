@@ -47,6 +47,52 @@ async function lookupAuthUserByEmail(
   return users.length > 0 ? users[0] : null
 }
 
+/**
+ * Convert Supabase Auth invite error to user-friendly message.
+ * Does not expose internal details.
+ */
+function getInviteErrorMessage(inviteError: { message: string }): string {
+  const msg = inviteError.message.toLowerCase()
+
+  // Email provider / SMTP issues
+  if (msg.includes('smtp') || msg.includes('email provider') || msg.includes('mail')) {
+    return 'Email service is not configured. Please contact the system administrator.'
+  }
+
+  // Rate limiting
+  if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('quota')) {
+    return 'Too many invitation requests. Please wait a moment and try again.'
+  }
+
+  // Redirect URL issues
+  if (msg.includes('redirect') || msg.includes('url') || msg.includes('allowed')) {
+    return 'Invalid redirect URL configuration. Please contact the system administrator.'
+  }
+
+  // Email template issues
+  if (msg.includes('template') || msg.includes('confirmation')) {
+    return 'Email template error. Please contact the system administrator.'
+  }
+
+  // User already exists (should be caught by duplicate check, but defense in depth)
+  if (
+    msg.includes('already registered') ||
+    msg.includes('already exists') ||
+    msg.includes('duplicate')
+  ) {
+    return 'An account with this email already exists.'
+  }
+
+  // Invalid email
+  if (msg.includes('invalid email') || msg.includes('malformed')) {
+    return 'Please enter a valid email address.'
+  }
+
+  // Generic fallback - log the actual error for debugging but return safe message
+  console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
+  return 'Unable to send invitation. Please try again or contact support if the problem persists.'
+}
+
 export async function handler(req: Request): Promise<Response> {
   const adminResult = await adminMiddleware(req, 'POST')
   if (adminResult instanceof Response) return adminResult
@@ -93,27 +139,29 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // Create auth user via inviteUserByEmail
-    const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
-    console.warn(
-      '[invite-teacher] Inviting:',
-      input.email,
-      'redirectTo:',
-      `${siteUrl}/reset-password`
-    )
+    const siteUrl = Deno.env.get('SITE_URL')
+    if (!siteUrl) {
+      console.warn('[invite-teacher] SITE_URL not set, using default fallback')
+    }
+    const effectiveSiteUrl = siteUrl ?? 'https://jk-attendance.vercel.app'
+    const redirectTo = `${effectiveSiteUrl}/reset-password`
+
+    console.warn('[invite-teacher] Inviting:', input.email, 'redirectTo:', redirectTo)
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
       input.email,
       {
-        redirectTo: `${siteUrl}/reset-password`,
+        redirectTo,
         data: { role: 'teacher', full_name: input.full_name },
       }
     )
 
     if (inviteError) {
-      console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
-      return jsonResponse({ error: 'Unable to send invitation' }, 400)
+      const userMessage = getInviteErrorMessage(inviteError)
+      return jsonResponse({ error: userMessage }, 400)
     }
     if (!inviteData.user) {
+      console.error('[invite-teacher] Invitation failed — no user returned')
       return jsonResponse({ error: 'Invitation failed — no user returned' }, 500)
     }
 
@@ -148,7 +196,7 @@ export async function handler(req: Request): Promise<Response> {
     return jsonResponse({ teacher }, 201)
   } catch (err) {
     console.error('[invite-teacher] Unhandled error:', err)
-    return jsonResponse({ error: `Internal error: ${err.message}` }, 500)
+    return jsonResponse({ error: 'Internal server error' }, 500)
   }
 }
 
