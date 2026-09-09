@@ -181,7 +181,15 @@ async function callInviteEdgeFunction(input: {
   }
 
   if (!res.ok) {
-    throw new Error(body?.error ?? `Request failed (${res.status})`)
+    const errorMsg = body?.error ?? `Request failed (${res.status})`
+    // Surface meaningful backend errors to the UI
+    if (res.status === 409) {
+      throw new Error(errorMsg || 'A user with this email already exists.')
+    }
+    if (res.status === 403) {
+      throw new Error('You are not authorized to create teacher accounts.')
+    }
+    throw new Error(errorMsg)
   }
 
   if (!body.teacher) {

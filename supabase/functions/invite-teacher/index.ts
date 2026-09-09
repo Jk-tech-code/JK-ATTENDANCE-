@@ -96,10 +96,18 @@ export async function handler(req: Request): Promise<Response> {
 
     if (inviteError) {
       console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
-      return jsonResponse({ error: 'Failed to create teacher account.' }, 400)
+      // Distinguish duplicate-user errors from email/service errors
+      const msg = inviteError.message.toLowerCase()
+      if (msg.includes('already') || msg.includes('duplicate') || msg.includes('exists')) {
+        return jsonResponse({ error: 'A user with this email already exists.' }, 409)
+      }
+      return jsonResponse(
+        { error: 'Teacher account created but invitation email failed. Please try again.' },
+        400
+      )
     }
     if (!inviteData.user) {
-      return jsonResponse({ error: 'Failed to create teacher account — no user returned' }, 500)
+      return jsonResponse({ error: 'Teacher account creation failed — no user returned.' }, 500)
     }
 
     const authUserId = inviteData.user.id
@@ -134,7 +142,12 @@ export async function handler(req: Request): Promise<Response> {
       await supabase.auth.admin
         .deleteUser(authUserId)
         .catch((err: unknown) => console.error('[invite-teacher] Rollback deleteUser failed:', err))
-      return jsonResponse({ error: 'Teacher record creation failed' }, 400)
+      // Distinguish constraint violations (likely duplicates) from other errors
+      const msg = teacherError.message.toLowerCase()
+      if (msg.includes('duplicate') || msg.includes('unique') || msg.includes('already')) {
+        return jsonResponse({ error: 'A teacher with this email or staff number already exists.' }, 409)
+      }
+      return jsonResponse({ error: 'Teacher record creation failed. Please try again.' }, 400)
     }
 
     return jsonResponse({ teacher }, 201)
