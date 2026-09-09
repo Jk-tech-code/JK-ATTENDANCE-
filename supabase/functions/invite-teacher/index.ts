@@ -10,6 +10,7 @@ interface InviteInput {
   department?: string
   phone?: string
   reporting_time?: string
+  employment_status?: string
 }
 
 function getEnv() {
@@ -49,32 +50,36 @@ async function lookupAuthUserByEmail(
 
 /**
  * Convert Supabase Auth invite error to user-friendly message.
- * Does not expose internal details.
+ * Logs the raw error server-side for debugging.
+ * Does not expose internal details to the client.
  */
 function getInviteErrorMessage(inviteError: { message: string }): string {
   const msg = inviteError.message.toLowerCase()
 
-  // Email provider / SMTP issues
+  // Always log the raw error for debugging
+  console.error('[invite-teacher] inviteUserByEmail raw error:', inviteError.message)
+
+  // Email provider / SMTP not configured
   if (msg.includes('smtp') || msg.includes('email provider') || msg.includes('mail')) {
-    return 'Email service is not configured. Please contact the system administrator.'
+    return 'Email service is not configured. Please enable SMTP in the Supabase Dashboard under Authentication > Settings.'
   }
 
   // Rate limiting
   if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('quota')) {
-    return 'Too many invitation requests. Please wait a moment and try again.'
+    return 'Too many invitation requests. Please wait a few minutes and try again.'
   }
 
-  // Redirect URL issues
-  if (msg.includes('redirect') || msg.includes('url') || msg.includes('allowed')) {
-    return 'Invalid redirect URL configuration. Please contact the system administrator.'
+  // Redirect URL not in allowlist
+  if (msg.includes('redirect') || msg.includes('not allowed')) {
+    return 'Redirect URL not allowed. Please add your site URL to the Supabase Dashboard under Authentication > URL Configuration > Redirect URLs.'
   }
 
   // Email template issues
   if (msg.includes('template') || msg.includes('confirmation')) {
-    return 'Email template error. Please contact the system administrator.'
+    return 'Email template error. Please check the invite email template in the Supabase Dashboard under Authentication > Email Templates.'
   }
 
-  // User already exists (should be caught by duplicate check, but defense in depth)
+  // User already exists (defense in depth — duplicate check above should catch this)
   if (
     msg.includes('already registered') ||
     msg.includes('already exists') ||
@@ -88,9 +93,8 @@ function getInviteErrorMessage(inviteError: { message: string }): string {
     return 'Please enter a valid email address.'
   }
 
-  // Generic fallback - log the actual error for debugging but return safe message
-  console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
-  return 'Unable to send invitation. Please try again or contact support if the problem persists.'
+  // Generic fallback — log the raw error server-side, return safe message
+  return 'Unable to send invitation. Check Supabase Edge Function logs for details, or contact support.'
 }
 
 export async function handler(req: Request): Promise<Response> {
@@ -180,6 +184,7 @@ export async function handler(req: Request): Promise<Response> {
         department: input.department || null,
         phone: input.phone || null,
         reporting_time: input.reporting_time || null,
+        employment_status: input.employment_status || 'active',
         role: 'teacher',
         invited_at: new Date().toISOString(),
         invitation_sent: true,
@@ -188,8 +193,16 @@ export async function handler(req: Request): Promise<Response> {
       .single()
 
     if (teacherError) {
-      console.error('[invite-teacher] Teacher insert failed, rolling back:', teacherError.message)
-      await supabase.auth.admin.deleteUser(authUserId).catch(() => {})
+      console.error(
+        '[invite-teacher] Teacher insert failed, rolling back:',
+        teacherError.message,
+        teacherError.code
+      )
+      await supabase.auth.admin
+        .deleteUser(authUserId)
+        .catch((deleteErr) =>
+          console.error('[invite-teacher] Rollback deleteUser also failed:', deleteErr)
+        )
       return jsonResponse({ error: 'Teacher record creation failed' }, 400)
     }
 
