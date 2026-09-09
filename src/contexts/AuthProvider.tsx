@@ -8,6 +8,7 @@ import {
   signInWithGoogle as authSignInWithGoogle,
 } from '@/services/auth'
 import { queryClient } from '@/lib/queryClient'
+import { cleanupPrivateApiCaches } from '@/lib/privateCacheCleanup'
 import { AuthContext } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -62,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         setProfileError(null)
         queryClient.clear()
+        // H1 defense-in-depth: sweep any private Supabase API responses out
+        // of CacheStorage so they cannot outlive this session on a shared
+        // device. Fire-and-forget — never block the auth callback.
+        void cleanupPrivateApiCaches()
       }
     })
 
@@ -100,6 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // the same user on a shared device) does not see the previous
       // user's data. Also cancels pending queries.
       queryClient.clear()
+      // H1 defense-in-depth: also sweep CacheStorage on the explicit
+      // sign-out path (covers cases where the SIGNED_OUT event is delayed).
+      void cleanupPrivateApiCaches()
     }
     return result
   }

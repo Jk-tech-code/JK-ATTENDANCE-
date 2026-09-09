@@ -55,17 +55,15 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,ico}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/ireyodsiyvvjfqymgdpa\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api',
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-              networkTimeoutSeconds: 10,
-            },
-          },
-        ],
+        // H1 security fix: no runtime caching at all. The previous
+        // NetworkFirst rule persisted every Supabase response (attendance,
+        // teacher, profile, report and auth data) in a `supabase-api`
+        // CacheStorage cache that outlived logout on shared devices.
+        // Supabase API traffic is now strictly network-only; static app
+        // assets remain precached via globPatterns. This script deletes the
+        // legacy `supabase-api` cache left on devices that ran the old
+        // deployment (runs on service worker activation, autoUpdate).
+        importScripts: ['./sw-cache-cleanup.js'],
       },
     }),
     sitemap({
