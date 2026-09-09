@@ -58,9 +58,13 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
       phone: data.phone?.trim() || undefined,
       reporting_time: data.reporting_time || undefined,
     }
-    await onSubmit(trimmed)
-    reset()
-    onOpenChange(false)
+    try {
+      await onSubmit(trimmed)
+      reset()
+      onOpenChange(false)
+    } catch {
+      // Error already shown via toast in parent handler
+    }
   }
 
   return (

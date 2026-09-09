@@ -28,6 +28,7 @@ interface InviteInput {
   department?: string
   phone?: string
   reporting_time?: string
+  resend_email?: string
 }
 
 function configureClient(opts: {
@@ -38,9 +39,11 @@ function configureClient(opts: {
   existingTeacher?: TeacherRow | null
   invitedUser?: { id: string } | null
   inviteError?: { message: string }
+  inviteErrorWithUser?: { id: string } | null
   insertedTeacher?: TeacherRow | { id: string; full_name: string; email: string } | null
   insertError?: { message: string }
   onDeleteUser?: () => void
+  updateError?: { message: string }
 }): Client {
   const client: Client = {
     auth: {
@@ -57,7 +60,11 @@ function configureClient(opts: {
           }),
       admin: {
         inviteUserByEmail: async () => {
-          if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
+          if (opts.inviteError) {
+            // Return user data if inviteErrorWithUser is set (for cleanup test)
+            const user = opts.inviteErrorWithUser ? { id: opts.inviteErrorWithUser.id } : null
+            return { data: { user }, error: opts.inviteError }
+          }
           return {
             data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null },
             error: null,
@@ -74,11 +81,17 @@ function configureClient(opts: {
       if (table !== 'teachers') {
         throw new Error(`Unexpected from(${table})`)
       }
-      return {
+      const builder = {
         select: (cols: string) => {
           if (cols === 'id') {
             return {
               or: () => ({
+                maybeSingle: async () => ({
+                  data: opts.existingTeacher ?? null,
+                  error: null,
+                }),
+              }),
+              eq: () => ({
                 maybeSingle: async () => ({
                   data: opts.existingTeacher ?? null,
                   error: null,
@@ -94,6 +107,17 @@ function configureClient(opts: {
                     data: opts.isAdmin ? { role: opts.isAdmin.role ?? 'admin' } : null,
                     error: null,
                   }),
+                }),
+              }),
+            }
+          }
+          if (cols === '*') {
+            return {
+              order: () => ({
+                range: async () => ({
+                  data: opts.existingTeacher ? [opts.existingTeacher] : [],
+                  error: null,
+                  count: opts.existingTeacher ? 1 : 0,
                 }),
               }),
             }
@@ -119,11 +143,26 @@ function configureClient(opts: {
             },
           }),
         }),
+        update: (updateData: Record<string, unknown>) => ({
+          eq: () => ({
+            select: () => ({
+              maybeSingle: async () => {
+                if (opts.updateError) return { data: null, error: opts.updateError }
+                return { data: { ...updateData, id: 'teacher-1' }, error: null }
+              },
+              single: async () => {
+                if (opts.updateError) return { data: null, error: opts.updateError }
+                return { data: { ...updateData, id: 'teacher-1' }, error: null }
+              },
+            }),
+          }),
+        }),
       }
+      return builder
     },
   }
 
-  // Mock fetch for GoTrue REST API lookup (no Resend needed)
+  // Mock fetch for GoTrue REST API lookup
   const originalFetch = globalThis.fetch
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
@@ -361,6 +400,103 @@ describe('invite-teacher', () => {
       })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('cleans up orphaned auth user when inviteUserByEmail creates user then fails', async () => {
+      let deleteCount = 0
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        inviteError: { message: 'email delivery failed' },
+        inviteErrorWithUser: { id: 'orphaned-user-1' },
+        onDeleteUser: () => {
+          deleteCount += 1
+        },
+      })
+      const res = await handler(
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
+      )
+      expect(res.status).toBe(400)
+      expect(deleteCount).toBe(1)
+    })
+
+    it('returns 409 when inviteUserByEmail fails with duplicate error', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        inviteError: { message: 'User already exists' },
+      })
+      const res = await handler(
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
+      )
+      expect(res.status).toBe(409)
+    })
+  })
+
+  describe('resend invite', () => {
+    it('returns 404 when no auth user found for resend', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', resend_email: 't@x.com' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(404)
+    })
+
+    it('returns 404 when no teacher record found for resend', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: { id: 'auth-1', email: 't@x.com' },
+        existingTeacher: null,
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', resend_email: 't@x.com' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(404)
+    })
+
+    it('resends invite successfully', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: { id: 'auth-1', email: 't@x.com' },
+        existingTeacher: { id: 'teacher-1' },
+        invitedUser: { id: 'auth-1' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', resend_email: 't@x.com' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.message).toBe('Invitation resent successfully')
+    })
+
+    it('returns 400 when resend invite email fails', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: { id: 'auth-1', email: 't@x.com' },
+        existingTeacher: { id: 'teacher-1' },
+        inviteError: { message: 'email service unavailable' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', resend_email: 't@x.com' },
+          'Bearer admin'
+        )
       )
       expect(res.status).toBe(400)
     })

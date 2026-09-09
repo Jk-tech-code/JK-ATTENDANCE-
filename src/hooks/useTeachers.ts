@@ -5,6 +5,7 @@ import {
   updateTeacher,
   deleteTeacher,
   inviteTeacher,
+  resendInvite,
   type GetTeachersParams,
 } from '@/services/admin'
 
@@ -73,6 +74,18 @@ export function useInviteTeacher() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: teacherKeys.all })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+// ─── Resend invite ──────────────────────────────────────────
+export function useResendInvite() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: Parameters<typeof resendInvite>[0]) => resendInvite(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: teacherKeys.all })
     },
   })
 }

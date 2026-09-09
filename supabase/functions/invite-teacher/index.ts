@@ -11,6 +11,7 @@ interface InviteInput {
   phone?: string
   reporting_time?: string
   employment_status?: string
+  resend_email?: string
 }
 
 function getEnv() {
@@ -61,6 +62,61 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'staff_number, full_name, and email are required' }, 400)
     }
 
+    // ── Resend invite mode ──────────────────────────────────────
+    if (input.resend_email) {
+      const existingAuthUser = await lookupAuthUserByEmail(
+        supabaseUrl,
+        serviceRoleKey,
+        input.resend_email
+      )
+      if (!existingAuthUser) {
+        return jsonResponse(
+          { error: 'No account found for this email. Try creating a new teacher instead.' },
+          404
+        )
+      }
+
+      const { data: teacher } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('email', input.resend_email)
+        .maybeSingle()
+
+      if (!teacher) {
+        return jsonResponse(
+          { error: 'No teacher record found for this email.' },
+          404
+        )
+      }
+
+      const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
+      const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+        input.resend_email,
+        {
+          redirectTo: `${siteUrl}/reset-password`,
+          data: { role: 'teacher', full_name: input.full_name },
+        }
+      )
+
+      if (inviteError) {
+        console.error('[invite-teacher] Resend invite failed:', inviteError.message)
+        return jsonResponse(
+          { error: `Failed to resend invitation: ${inviteError.message}` },
+          400
+        )
+      }
+
+      await supabase
+        .from('teachers')
+        .update({
+          invited_at: new Date().toISOString(),
+          invitation_sent: true,
+        })
+        .eq('id', teacher.id)
+
+      return jsonResponse({ message: 'Invitation resent successfully' }, 200)
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(input.email)) {
       return jsonResponse({ error: 'Please enter a valid email address' }, 400)
@@ -96,13 +152,25 @@ export async function handler(req: Request): Promise<Response> {
 
     if (inviteError) {
       console.error('[invite-teacher] inviteUserByEmail failed:', inviteError.message)
-      // Distinguish duplicate-user errors from email/service errors
+      // inviteUserByEmail may create the auth user before failing on email delivery.
+      // Clean up any orphaned auth user so retries don't hit duplicate-user errors.
+      if (inviteData?.user?.id) {
+        console.warn(
+          '[invite-teacher] Cleaning up orphaned auth user:',
+          inviteData.user.id
+        )
+        await supabase.auth.admin
+          .deleteUser(inviteData.user.id)
+          .catch((err: unknown) =>
+            console.error('[invite-teacher] Cleanup deleteUser failed:', err)
+          )
+      }
       const msg = inviteError.message.toLowerCase()
       if (msg.includes('already') || msg.includes('duplicate') || msg.includes('exists')) {
         return jsonResponse({ error: 'A user with this email already exists.' }, 409)
       }
       return jsonResponse(
-        { error: 'Teacher account created but invitation email failed. Please try again.' },
+        { error: `Invitation email failed: ${inviteError.message}` },
         400
       )
     }

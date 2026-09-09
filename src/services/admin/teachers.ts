@@ -136,6 +136,45 @@ export async function inviteTeacher(input: {
   return { teacher }
 }
 
+// ─── Resend invite ──────────────────────────────────────────
+export async function resendInvite(input: {
+  staff_number: string
+  full_name: string
+  email: string
+}): Promise<void> {
+  const { data: session } = await supabase.auth.getSession()
+  const token = session?.session?.access_token
+  if (!token) throw new Error('Not authenticated')
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const url = `${supabaseUrl}/functions/v1/invite-teacher`
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ...input, resend_email: input.email }),
+    })
+  } catch {
+    throw new Error('Cannot reach server. Check your internet connection.')
+  }
+
+  let body: { message?: string; error?: string }
+  try {
+    body = await res.json()
+  } catch {
+    throw new Error(`Server returned ${res.status} with no JSON body`)
+  }
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? `Request failed (${res.status})`)
+  }
+}
+
 // ─── Shared edge function caller ─────────────────────────────
 async function callInviteEdgeFunction(input: {
   staff_number: string

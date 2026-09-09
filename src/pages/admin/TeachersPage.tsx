@@ -16,10 +16,11 @@ import {
   useUpdateTeacher,
   useDeleteTeacher,
   useInviteTeacher,
+  useResendInvite,
 } from '@/hooks/useTeachers'
 import { InviteTeacherModal, type InviteTeacherFormData } from '@/components/InviteTeacherModal'
 import type { Teacher } from '@/types'
-import { Plus, Pencil, Trash2, Search, UserPlus, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, UserPlus, Users, Mail } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
@@ -53,6 +54,7 @@ export default function TeachersPage() {
   const updateMutation = useUpdateTeacher()
   const deleteMutation = useDeleteTeacher()
   const inviteMutation = useInviteTeacher()
+  const resendMutation = useResendInvite()
 
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
@@ -153,7 +155,22 @@ export default function TeachersPage() {
       })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
-      throw err
+    }
+  }
+
+  const handleResendInvite = async (teacher: Teacher) => {
+    try {
+      await resendMutation.mutateAsync({
+        staff_number: teacher.staff_number,
+        full_name: teacher.full_name,
+        email: teacher.email,
+      })
+      toast.success('Invitation resent', {
+        description: `${teacher.email} will receive a new invitation link.`,
+        duration: 10000,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -222,6 +239,7 @@ export default function TeachersPage() {
                   teachers={filtered}
                   onEdit={openEdit}
                   onDelete={(t) => setDeleteTarget(t)}
+                  onResendInvite={handleResendInvite}
                 />
               </div>
             )}
@@ -345,10 +363,12 @@ function VirtualizedTeacherTable({
   teachers,
   onEdit,
   onDelete,
+  onResendInvite,
 }: {
   teachers: Teacher[]
   onEdit: (t: Teacher) => void
   onDelete: (t: Teacher) => void
+  onResendInvite: (t: Teacher) => void
 }) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -367,7 +387,7 @@ function VirtualizedTeacherTable({
     'flex-[1.2]',
     'flex-[0.9]',
     'flex-[1]',
-    'w-24 shrink-0',
+    'w-28 shrink-0',
   ]
 
   return (
@@ -444,6 +464,14 @@ function VirtualizedTeacherTable({
                   </span>
                 </div>
                 <div className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onResendInvite(t)}
+                    title="Resend invite"
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(t)} title="Edit">
                     <Pencil className="h-4 w-4" />
                   </Button>
