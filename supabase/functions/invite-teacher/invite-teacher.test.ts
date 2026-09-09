@@ -5,14 +5,13 @@ type Client = {
   auth: {
     getUser: (token: string) => Promise<{ data: { user: unknown }; error: unknown }>
     admin: {
-      listUsers?: (
-        page?: number,
-        perPage?: number
-      ) => Promise<{ data: { users: unknown[] }; error: unknown }>
-      inviteUserByEmail: (
-        email: string,
+      createUser: (
         opts: unknown
       ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
+      generateLink: (opts: unknown) => Promise<{
+        data: { properties?: { action_link?: string } } | null
+        error: { message: string } | null
+      }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
   }
@@ -34,41 +33,21 @@ interface InviteInput {
   reporting_time?: string
 }
 
-/**
- * Build a mock supabase client for invite-teacher.
- *
- * invite-teacher's query order:
- *   1) adminMiddleware → verifyAuth (auth.getUser) + isAdmin
- *      (from teachers: select('id').or(...).eq('role','admin').maybeSingle())
- *   2) GoTrue REST API lookup by email (fetch)
- *   3) from teachers: select('id').or(email|staff_number.eq.X).maybeSingle()
- *   4) inviteUserByEmail
- *   5) from teachers: insert(...).select().single()
- *   6) [on insert error] deleteUser
- */
 function configureClient(opts: {
-  // Auth result for the calling user (verified Bearer token).
   caller?: { id: string; email?: string }
   getUserError?: { message: string }
-  // isAdmin check: teacher row found for caller?
   isAdmin?: TeacherRow | null
-  // GoTrue REST API lookup by email — user returned by fetch
   existingAuthUser?: { id: string; email: string } | null
-  // teachers table duplicate check
   existingTeacher?: TeacherRow | null
-  // inviteUserByEmail result
-  invitedUser?: { id: string } | null
-  inviteError?: { message: string }
-  // teacher insert result
+  createUserResult?: { id: string } | null
+  createUserError?: { message: string }
+  generateLinkResult?: { action_link?: string } | null
+  generateLinkError?: { message: string }
   insertedTeacher?: TeacherRow | { id: string; full_name: string; email: string } | null
   insertError?: { message: string }
-  // deleteUser call counter (rollback assertion)
   onDeleteUser?: () => void
+  resendSuccess?: boolean
 }): Client {
-  // Counter is shared across from('teachers') calls. The handler may
-  // call from() multiple times (adminMiddleware does isAdmin; the
-  // function body does duplicate-check). Without sharing the counter,
-  // every call would see count=1 and return the isAdmin chain.
   const teacherIdSelectCount = { count: 0 }
   const client: Client = {
     auth: {
@@ -84,10 +63,23 @@ function configureClient(opts: {
             error: null,
           }),
       admin: {
-        inviteUserByEmail: async () => {
-          if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
+        createUser: async () => {
+          if (opts.createUserError) return { data: { user: null }, error: opts.createUserError }
           return {
-            data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null },
+            data: { user: opts.createUserResult ? { id: opts.createUserResult.id } : null },
+            error: null,
+          }
+        },
+        generateLink: async () => {
+          if (opts.generateLinkError) return { data: null, error: opts.generateLinkError }
+          return {
+            data: {
+              properties: {
+                action_link:
+                  opts.generateLinkResult?.action_link ??
+                  'https://example.com/reset-password#token=abc',
+              },
+            },
             error: null,
           }
         },
@@ -106,7 +98,6 @@ function configureClient(opts: {
         select: (cols: string) => {
           if (cols === 'id') {
             teacherIdSelectCount.count += 1
-            // Duplicate teacher: .or(...).maybeSingle()
             return {
               or: () => ({
                 maybeSingle: async () => ({
@@ -117,7 +108,6 @@ function configureClient(opts: {
             }
           }
           if (cols === 'role') {
-            // verifyAdminRequest queries select('role').or(...).in(...).maybeSingle()
             return {
               or: () => ({
                 in: () => ({
@@ -129,8 +119,6 @@ function configureClient(opts: {
               }),
             }
           }
-          // For the happy-path insert test we override .from below to
-          // wrap .insert() so the test can capture the inserted payload.
           throw new Error('Unexpected select cols: ' + cols)
         },
         insert: (record: Record<string, unknown>) => ({
@@ -156,11 +144,9 @@ function configureClient(opts: {
     },
   }
 
-  // Mock fetch for the GoTrue REST API email lookup.
-  // The Edge Function calls GET /auth/v1/admin/users?email=... with the
-  // service-role key. We intercept and return the configured existing user.
+  // Mock fetch for GoTrue REST API lookup AND Resend API
   const originalFetch = globalThis.fetch
-  globalThis.fetch = async (input: RequestInfo | URL) => {
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
     if (url.includes('/auth/v1/admin/users?email=')) {
       if (opts.existingAuthUser) {
@@ -168,7 +154,13 @@ function configureClient(opts: {
       }
       return new Response(JSON.stringify([]), { status: 200 })
     }
-    return originalFetch(input as RequestInfo)
+    if (url.includes('api.resend.com/emails')) {
+      if (opts.resendSuccess === false) {
+        return new Response(JSON.stringify({ message: 'SMTP error' }), { status: 500 })
+      }
+      return new Response(JSON.stringify({ id: 'email-123' }), { status: 200 })
+    }
+    return originalFetch(input as RequestInfo, init)
   }
 
   globalThis.__MOCK_SUPABASE__.createClient = () => client
@@ -191,11 +183,15 @@ describe('invite-teacher', () => {
   beforeEach(() => {
     process.env.SUPABASE_URL = 'https://test.supabase.co'
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'
+    process.env.RESEND_API_KEY = 're_test_key'
+    process.env.SITE_URL = 'https://jk-attendance.vercel.app'
   })
 
   afterEach(() => {
     delete process.env.SUPABASE_URL
     delete process.env.SUPABASE_SERVICE_ROLE_KEY
+    delete process.env.RESEND_API_KEY
+    delete process.env.SITE_URL
   })
 
   describe('admin gating', () => {
@@ -215,11 +211,6 @@ describe('invite-teacher', () => {
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer teacher-1')
       )
-      // Debug: surface what the handler is actually returning.
-      if (res.status !== 403) {
-        const body = await res.json()
-        throw new Error(`expected 403, got ${res.status}: ${JSON.stringify(body)}`)
-      }
       expect(res.status).toBe(403)
     })
 
@@ -231,24 +222,19 @@ describe('invite-teacher', () => {
           headers: { authorization: 'Bearer admin' },
         })
       )
-      // CORS preflight handling may return 204; for GET we expect 405.
       expect([204, 405]).toContain(res.status)
     })
   })
 
   describe('input validation', () => {
     it('returns 400 when staff_number is missing', async () => {
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-      })
+      configureClient({ isAdmin: { id: 'admin-1', role: 'admin' } })
       const res = await handler(makeRequest({ full_name: 'T', email: 't@x.com' }, 'Bearer admin'))
       expect(res.status).toBe(400)
     })
 
     it('returns 400 when full_name is missing', async () => {
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-      })
+      configureClient({ isAdmin: { id: 'admin-1', role: 'admin' } })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', email: 't@x.com' }, 'Bearer admin')
       )
@@ -256,9 +242,7 @@ describe('invite-teacher', () => {
     })
 
     it('returns 400 when email is missing', async () => {
-      configureClient({
-        isAdmin: { id: 'admin-1', role: 'admin' },
-      })
+      configureClient({ isAdmin: { id: 'admin-1', role: 'admin' } })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T' }, 'Bearer admin')
       )
@@ -279,13 +263,12 @@ describe('invite-teacher', () => {
     })
 
     it('continues when no auth user with the same email exists', async () => {
-      // No match from the GoTrue REST API means the email is unused — that's
-      // the happy path, not an error.
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        invitedUser: { id: 'new-auth-1' },
+        createUserResult: { id: 'new-auth-1' },
+        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
         insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
       })
       const res = await handler(
@@ -308,17 +291,17 @@ describe('invite-teacher', () => {
   })
 
   describe('happy path', () => {
-    it('invites the user and creates the teacher record', async () => {
+    it('creates user, generates link, sends email, creates teacher record', async () => {
       let insertedRecord: Record<string, unknown> | null = null
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        invitedUser: { id: 'new-auth-1' },
-        insertedTeacher: null, // let the mock return the inserted record
+        createUserResult: { id: 'new-auth-1' },
+        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
+        insertedTeacher: null,
       })
 
-      // Wrap insert to capture the payload.
       const original = globalThis.__MOCK_SUPABASE__.createClient
       globalThis.__MOCK_SUPABASE__.createClient = () => {
         const c = original() as Client
@@ -384,7 +367,8 @@ describe('invite-teacher', () => {
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        invitedUser: { id: 'new-auth-1' },
+        createUserResult: { id: 'new-auth-1' },
+        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
         insertError: { message: 'teachers_insert_failed' },
         onDeleteUser: () => {
           deleteCount += 1
@@ -399,18 +383,74 @@ describe('invite-teacher', () => {
     })
   })
 
-  describe('invite failures', () => {
-    it('returns 400 when inviteUserByEmail errors', async () => {
+  describe('createUser failures', () => {
+    it('returns 409 when createUser reports duplicate', async () => {
       configureClient({
         isAdmin: { id: 'admin-1', role: 'admin' },
         existingAuthUser: null,
         existingTeacher: null,
-        inviteError: { message: 'smtp down' },
+        createUserError: { message: 'User already registered' },
+      })
+      const res = await handler(
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
+      )
+      expect(res.status).toBe(409)
+    })
+
+    it('returns 400 when createUser fails generically', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createUserError: { message: 'Database error' },
       })
       const res = await handler(
         makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(400)
+    })
+  })
+
+  describe('generateLink failures', () => {
+    it('returns 400 and rolls back when generateLink fails', async () => {
+      let deleteCount = 0
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createUserResult: { id: 'new-auth-1' },
+        generateLinkError: { message: 'link generation failed' },
+        onDeleteUser: () => {
+          deleteCount += 1
+        },
+      })
+      const res = await handler(
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
+      )
+      expect(res.status).toBe(400)
+      expect(deleteCount).toBe(1)
+    })
+  })
+
+  describe('email send failures', () => {
+    it('returns 500 and rolls back when Resend API fails', async () => {
+      let deleteCount = 0
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createUserResult: { id: 'new-auth-1' },
+        generateLinkResult: { action_link: 'https://example.com/reset-password#token=abc' },
+        resendSuccess: false,
+        onDeleteUser: () => {
+          deleteCount += 1
+        },
+      })
+      const res = await handler(
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
+      )
+      expect(res.status).toBe(500)
+      expect(deleteCount).toBe(1)
     })
   })
 })

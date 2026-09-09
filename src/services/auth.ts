@@ -130,13 +130,26 @@ export async function signOut(): Promise<{ error: string | null }> {
 
 export async function resetPassword(email: string): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const { data: session } = await supabase.auth.getSession()
+    const token = session?.session?.access_token
+
+    const res = await fetch(`${supabaseUrl}/functions/v1/recover-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ email }),
     })
-    if (error) {
-      console.error('[resetPassword] Supabase error:', error.message)
-      return { error: error.message }
+
+    const body = await res.json()
+
+    if (!res.ok) {
+      console.error('[resetPassword] Edge Function error:', body.error)
+      return { error: body.error ?? 'Failed to send reset email' }
     }
+
     return { error: null }
   } catch (err) {
     console.error('[resetPassword] Network or SDK error:', err)
