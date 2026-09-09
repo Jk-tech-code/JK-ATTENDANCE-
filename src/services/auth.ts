@@ -129,10 +129,21 @@ export async function signOut(): Promise<{ error: string | null }> {
 }
 
 export async function resetPassword(email: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  })
-  return { error: error?.message ?? null }
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) {
+      console.error('[resetPassword] Supabase error:', error.message)
+      return { error: error.message }
+    }
+    return { error: null }
+  } catch (err) {
+    console.error('[resetPassword] Network or SDK error:', err)
+    return {
+      error: 'Unable to connect to the server. Check your internet connection and try again.',
+    }
+  }
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {

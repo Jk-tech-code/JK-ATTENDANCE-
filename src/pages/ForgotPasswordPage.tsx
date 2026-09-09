@@ -34,7 +34,17 @@ export default function ForgotPasswordPage() {
     setError(null)
     const result = await resetPassword(data.email)
     if (result.error) {
-      setError(result.error)
+      const msg = result.error.toLowerCase()
+      if (msg.includes('email') && msg.includes('not found')) {
+        setError('No account found with this email address.')
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('Too many requests. Please wait a moment and try again.')
+      } else if (msg.includes('for security purposes')) {
+        setError(result.error)
+      } else {
+        console.error('[ForgotPassword] Raw error:', result.error)
+        setError('Unable to send reset email. Please try again or contact support.')
+      }
       return
     }
     setSent(true)
