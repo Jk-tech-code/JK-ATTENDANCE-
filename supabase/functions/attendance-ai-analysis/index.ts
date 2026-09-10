@@ -1,28 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin, verifyAuth, isAdmin } from '../_shared/supabase.ts'
-
-// Simple in-memory rate limiter (resets on cold start, acceptable for Edge Functions)
-const RATE_LIMIT_WINDOW_MS = 60_000 // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10 // 10 requests per minute per user
-const rateLimitStore = new Map<string, { count: number; windowStart: number }>()
-
-function checkRateLimit(userId: string): { allowed: boolean; resetAt: number } {
-  const now = Date.now()
-  const entry = rateLimitStore.get(userId)
-
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    rateLimitStore.set(userId, { count: 1, windowStart: now })
-    return { allowed: true, resetAt: now + RATE_LIMIT_WINDOW_MS }
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, resetAt: entry.windowStart + RATE_LIMIT_WINDOW_MS }
-  }
-
-  entry.count++
-  return { allowed: true, resetAt: entry.windowStart + RATE_LIMIT_WINDOW_MS }
-}
+import { checkRateLimit } from '../_shared/rate-limit.ts'
 
 interface AIAnalysisRequest {
   month?: number
@@ -47,13 +26,16 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'Forbidden: Admin access required' }, 403)
     }
 
-    // Rate limiting
-    const rateLimit = checkRateLimit(auth.user.id)
+    // H2: distributed rate limit — 10 analyses per admin per minute (limit
+    // preserved from the previous local limiter), keyed by the server-
+    // trusted admin user id. Fail-closed: this endpoint consumes paid
+    // external AI resources, so a limiter backend outage rejects requests.
+    const rateLimit = await checkRateLimit(supabase, 'attendance-ai-analysis', auth.user.id, 10, 60)
     if (!rateLimit.allowed) {
       return jsonResponse(
-        { error: 'Rate limit exceeded. Please wait before requesting another analysis.' },
-        429,
-        { 'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)) }
+        { error: rateLimit.message },
+        rateLimit.status,
+        rateLimit.status === 429 ? { 'Retry-After': String(rateLimit.retryAfter) } : undefined
       )
     }
 

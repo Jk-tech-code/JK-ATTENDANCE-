@@ -44,7 +44,25 @@ function configureClient(opts: {
           }),
     },
     rpc: ((name: string, _args?: unknown) => {
-      const result = opts.rpcResults?.[name] ?? { data: null, error: null }
+      // H2: default the distributed rate-limit RPC to "allowed" (simulating
+      // the PostgreSQL backend, migration 00054); all other RPCs default to
+      // no result as before. Rate-limit behavior is covered by
+      // _shared/rate-limit.test.ts — this does not disable the limiter.
+      const result =
+        opts.rpcResults?.[name] ??
+        (name === 'consume_rate_limit'
+          ? {
+              data: [
+                {
+                  allowed: true,
+                  remaining: 999,
+                  retry_after: 0,
+                  reset_at: new Date(Date.now() + 60_000).toISOString(),
+                },
+              ],
+              error: null,
+            }
+          : { data: null, error: null })
       // The real Supabase client returns a builder from rpc() that has
       // .single() / .maybeSingle() methods, not a raw promise.
       // Return a thenable builder so callers can chain.

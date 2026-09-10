@@ -24,7 +24,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
-    include: ['src/**/*.{test,spec}.{ts,tsx}', 'supabase/functions/**/*.{test,spec}.ts'],
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'supabase/functions/**/*.{test,spec}.ts',
+      // H2: migration contract tests (statically verify migration SQL).
+      'supabase/migrations/**/*.test.ts',
+    ],
     // Inline the stub so vi.mock can intercept it. Without this, vitest
     // caches the resolved module and vi.mock has no effect.
     server: {

@@ -1,23 +1,12 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { adminMiddleware } from '../_shared/admin.ts'
-import { jsonResponse } from '../_shared/cors.ts'
+import { createSupabaseAdmin, jsonResponse } from '../_shared/supabase.ts'
+import { checkRateLimit } from '../_shared/rate-limit.ts'
 
 interface CreateAdminInput {
   email: string
   full_name: string
   role: 'admin' | 'superadmin'
-}
-
-function createSupabaseAdmin() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-  }
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
 }
 
 /**
@@ -43,6 +32,19 @@ export async function handler(req: Request): Promise<Response> {
 
   const { role: callerRole } = adminResult
   const supabase = createSupabaseAdmin()
+
+  // H2: distributed rate limit — 3 admin creations per admin per minute,
+  // keyed by the server-trusted admin user id (not IP, not request email).
+  // Fail-closed: a limiter backend outage rejects the request (503) rather
+  // than letting the sensitive operation run unlimited.
+  const rateLimit = await checkRateLimit(supabase, 'create-admin', adminResult.userId, 3, 60)
+  if (!rateLimit.allowed) {
+    return jsonResponse(
+      { error: rateLimit.message },
+      rateLimit.status,
+      rateLimit.status === 429 ? { 'Retry-After': String(rateLimit.retryAfter) } : undefined
+    )
+  }
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -103,7 +105,7 @@ export async function handler(req: Request): Promise<Response> {
 
     // ── Create auth user via invite ───────────────
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
-    console.warn('[create-admin] Inviting:', input.email, 'as', input.role)
+    console.warn('[create-admin] Creating admin:', input.role)
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
       input.email,
@@ -153,7 +155,7 @@ export async function handler(req: Request): Promise<Response> {
       // Non-fatal: teacher record is the source of truth for authorization
     }
 
-    console.warn('[create-admin] Success:', input.email, '->', input.role)
+    console.warn('[create-admin] Success:', input.role)
 
     return jsonResponse(
       {

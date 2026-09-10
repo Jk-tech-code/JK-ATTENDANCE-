@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { adminMiddleware } from '../_shared/admin.ts'
 import { jsonResponse } from '../_shared/cors.ts'
+import { checkRateLimit } from '../_shared/rate-limit.ts'
 
 interface InviteInput {
   staff_number: string
@@ -67,11 +68,18 @@ export async function handler(req: Request): Promise<Response> {
 
   try {
     const input: InviteInput = await req.json()
-    console.warn('[invite-teacher] Input:', {
-      email: input.email,
-      staff_number: input.staff_number,
-      full_name: input.full_name,
-    })
+
+    // H2: distributed rate limit — 10 invites per admin per minute, keyed
+    // by the server-trusted admin user id (not IP, not the request email).
+    // Fail-closed on limiter backend failure.
+    const rateLimit = await checkRateLimit(supabase, 'invite-teacher', adminResult.userId, 10, 60)
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        { error: rateLimit.message },
+        rateLimit.status,
+        rateLimit.status === 429 ? { 'Retry-After': String(rateLimit.retryAfter) } : undefined
+      )
+    }
 
     if (!input.staff_number || !input.full_name || !input.email) {
       return jsonResponse({ error: 'staff_number, full_name, and email are required' }, 400)

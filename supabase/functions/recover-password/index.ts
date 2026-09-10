@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
+import { createSupabaseAdmin } from '../_shared/supabase.ts'
+import { checkRateLimit, hmacIdentifier, coarseIpTag } from '../_shared/rate-limit.ts'
 
 interface RecoverInput {
   email: string
@@ -26,15 +27,47 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'Please enter a valid email address' }, 400)
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
-      return jsonResponse({ error: 'Server configuration error' }, 500)
-    }
+    const supabase = createSupabaseAdmin()
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
+    // ── H2: distributed rate limit ────────────────────────────────────────
+    // Two independent buckets (both atomic, both fail-closed):
+    //
+    //   1. PRIMARY (authoritative): HMAC-SHA256(normalized email), 5/min.
+    //      The email is server-normalized and hashed (raw addresses are
+    //      never stored in limiter state). x-forwarded-for is deliberately
+    //      NOT trusted as a security identity — it can be client-supplied,
+    //      so rotating it must not grant fresh capacity for the same
+    //      target. This bucket cannot be bypassed by header rotation.
+    //
+    //   2. SECONDARY (anti-spray): coarse best-effort network tag
+    //      (/24 IPv4, /48 IPv6), 30/min. Only narrows coordinated spraying
+    //      of many random addresses from one network; it is never the sole
+    //      boundary and never gates a legitimate single recovery.
+    //
+    // Fail-closed: a limiter backend outage rejects the request instead of
+    // allowing unlimited recovery emails.
+    const emailKey = await hmacIdentifier(input.email.trim().toLowerCase())
+    const ipTag = coarseIpTag(req.headers.get('x-forwarded-for'))
+    const checks: Array<{ identifier: string; maxAttempts: number }> = [
+      { identifier: emailKey, maxAttempts: 5 },
+      { identifier: `net:${ipTag}`, maxAttempts: 30 },
+    ]
+    for (const c of checks) {
+      const rateLimit = await checkRateLimit(
+        supabase,
+        'recover-password',
+        c.identifier,
+        c.maxAttempts,
+        60
+      )
+      if (!rateLimit.allowed) {
+        return jsonResponse(
+          { error: rateLimit.message },
+          rateLimit.status,
+          rateLimit.status === 429 ? { 'Retry-After': String(rateLimit.retryAfter) } : undefined
+        )
+      }
+    }
 
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
 
@@ -53,8 +86,8 @@ export async function handler(req: Request): Promise<Response> {
       success: true,
       message: 'If an account exists, a reset link has been sent.',
     })
-  } catch (err) {
-    console.error('[recover-password] Unhandled error:', err)
+  } catch {
+    console.error('[recover-password] Unhandled error')
     return jsonResponse({ error: 'Internal server error' }, 500)
   }
 }

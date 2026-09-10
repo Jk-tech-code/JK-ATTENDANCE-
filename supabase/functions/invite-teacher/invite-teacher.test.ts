@@ -80,7 +80,25 @@ function configureClient(opts: {
         },
       },
     },
-    rpc: async () => ({ data: null, error: null }),
+    // H2: the distributed rate limit lives behind the consume_rate_limit
+    // RPC (migration 00054). Mocks return an "allowed" row so business
+    // tests exercise the operation, not the limiter — rate-limit behavior
+    // itself is covered by _shared/rate-limit.test.ts. The limiter is NOT
+    // disabled: requests still flow through checkRateLimit.
+    rpc: async (name: string) =>
+      name === 'consume_rate_limit'
+        ? {
+            data: [
+              {
+                allowed: true,
+                remaining: 999,
+                retry_after: 0,
+                reset_at: new Date(Date.now() + 60_000).toISOString(),
+              },
+            ],
+            error: null,
+          }
+        : { data: null, error: null },
     from: (table: string) => {
       if (table !== 'teachers') {
         throw new Error(`Unexpected from(${table})`)

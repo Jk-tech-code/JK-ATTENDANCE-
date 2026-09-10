@@ -1,20 +1,27 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { adminMiddleware } from '../_shared/admin.ts'
 import { createSupabaseAdmin, jsonResponse } from '../_shared/supabase.ts'
+import { checkRateLimit } from '../_shared/rate-limit.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const start = Date.now()
-  console.warn('[delete-teacher] Request:', {
-    method: req.method,
-    url: req.url,
-    origin: req.headers.get('origin'),
-  })
 
   const adminResult = await adminMiddleware(req, 'POST')
   if (adminResult instanceof Response) return adminResult
 
-  const { userId: _userId, email: _adminEmail } = adminResult
   const supabase = createSupabaseAdmin()
+
+  // H2: distributed rate limit — 5 deletes per admin per minute, keyed by
+  // the server-trusted admin user id (not IP). Fail-closed on limiter
+  // backend failure.
+  const rateLimit = await checkRateLimit(supabase, 'delete-teacher', adminResult.userId, 5, 60)
+  if (!rateLimit.allowed) {
+    return jsonResponse(
+      { error: rateLimit.message },
+      rateLimit.status,
+      rateLimit.status === 429 ? { 'Retry-After': String(rateLimit.retryAfter) } : undefined
+    )
+  }
 
   try {
     const { teacher_id } = await req.json()
