@@ -31,7 +31,8 @@
         "network-dependency-tree-insight": "off",
         "unused-javascript": "off",
         "render-blocking-resources": "off",
-        "render-blocking-insight": "off"
+        "render-blocking-insight": "off",
+        "valid-source-maps": "off"
       }
     }
   }
