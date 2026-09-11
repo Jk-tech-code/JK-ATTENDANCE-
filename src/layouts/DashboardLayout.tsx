@@ -104,13 +104,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             {(user?.role === 'admin' || user?.role === 'superadmin') && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => navigate('/admin')}
+                onClick={() => navigate('/admin/dashboard')}
                 className="gap-1.5 text-xs"
+                aria-label="Go to Admin Dashboard"
+                title="Admin Dashboard"
               >
                 <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-                {user?.role === 'superadmin' ? 'Superadmin' : 'Admin'}
+                <span className="hidden sm:inline">Admin Dashboard</span>
               </Button>
             )}
             <Button
