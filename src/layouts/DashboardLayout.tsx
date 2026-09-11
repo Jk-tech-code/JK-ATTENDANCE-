@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/services/supabase'
 import { toast } from 'sonner'
+import { isAdminRole } from '@/lib/auth'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -19,6 +20,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+
   const [pwOpen, setPwOpen] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -102,7 +104,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </span>
             </div>
-            {(user?.role === 'admin' || user?.role === 'superadmin') && (
+            {isAdminRole(user?.role) && (
               <Button
                 variant="outline"
                 size="sm"

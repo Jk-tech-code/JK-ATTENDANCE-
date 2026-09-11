@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { isAdminRole } from '@/lib/auth'
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -42,7 +43,7 @@ export default function LoginPage() {
       return
     }
     const { user } = result
-    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
+    if (user && isAdminRole(user.role)) {
       navigate('/admin', { replace: true })
     } else {
       navigate('/dashboard', { replace: true })

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { isAdminRole } from '@/lib/auth'
 
 const siteUrl =
   typeof window !== 'undefined' ? window.location.origin : 'https://jk-attendance.vercel.app'
@@ -51,7 +52,7 @@ const faqJsonLd = {
 export default function HelpPage() {
   const { user } = useAuth()
   const backPath =
-    user?.role === 'admin' || user?.role === 'superadmin' ? '/admin' : user ? '/dashboard' : '/'
+    isAdminRole(user?.role) ? '/admin' : user ? '/dashboard' : '/'
 
   return (
     <>

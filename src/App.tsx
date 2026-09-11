@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { RouteErrorBoundary } from '@/components/ui/ErrorPage'
 import { Loader2 } from 'lucide-react'
+import { isAdminRole } from '@/lib/auth'
 
 function PageLoader() {
   return (
@@ -79,7 +80,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'admin' && user.role !== 'superadmin')
+  if (!isAdminRole(user.role))
     return <Navigate to="/dashboard" replace />
   return (
     <AdminLayout>
@@ -101,7 +102,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (user)
     return (
       <Navigate
-        to={user.role === 'admin' || user.role === 'superadmin' ? '/admin' : '/dashboard'}
+        to={isAdminRole(user.role) ? '/admin' : '/dashboard'}
         replace
       />
     )

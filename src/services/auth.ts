@@ -80,6 +80,14 @@ export async function signInWithGoogle(): Promise<void> {
   }
 }
 
+function resolveRole(teacherRole: string | null, profileRole: string | null): string {
+  const raw = teacherRole ?? profileRole ?? 'teacher'
+  const lower = raw.toLowerCase()
+  if (lower === 'superadmin') return 'superadmin'
+  if (lower === 'admin') return 'admin'
+  return 'teacher'
+}
+
 export async function signIn(
   email: string,
   password: string
@@ -103,7 +111,7 @@ export async function signIn(
         email: authUser.email!,
         teacher,
         profile: null,
-        role: teacher.role ?? 'teacher',
+        role: resolveRole(teacher.role, null),
       },
       error: null,
     }
@@ -117,7 +125,7 @@ export async function signIn(
       email: authUser.email!,
       teacher: null,
       profile,
-      role: profile?.role ?? 'teacher',
+      role: resolveRole(null, profile?.role ?? null),
     },
     error: null,
   }
@@ -171,7 +179,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       email: data.user.email!,
       teacher,
       profile: null,
-      role: teacher.role ?? 'teacher',
+      role: resolveRole(teacher.role, null),
     }
   }
 
@@ -182,6 +190,6 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     email: data.user.email!,
     teacher: null,
     profile,
-    role: profile?.role ?? 'teacher',
+    role: resolveRole(null, profile?.role ?? null),
   }
 }
