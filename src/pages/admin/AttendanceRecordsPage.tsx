@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,10 +21,13 @@ export default function AttendanceRecordsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [teacherFilter, setTeacherFilter] = useState('')
 
-  const filters: AttendanceFilters = { page, page_size: pageSize }
-  if (dateFilter) filters.date = dateFilter
-  if (statusFilter) filters.status = statusFilter
-  if (teacherFilter) filters.teacher_id = teacherFilter
+  const filters: AttendanceFilters = useMemo(() => {
+    const f: AttendanceFilters = { page, page_size: pageSize }
+    if (dateFilter) f.date = dateFilter
+    if (statusFilter) f.status = statusFilter
+    if (teacherFilter) f.teacher_id = teacherFilter
+    return f
+  }, [page, pageSize, dateFilter, statusFilter, teacherFilter])
 
   const { records, total, totalPages, isLoading, error } = useAttendanceRecordsWithFilters(filters)
 
@@ -90,8 +93,9 @@ export default function AttendanceRecordsPage() {
           <CardHeader>
             <div className="flex flex-wrap gap-3">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Date</label>
+                <label htmlFor="att-filter-date" className="block text-xs text-muted-foreground mb-1">Date</label>
                 <Input
+                  id="att-filter-date"
                   type="date"
                   value={dateFilter}
                   onChange={(e) => {
@@ -102,8 +106,9 @@ export default function AttendanceRecordsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Status</label>
+                <label htmlFor="att-filter-status" className="block text-xs text-muted-foreground mb-1">Status</label>
                 <select
+                  id="att-filter-status"
                   className="flex h-9 w-36 rounded-md border border-input bg-background px-3 py-1 text-sm"
                   value={statusFilter}
                   onChange={(e) => {
@@ -119,8 +124,9 @@ export default function AttendanceRecordsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Teacher</label>
+                <label htmlFor="att-filter-teacher" className="block text-xs text-muted-foreground mb-1">Teacher</label>
                 <select
+                  id="att-filter-teacher"
                   className="flex h-9 w-48 rounded-md border border-input bg-background px-3 py-1 text-sm"
                   value={teacherFilter}
                   onChange={(e) => {
@@ -236,6 +242,7 @@ export default function AttendanceRecordsPage() {
                       size="sm"
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
+                      aria-label="Previous page"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -247,6 +254,7 @@ export default function AttendanceRecordsPage() {
                       size="sm"
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
+                      aria-label="Next page"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>

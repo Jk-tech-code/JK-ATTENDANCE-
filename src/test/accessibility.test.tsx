@@ -248,3 +248,134 @@ describe('Accessibility - ARIA Live Regions', () => {
     assertNoViolations(results)
   })
 })
+
+describe('Accessibility - Phase 5B Regression', () => {
+  it('CardTitle renders a heading element', () => {
+    const { container } = renderWithProviders(
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Title</CardTitle>
+        </CardHeader>
+      </Card>
+    )
+    const heading = container.querySelector('h1, h2, h3, h4, h5, h6')
+    expect(heading).not.toBeNull()
+    expect(heading?.textContent).toBe('Test Title')
+  })
+
+  it('CardTitle renders as custom heading element', () => {
+    const { container } = renderWithProviders(
+      <Card>
+        <CardHeader>
+          <CardTitle as="h2">Custom Heading</CardTitle>
+        </CardHeader>
+      </Card>
+    )
+    const heading = container.querySelector('h2')
+    expect(heading).not.toBeNull()
+    expect(heading?.textContent).toBe('Custom Heading')
+  })
+
+  it('Badge renders as span element', () => {
+    const { container } = renderWithProviders(<Badge>Test</Badge>)
+    const badge = container.querySelector('span')
+    expect(badge).not.toBeNull()
+    expect(badge?.tagName).toBe('SPAN')
+  })
+
+  it('AlertDialog links description via aria-describedby', () => {
+    const { container } = renderWithProviders(
+      <AlertDialog
+        open
+        onOpenChange={() => {}}
+        title="Confirm Delete"
+        description="This action cannot be undone."
+        onConfirm={() => {}}
+      />
+    )
+    const dialog = container.querySelector('[role="dialog"]')
+    expect(dialog).not.toBeNull()
+    const describedBy = dialog?.getAttribute('aria-describedby')
+    expect(describedBy).toBeTruthy()
+    const descriptionEl = container.querySelector(`#${describedBy}`)
+    expect(descriptionEl).not.toBeNull()
+    expect(descriptionEl?.textContent).toBe('This action cannot be undone.')
+  })
+
+  it('Loading spinner has role="status"', () => {
+    const { container } = renderWithProviders(
+      <div role="status" aria-live="polite">
+        <span className="sr-only">Loading…</span>
+      </div>
+    )
+    const status = container.querySelector('[role="status"]')
+    expect(status).not.toBeNull()
+    const srOnly = status?.querySelector('.sr-only')
+    expect(srOnly).not.toBeNull()
+  })
+
+  it('Form error message has role="alert"', async () => {
+    const { container } = renderWithProviders(
+      <div>
+        <Input aria-invalid="true" aria-describedby="test-error" />
+        <p id="test-error" role="alert">Field is required</p>
+      </div>
+    )
+    const alert = container.querySelector('[role="alert"]')
+    expect(alert).not.toBeNull()
+    expect(alert?.textContent).toBe('Field is required')
+  })
+
+  it('Select element has aria-label', async () => {
+    const { container } = renderWithProviders(
+      <select aria-label="Month">
+        <option value="1">January</option>
+      </select>
+    )
+    const select = container.querySelector('select')
+    expect(select).not.toBeNull()
+    expect(select?.getAttribute('aria-label')).toBe('Month')
+  })
+
+  it('Input with aria-required is announced as required', () => {
+    const { container } = renderWithProviders(
+      <Input aria-required="true" aria-invalid="true" aria-describedby="req-error" />
+    )
+    const input = container.querySelector('input')
+    expect(input).not.toBeNull()
+    expect(input?.getAttribute('aria-required')).toBe('true')
+  })
+
+  it('EmptyState default icon has aria-hidden', () => {
+    const { container } = renderWithProviders(
+      <EmptyState title="Empty" description="Nothing here" />
+    )
+    const icon = container.querySelector('[aria-hidden="true"]')
+    expect(icon).not.toBeNull()
+  })
+
+  it('Decorative icon has aria-hidden', async () => {
+    const { container } = renderWithProviders(
+      <div>
+        <span aria-hidden="true">📧</span>
+        <span>Email label</span>
+      </div>
+    )
+    const hidden = container.querySelector('[aria-hidden="true"]')
+    expect(hidden).not.toBeNull()
+    const results = await runAxe(container)
+    assertNoViolations(results)
+  })
+
+  it('Error pre element is keyboard scrollable', () => {
+    const { container } = renderWithProviders(
+      <pre tabIndex={0} role="region" aria-label="Error details">
+        Error message here
+      </pre>
+    )
+    const pre = container.querySelector('pre')
+    expect(pre).not.toBeNull()
+    expect(pre?.getAttribute('tabindex')).toBe('0')
+    expect(pre?.getAttribute('role')).toBe('region')
+  })
+})

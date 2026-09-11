@@ -1,4 +1,4 @@
-import { createContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 
 export interface Notification {
   id: string
@@ -50,19 +50,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications([])
   }, [])
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications]
+  )
+
+  const value = useMemo(
+    () => ({
+      notifications,
+      unreadCount,
+      addNotification,
+      markAsRead,
+      markAllAsRead,
+      clearNotifications,
+    }),
+    [notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearNotifications]
+  )
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        addNotification,
-        markAsRead,
-        markAllAsRead,
-        clearNotifications,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   )

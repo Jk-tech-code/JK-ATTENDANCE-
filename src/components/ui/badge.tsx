@@ -3,13 +3,13 @@ import { cn } from '@/lib/utils'
 
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'
 
-interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant
 }
 
 function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   return (
-    <div
+    <span
       className={cn(
         'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
         {

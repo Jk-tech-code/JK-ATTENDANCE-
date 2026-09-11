@@ -279,6 +279,156 @@ describe('invite-teacher', () => {
       )
       expect(res.status).toBe(400)
     })
+
+    it('returns 400 for invalid reporting_time: 25:00', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '25:00' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toMatch(/reporting_time/)
+    })
+
+    it('returns 400 for invalid reporting_time: 12:60', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '12:60' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 for invalid reporting_time: 7:00 (no leading zero)', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '7:00' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 for invalid reporting_time: abc', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: 'abc' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 for invalid reporting_time: 24:00', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '24:00' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it('accepts valid reporting_time: 07:20', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+        insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '07:20' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(201)
+    })
+
+    it('accepts valid reporting_time: 00:00', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+        insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '00:00' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(201)
+    })
+
+    it('accepts valid reporting_time: 23:59', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+        insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com', reporting_time: '23:59' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(201)
+    })
+
+    it('accepts null reporting_time (optional field)', async () => {
+      configureClient({
+        isAdmin: { id: 'admin-1', role: 'admin' },
+        existingAuthUser: null,
+        existingTeacher: null,
+        createdUser: { id: 'new-auth-1' },
+        insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
+      })
+      const res = await handler(
+        makeRequest(
+          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
+          'Bearer admin'
+        )
+      )
+      expect(res.status).toBe(201)
+    })
   })
 
   describe('duplicate detection', () => {

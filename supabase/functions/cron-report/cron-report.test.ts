@@ -55,11 +55,17 @@ let capturedUpserts: UpsertRecord[] = []
 function configureClient(opts: {
   tableResults?: Record<string, unknown[]>
   tableErrors?: Record<string, { message: string }>
+  rpcResults?: Record<string, unknown>
 }): void {
   capturedUpserts = []
   globalThis.__MOCK_SUPABASE__.createClient = () => ({
     auth: { getUser: async () => ({ data: { user: null }, error: null }) },
-    rpc: async () => ({ data: null, error: null }),
+    rpc: async (name: string) => {
+      if (opts.rpcResults && name in opts.rpcResults) {
+        return { data: opts.rpcResults[name], error: null }
+      }
+      return { data: null, error: null }
+    },
     from: (table: string) => {
       const data = opts.tableResults?.[table] ?? []
       const error = opts.tableErrors?.[table] ?? null
@@ -243,5 +249,52 @@ describe('cron-report', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toMatch(/Failed to persist/)
+  })
+
+  it('monthly report uses teachers*workingDays as denominator, not just teachers', async () => {
+    process.env.CRON_SECRET = 'correct-secret'
+    // 10 teachers, 50 present+late attendance records
+    // Working days RPC returns 22
+    // Correct: 50 / (10*22) * 100 = 22.7% → 23%
+    // Old buggy: 50 / 10 * 100 = 500%
+    const attendanceRecords = Array.from({ length: 50 }, (_, i) => ({
+      id: `att-${i}`,
+      status: i < 30 ? 'present' : 'late',
+      check_in: `2026-09-${String((i % 28) + 1).padStart(2, '0')}T07:30:00Z`,
+      working_minutes: 480,
+      late_minutes: i >= 30 ? 15 : 0,
+    }))
+    const teacherRecords = Array.from({ length: 10 }, (_, i) => ({
+      id: `teacher-${i}`,
+      full_name: `Teacher ${i}`,
+      staff_number: `T${String(i).padStart(3, '0')}`,
+    }))
+
+    configureClient({
+      tableResults: {
+        attendance: attendanceRecords,
+        teachers: teacherRecords,
+      },
+      rpcResults: {
+        count_month_working_days: 22,
+      },
+    })
+
+    const res = await handler(
+      makeRequest(
+        'POST',
+        { 'x-api-key': 'correct-secret' },
+        { type: 'monthly', year: 2026, month: 9 }
+      )
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+    // Working days comes from the RPC mock; the key assertion is that
+    // attendance_percentage is NOT 500% (the old buggy value).
+    // With 22 working days: 50 / (10*22) * 100 ≈ 23%
+    expect(body.report.summary.attendance_percentage).toBeLessThan(100)
+    expect(body.report.summary.attendance_percentage).toBeGreaterThan(0)
+    expect(body.report.summary.working_days).toBeDefined()
   })
 })

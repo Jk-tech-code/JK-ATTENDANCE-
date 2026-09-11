@@ -2,7 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
 import { adminMiddleware } from '../_shared/admin.ts'
-import { currentYearEat, currentMonthEat, daysInMonth } from '../_shared/timezone.ts'
+import { currentYearEat, currentMonthEat } from '../_shared/timezone.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const adminResult = await adminMiddleware(req, 'GET')
@@ -22,10 +22,16 @@ export async function handler(req: Request): Promise<Response> {
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
     const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
-    const monthDays = daysInMonth(year, month)
 
-    const [{ data: holidays }, { data: allAttendance }, { data: teachers }] = await Promise.all([
-      supabase.from('school_holidays').select('date').gte('date', startDate).lte('date', endDate),
+    // Count working days using the school_calendar table (excludes weekends + holidays)
+    const { data: workingDaysData, error: wdErr } = await supabase.rpc(
+      'count_month_working_days',
+      { p_year: year, p_month: month }
+    )
+    if (wdErr) throw wdErr
+    const workingDays = workingDaysData as number
+
+    const [{ data: allAttendance }, { data: teachers }] = await Promise.all([
       supabase
         .from('attendance')
         .select('teacher_id, status, check_in, check_out, working_minutes, late_minutes')
@@ -36,9 +42,6 @@ export async function handler(req: Request): Promise<Response> {
         .select('id, full_name, staff_number')
         .eq('employment_status', 'active'),
     ])
-
-    const holidayDates = new Set((holidays ?? []).map((h: { date: string }) => h.date))
-    const workingDays = Math.max(0, monthDays - holidayDates.size)
 
     const presentCount =
       allAttendance?.filter((a) => ['present', 'checked_out'].includes(a.status ?? '')).length ?? 0

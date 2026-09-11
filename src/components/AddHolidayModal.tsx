@@ -118,6 +118,7 @@ export function AddHolidayModal({
           <Input
             id="ahm-date"
             type="date"
+            aria-required="true"
             aria-invalid={!!errors.calendar_date}
             aria-describedby={errors.calendar_date ? 'ahm-date-error' : undefined}
             {...register('calendar_date')}
@@ -158,6 +159,7 @@ export function AddHolidayModal({
           </Label>
           <Input
             id="ahm-title"
+            aria-required="true"
             aria-invalid={!!errors.title}
             aria-describedby={errors.title ? 'ahm-title-error' : undefined}
             {...register('title')}

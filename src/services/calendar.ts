@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import type { Attendance } from '@/types'
 
 export interface SchoolCalendarEntry {
   id: string
@@ -47,11 +46,19 @@ export interface DateCheckResult {
   attendance_allowed: boolean
 }
 
+export interface DayAttendanceRecord {
+  id: string
+  status: string | null
+  check_in: string | null
+  check_out: string | null
+  teacher: { full_name: string; staff_number: string }[]
+}
+
 export interface DayAttendance {
   date: string
   day_type: string
   title: string | null
-  records: (Attendance & { teacher: { full_name: string; staff_number: string } })[]
+  records: DayAttendanceRecord[]
   summary: {
     present: number
     late: number
@@ -83,7 +90,7 @@ function friendlyCalendarRpcError(err: { code?: string; message?: string }): str
 export async function getHolidayEntries(date: string): Promise<HolidayEntry[]> {
   const { data, error } = await supabase
     .from('holidays')
-    .select('*')
+    .select('id, holiday_date, title, description, type, created_at')
     .eq('holiday_date', date)
     .order('created_at', { ascending: false })
 
@@ -97,7 +104,7 @@ export async function getHolidayEntries(date: string): Promise<HolidayEntry[]> {
 export async function getHolidayRange(startDate: string, endDate: string): Promise<HolidayEntry[]> {
   const { data, error } = await supabase
     .from('holidays')
-    .select('*')
+    .select('id, holiday_date, title, description, type, created_at')
     .gte('holiday_date', startDate)
     .lte('holiday_date', endDate)
     .order('holiday_date', { ascending: true })
@@ -136,7 +143,7 @@ export async function getCalendarEntries(
 ): Promise<SchoolCalendarEntry[]> {
   const { data, error } = await supabase
     .from('school_calendar')
-    .select('*')
+    .select('id, calendar_date, day_type, title, description, created_by, created_at')
     .gte('calendar_date', startDate)
     .lte('calendar_date', endDate)
     .order('calendar_date', { ascending: true })
@@ -243,14 +250,14 @@ export async function getDayAttendanceDetail(date: string): Promise<DayAttendanc
     checkDate(date),
     supabase
       .from('attendance')
-      .select('*, teacher:teachers(full_name, staff_number)')
+      .select('id, status, check_in, check_out, teacher:teachers(full_name, staff_number)')
       .eq('attendance_date', date)
       .order('check_in', { ascending: true }),
   ])
 
   if (recordsResult.error) throw new Error(recordsResult.error.message)
 
-  const records = (recordsResult.data || []) as DayAttendance['records']
+  const records = (recordsResult.data || []) as DayAttendanceRecord[]
   const present = records.filter((r) => ['present', 'checked_out'].includes(r.status ?? '')).length
   const late = records.filter((r) => r.status === 'late').length
   const absent = records.filter((r) => r.status === 'absent').length

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
+import { currentYearMonthEat } from '@/lib/format'
 import {
   getTodayAttendance,
   checkOut as checkOutService,
@@ -76,10 +77,7 @@ export function useUndoCheckOut() {
 export function useAttendanceSummary() {
   const { user } = useAuth()
   const teacherId = user?.teacher?.id
-  const { year, month } = useMemo(() => {
-    const d = new Date()
-    return { year: d.getFullYear(), month: d.getMonth() + 1 }
-  }, [])
+  const { year, month } = useMemo(() => currentYearMonthEat(), [])
 
   return useQuery({
     queryKey: attendanceKeys.summary(teacherId ?? '', year, month),

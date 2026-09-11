@@ -75,7 +75,7 @@ export function NotificationBell() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border bg-card shadow-lg">
+        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border bg-card shadow-lg" role="menu" aria-label="Notifications">
           <div className="flex items-center justify-between border-b px-4 py-2.5">
             <h3 className="text-sm font-semibold">Notifications</h3>
             <div className="flex gap-1">
@@ -83,26 +83,26 @@ export function NotificationBell() {
                 <button
                   onClick={markAllAsRead}
                   className="rounded p-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
-                  title="Mark all as read"
+                  aria-label="Mark all as read"
                 >
-                  <CheckCheck className="h-3.5 w-3.5" />
+                  <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               )}
               {notifications.length > 0 && (
                 <button
                   onClick={clearNotifications}
                   className="rounded p-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
-                  title="Clear all"
+                  aria-label="Clear all notifications"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               )}
               <button
                 onClick={() => setOpen(false)}
                 className="rounded p-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
-                title="Close"
+                aria-label="Close notifications"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -110,7 +110,7 @@ export function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-                <Bell className="h-6 w-6 text-muted-foreground/50" />
+                <Bell className="h-6 w-6 text-muted-foreground/50" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">No notifications yet</p>
               </div>
             ) : (
@@ -121,7 +121,9 @@ export function NotificationBell() {
                 return (
                   <button
                     key={n.id}
+                    role="menuitem"
                     onClick={() => handleNotificationClick(n)}
+                    aria-label={`${n.title}${!n.read ? ' (unread)' : ''}`}
                     className={`flex w-full gap-3 border-b px-4 py-3 text-left transition-colors hover:bg-accent/50 ${
                       !n.read ? 'bg-accent/20' : ''
                     }`}
@@ -141,7 +143,7 @@ export function NotificationBell() {
                       <p className="mt-1 text-[10px] text-muted-foreground/60">{timeAgo}</p>
                     </div>
                     {!n.read && (
-                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" />
+                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" aria-hidden="true" />
                     )}
                   </button>
                 )

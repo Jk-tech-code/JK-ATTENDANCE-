@@ -82,11 +82,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="text-muted-foreground hover:text-foreground"
             >
-              <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+              <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" aria-hidden="true" />
+              <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" aria-hidden="true" />
             </Button>
             <div className="hidden items-center gap-2 sm:flex">
-              <User className="h-4 w-4 text-muted-foreground" />
+              <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <span className="text-sm text-muted-foreground">
                 {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </span>
@@ -98,7 +98,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 onClick={() => navigate('/admin')}
                 className="gap-1.5 text-xs"
               >
-                <Shield className="h-3.5 w-3.5" />
+                <Shield className="h-3.5 w-3.5" aria-hidden="true" />
                 {user?.role === 'superadmin' ? 'Superadmin' : 'Admin'}
               </Button>
             )}

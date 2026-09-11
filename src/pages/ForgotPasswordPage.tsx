@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4 text-center">
-              <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
+              <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">
                 Email-based password reset is not currently available. Please contact your school
                 administrator to have a new temporary password generated for your account.

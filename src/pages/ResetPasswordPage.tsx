@@ -72,8 +72,9 @@ export default function ResetPasswordPage() {
     return (
       <AuthLayout title="Reset password" subtitle="Processing...">
         <Card>
-          <CardContent className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <CardContent className="flex justify-center py-8" role="status" aria-live="polite">
+            <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+            <span className="sr-only">Processing…</span>
           </CardContent>
         </Card>
       </AuthLayout>
@@ -93,8 +94,8 @@ export default function ResetPasswordPage() {
         <Card>
           <CardContent className="pt-6">
             {done ? (
-              <div className="space-y-4 text-center">
-                <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
+              <div className="space-y-4 text-center" role="status" aria-live="polite">
+                <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
                   Password set. Redirecting to login...
                 </p>
@@ -107,6 +108,7 @@ export default function ResetPasswordPage() {
                     id="password"
                     type="password"
                     placeholder="Min. 8 characters"
+                    aria-required="true"
                     aria-invalid={errors.password ? 'true' : undefined}
                     aria-describedby={errors.password ? 'password-error' : undefined}
                     {...register('password')}
@@ -123,6 +125,7 @@ export default function ResetPasswordPage() {
                     id="confirmPassword"
                     type="password"
                     placeholder="Repeat password"
+                    aria-required="true"
                     aria-invalid={errors.confirmPassword ? 'true' : undefined}
                     aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
                     {...register('confirmPassword')}
@@ -137,7 +140,7 @@ export default function ResetPasswordPage() {
                     </p>
                   )}
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>

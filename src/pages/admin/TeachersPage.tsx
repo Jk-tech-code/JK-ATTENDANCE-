@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -49,15 +49,20 @@ const defaultFormValues: TeacherFormData = {
 }
 
 export default function TeachersPage() {
-  const { data: teachers, isLoading } = useTeachers()
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
+
+  const { data: teachers, isLoading } = useTeachers({
+    page: 1,
+    pageSize: 100,
+    search: debouncedSearch || undefined,
+  })
   const createMutation = useCreateTeacher()
   const updateMutation = useUpdateTeacher()
   const deleteMutation = useDeleteTeacher()
   const inviteMutation = useInviteTeacher()
   const resendMutation = useResendInvite()
 
-  const [search, setSearch] = useState('')
-  const debouncedSearch = useDebounce(search, 300)
   const [editing, setEditing] = useState<Teacher | null>(null)
   const [open, setOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -78,19 +83,6 @@ export default function TeachersPage() {
     mode: 'onChange',
     defaultValues: defaultFormValues,
   })
-
-  const filtered = useMemo(() => {
-    if (!teachers) return []
-    if (!debouncedSearch.trim()) return teachers
-    const q = debouncedSearch.toLowerCase()
-    return teachers.filter(
-      (t) =>
-        t.full_name.toLowerCase().includes(q) ||
-        t.staff_number.toLowerCase().includes(q) ||
-        t.email.toLowerCase().includes(q) ||
-        (t.department ?? '').toLowerCase().includes(q)
-    )
-  }, [teachers, debouncedSearch])
 
   const openCreate = () => {
     setEditing(null)
@@ -236,22 +228,24 @@ export default function TeachersPage() {
                 ))}
               </div>
             ) : !teachers || teachers.length === 0 ? (
-              <EmptyState
-                title="No teachers yet"
-                description="Add your first teacher to get started."
-                icon={<Users className="h-12 w-12" />}
-                action={{ label: 'Add Teacher', onClick: openCreate }}
-              />
-            ) : filtered.length === 0 ? (
-              <EmptyState
-                title="No matching teachers"
-                description="Try a different search term."
-                icon={<Search className="h-12 w-12" />}
-              />
+              debouncedSearch ? (
+                <EmptyState
+                  title="No matching teachers"
+                  description="Try a different search term."
+                  icon={<Search className="h-12 w-12" />}
+                />
+              ) : (
+                <EmptyState
+                  title="No teachers yet"
+                  description="Add your first teacher to get started."
+                  icon={<Users className="h-12 w-12" />}
+                  action={{ label: 'Add Teacher', onClick: openCreate }}
+                />
+              )
             ) : (
               <div className="overflow-x-auto">
                 <VirtualizedTeacherTable
-                  teachers={filtered}
+                  teachers={teachers}
                   onEdit={openEdit}
                   onDelete={(t) => setDeleteTarget(t)}
                   onResendInvite={handleResendInvite}
@@ -395,6 +389,7 @@ export default function TeachersPage() {
                       toast.success('Password copied')
                     }}
                     title="Copy password"
+                    aria-label="Copy password"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -451,16 +446,16 @@ function VirtualizedTeacherTable({
   ]
 
   return (
-    <div>
-      <div className="flex items-center border-b pb-2 text-left text-xs font-medium text-muted-foreground">
-        <div className={`${columnWidths[0]} px-2`}>Staff No.</div>
-        <div className={`${columnWidths[1]} px-2`}>Name</div>
-        <div className={`${columnWidths[2]} px-2`}>Email</div>
-        <div className={`${columnWidths[3]} px-2`}>Department</div>
-        <div className={`${columnWidths[4]} px-2`}>Phone</div>
-        <div className={`${columnWidths[5]} px-2`}>Reporting</div>
-        <div className={`${columnWidths[6]} px-2`}>Status</div>
-        <div className={`${columnWidths[7]} px-2`}>Actions</div>
+    <div role="grid" aria-label="Teachers">
+      <div role="row" className="flex items-center border-b pb-2 text-left text-xs font-medium text-muted-foreground">
+        <div role="columnheader" className={`${columnWidths[0]} px-2`}>Staff No.</div>
+        <div role="columnheader" className={`${columnWidths[1]} px-2`}>Name</div>
+        <div role="columnheader" className={`${columnWidths[2]} px-2`}>Email</div>
+        <div role="columnheader" className={`${columnWidths[3]} px-2`}>Department</div>
+        <div role="columnheader" className={`${columnWidths[4]} px-2`}>Phone</div>
+        <div role="columnheader" className={`${columnWidths[5]} px-2`}>Reporting</div>
+        <div role="columnheader" className={`${columnWidths[6]} px-2`}>Status</div>
+        <div role="columnheader" className={`${columnWidths[7]} px-2`}>Actions</div>
       </div>
       <div
         ref={parentRef}
@@ -476,6 +471,7 @@ function VirtualizedTeacherTable({
             return (
               <div
                 key={t.id}
+                role="row"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -486,31 +482,34 @@ function VirtualizedTeacherTable({
                 }}
                 className="flex items-center border-b text-sm hover:bg-muted/50"
               >
-                <div className={`${columnWidths[0]} min-w-0 px-2 py-2 truncate`}>
+                <div role="gridcell" className={`${columnWidths[0]} min-w-0 px-2 py-2 truncate`}>
                   {t.staff_number}
                 </div>
-                <div className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}>
+                <div role="gridcell" className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}>
                   {t.full_name}
                 </div>
                 <div
+                  role="gridcell"
                   className={`${columnWidths[2]} min-w-0 px-2 py-2 truncate text-muted-foreground`}
                 >
                   {t.email}
                 </div>
                 <div
+                  role="gridcell"
                   className={`${columnWidths[3]} min-w-0 px-2 py-2 truncate text-muted-foreground`}
                 >
                   {t.department ?? '-'}
                 </div>
                 <div
+                  role="gridcell"
                   className={`${columnWidths[4]} min-w-0 px-2 py-2 truncate text-muted-foreground`}
                 >
                   {t.phone ?? '-'}
                 </div>
-                <div className={`${columnWidths[5]} min-w-0 px-2 py-2 truncate`}>
+                <div role="gridcell" className={`${columnWidths[5]} min-w-0 px-2 py-2 truncate`}>
                   {t.reporting_time ?? '07:20'}
                 </div>
-                <div className={`${columnWidths[6]} min-w-0 px-2 py-2`}>
+                <div role="gridcell" className={`${columnWidths[6]} min-w-0 px-2 py-2`}>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       t.employment_status === 'active'
@@ -523,19 +522,20 @@ function VirtualizedTeacherTable({
                     {t.employment_status}
                   </span>
                 </div>
-                <div className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}>
+                <div role="gridcell" className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onResendInvite(t)}
                     title="Resend invite"
+                    aria-label="Resend invite"
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(t)} title="Edit">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(t)} title="Edit" aria-label="Edit teacher">
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(t)} title="Delete">
+                  <Button variant="ghost" size="icon" onClick={() => onDelete(t)} title="Delete" aria-label="Delete teacher">
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface TeacherStats {
@@ -8,50 +8,57 @@ interface TeacherStats {
   absent: number
 }
 
+const LazyBarChart = lazy(() =>
+  import('recharts').then((m) => ({
+    default: function RechartsBarChart({ data }: { data: TeacherStats[] }) {
+      const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = m
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="full_name" tick={{ fontSize: 10 }} />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
+            <Bar dataKey="late" fill="hsl(48, 96.5%, 53.5%)" name="Late" stackId="a" />
+            <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
+          </BarChart>
+        </ResponsiveContainer>
+      )
+    },
+  }))
+)
+
 export function AttendanceBarChart({ data }: { data: TeacherStats[] }) {
-  const [Chart, setChart] = useState<JSX.Element | null>(null)
-  const [error, setError] = useState(false)
+  const summary = useMemo(
+    () =>
+      data
+        .slice(0, 10)
+        .map((d) => `${d.full_name}: ${d.present} present, ${d.late} late, ${d.absent} absent`)
+        .join('; '),
+    [data]
+  )
 
-  useEffect(() => {
-    let cancelled = false
-
-    import('recharts')
-      .then(({ BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer }) => {
-        if (cancelled) return
-        setChart(
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="full_name" tick={{ fontSize: 10 }} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="present" fill="hsl(142.1, 76.2%, 36.3%)" name="Present" stackId="a" />
-              <Bar dataKey="late" fill="hsl(48, 96.5%, 53.5%)" name="Late" stackId="a" />
-              <Bar dataKey="absent" fill="hsl(0, 72.2%, 50.6%)" name="Absent" stackId="a" />
-            </BarChart>
-          </ResponsiveContainer>
-        )
-      })
-      .catch(() => {
-        if (!cancelled) setError(true)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [data])
-
-  if (error) {
-    return (
-      <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-        Failed to load chart
+  return (
+    <div className="h-72" role="img" aria-label={`Attendance bar chart. ${data.length > 0 ? summary : 'No data'}`}>
+      <div className="sr-only">
+        <table>
+          <caption>Teacher attendance data</caption>
+          <thead>
+            <tr><th>Teacher</th><th>Present</th><th>Late</th><th>Absent</th></tr>
+          </thead>
+          <tbody>
+            {data.map((d) => (
+              <tr key={d.full_name}>
+                <td>{d.full_name}</td><td>{d.present}</td><td>{d.late}</td><td>{d.absent}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    )
-  }
-
-  if (!Chart) {
-    return <Skeleton className="h-72 w-full" />
-  }
-
-  return <div className="h-72">{Chart}</div>
+      <Suspense fallback={<Skeleton className="h-72 w-full" aria-label="Loading attendance chart" />}>
+        <LazyBarChart data={data} />
+      </Suspense>
+    </div>
+  )
 }

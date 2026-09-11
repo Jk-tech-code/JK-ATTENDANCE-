@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin, verifyAuth, isAdmin } from '../_shared/supabase.ts'
 import { checkRateLimit } from '../_shared/rate-limit.ts'
+import { currentYearEat, currentMonthEat } from '../_shared/timezone.ts'
 
 interface AIAnalysisRequest {
   month?: number
@@ -44,9 +45,8 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const body: AIAnalysisRequest = await req.json()
-    const now = new Date()
-    const year = body.year ?? now.getFullYear()
-    const month = body.month ?? now.getMonth() + 1
+    const year = body.year ?? currentYearEat()
+    const month = body.month ?? currentMonthEat()
 
     // Validate year/month ranges
     if (year < 2000 || year > 2100) {

@@ -11,7 +11,8 @@ export function ProfileCard() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-4" role="status" aria-live="polite">
+          <span className="sr-only">Loading profile…</span>
           <div className="flex items-center gap-3">
             <Skeleton className="h-10 w-10 rounded-full" />
             <div className="flex-1 space-y-1.5">
@@ -35,7 +36,7 @@ export function ProfileCard() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col items-center gap-2 text-center">
-            <AlertCircle className="h-6 w-6 text-muted-foreground" />
+            <AlertCircle className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
             <div>
               <p className="text-sm font-medium">Profile not loaded</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -43,7 +44,7 @@ export function ProfileCard() {
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={refreshProfile}>
-              <RefreshCw className="mr-1 h-3 w-3" /> Retry
+              <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" /> Retry
             </Button>
           </div>
         </CardContent>
@@ -55,7 +56,7 @@ export function ProfileCard() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">
             {(teacher.full_name ?? '')
               .split(/\s+/)
               .filter(Boolean)
@@ -71,19 +72,19 @@ export function ProfileCard() {
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Hash className="h-3.5 w-3.5" />
+            <Hash className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{teacher.staff_number}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Building2 className="h-3.5 w-3.5" />
+            <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{teacher.department ?? 'N/A'}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <BadgeCheck className="h-3.5 w-3.5" />
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="capitalize">{teacher.employment_status ?? 'active'}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Report by {teacher.reporting_time?.slice(0, 5) ?? '07:20'}</span>
           </div>
         </div>

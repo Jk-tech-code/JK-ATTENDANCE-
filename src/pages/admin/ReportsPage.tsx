@@ -202,6 +202,7 @@ export default function ReportsPage() {
                     className="ml-auto h-8 rounded border px-2 text-sm"
                     value={month}
                     onChange={(e) => setMonth(Number(e.target.value))}
+                    aria-label="Month"
                   >
                     {Array.from({ length: 12 }, (_, i) => (
                       <option key={i + 1} value={i + 1}>
@@ -213,6 +214,7 @@ export default function ReportsPage() {
                     className="h-8 rounded border px-2 text-sm"
                     value={year}
                     onChange={(e) => setYear(Number(e.target.value))}
+                    aria-label="Year"
                   >
                     {years.map((y) => (
                       <option key={y} value={y}>

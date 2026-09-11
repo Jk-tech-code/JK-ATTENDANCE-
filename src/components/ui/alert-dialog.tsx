@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 import { Dialog } from './dialog'
 import { Button } from './button'
 
@@ -27,9 +28,11 @@ export function AlertDialog({
   onCancel,
   loading,
 }: AlertDialogProps) {
+  const descriptionId = useId()
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={title}>
-      <p className="text-sm text-muted-foreground mb-4">{description}</p>
+    <Dialog open={open} onOpenChange={onOpenChange} title={title} describedBy={descriptionId}>
+      <p id={descriptionId} className="text-sm text-muted-foreground mb-4">{description}</p>
       <div className="flex justify-end gap-2">
         <Button
           variant="outline"

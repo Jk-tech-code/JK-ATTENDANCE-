@@ -25,7 +25,7 @@ function DefaultFallback({ error, resetErrorBoundary }: FallbackProps) {
         <h1 className="text-2xl font-bold">Something went wrong</h1>
         <p className="text-muted-foreground">An unexpected error occurred. Please try again.</p>
         {isDev && error instanceof Error && (
-          <pre className="max-w-2xl overflow-auto rounded-md border bg-muted/40 p-3 text-left text-xs text-muted-foreground">
+          <pre className="max-w-2xl overflow-auto rounded-md border bg-muted/40 p-3 text-left text-xs text-muted-foreground" tabIndex={0} role="region" aria-label="Error details">
             {error.message}
           </pre>
         )}

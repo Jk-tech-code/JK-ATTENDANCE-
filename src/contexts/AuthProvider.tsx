@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import type { AuthUser } from '@/types'
 import { supabase } from '@/services/supabase'
 import {
@@ -15,6 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const signingOutRef = useRef(false)
 
   const loadUser = useCallback(async () => {
     const currentUser = await getCurrentUser()
@@ -49,6 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'TOKEN_REFRESHED') return
+
+      // If this SIGNED_OUT event was triggered by our own signOut() call,
+      // skip the duplicate cleanup — signOut() already handled it.
+      if (event === 'SIGNED_OUT' && signingOutRef.current) {
+        signingOutRef.current = false
+        return
+      }
+
       if (session?.user) {
         try {
           await loadUser()
@@ -73,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => listener?.subscription.unsubscribe()
   }, [loadUser])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const result = await authSignIn(email, password)
     if (result.user) {
       setUser(result.user)
@@ -84,9 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     return { error: result.error, user: result.user }
-  }
+  }, [])
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       await authSignInWithGoogle()
     } catch (err) {
@@ -94,9 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileError(message)
       throw err
     }
-  }
+  }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
+    signingOutRef.current = true
     const result = await authSignOut()
     if (!result.error) {
       setUser(null)
@@ -108,14 +118,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // H1 defense-in-depth: also sweep CacheStorage on the explicit
       // sign-out path (covers cases where the SIGNED_OUT event is delayed).
       void cleanupPrivateApiCaches()
+    } else {
+      // signOut failed — reset flag so a subsequent independent SIGNED_OUT
+      // event from Supabase can still trigger cleanup.
+      signingOutRef.current = false
     }
     return result
-  }
+  }, [])
+
+  const value = useMemo(
+    () => ({ user, loading, profileError, refreshProfile, signIn, signOut, signInWithGoogle }),
+    [user, loading, profileError, refreshProfile, signIn, signOut, signInWithGoogle]
+  )
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, profileError, refreshProfile, signIn, signOut, signInWithGoogle }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

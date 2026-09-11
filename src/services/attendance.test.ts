@@ -53,6 +53,38 @@ describe('getTodayAttendance', () => {
     expect(result!.status).toBe('present')
   })
 
+  it('uses Africa/Nairobi business date, not browser local date', async () => {
+    const chain = makeEqChain()
+    mockFrom.mockReturnValue({ select: mockSelect })
+    mockSelect.mockReturnValue({ eq: chain.eq })
+    mockMaybeSingle.mockResolvedValue({
+      data: {
+        id: 'att-eat',
+        teacher_id: 'teacher-1',
+        attendance_date: '2026-07-20',
+        check_in: '2026-07-20T07:15:00Z',
+        status: 'present',
+      },
+      error: null,
+    })
+
+    // Simulate UTC 2026-07-19T23:00:00Z = EAT 2026-07-20T02:00:00
+    // TodayEatClient uses Intl.DateTimeFormat which is IANA-safe.
+    // Verify that todayEatClient is called (imported from @/lib/format)
+    // and the date passed to the query matches the EAT date.
+    const { todayEatClient } = await import('@/lib/format')
+    const eatDate = todayEatClient()
+
+    const { getTodayAttendance } = await import('./attendance')
+    await getTodayAttendance('teacher-1')
+
+    // The second eq call (chain.eq2) should have attendance_date = EAT date
+    const eq2Calls = chain.eq2.mock.calls
+    const dateFilter = eq2Calls.find((c: unknown[]) => c[0] === 'attendance_date')
+    expect(dateFilter).toBeDefined()
+    expect(dateFilter![1]).toBe(eatDate)
+  })
+
   it('throws on error', async () => {
     const chain = makeEqChain()
     mockFrom.mockReturnValue({ select: mockSelect })

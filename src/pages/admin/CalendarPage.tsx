@@ -260,9 +260,22 @@ export default function CalendarPage() {
     }
   }
 
-  const workingDays = data?.calendar.filter((d) => d.day_type === 'working_day') ?? []
+  const workingDays = useMemo(() => data?.calendar.filter((d) => d.day_type === 'working_day') ?? [], [data])
   const totalWorking = workingDays.length
-  const completedDays = workingDays.filter((d) => d.present > 0 || d.late > 0).length
+  const completedDays = useMemo(() => workingDays.filter((d) => d.present > 0 || d.late > 0).length, [workingDays])
+
+  const calendarStats = useMemo(() => {
+    if (!data?.calendar?.length) return { attended: 0, total: 0, absentTotal: 0 }
+    let attended = 0
+    let total = 0
+    let absentTotal = 0
+    for (const d of data.calendar) {
+      attended += (d.present ?? 0) + (d.late ?? 0)
+      total += d.total ?? 0
+      absentTotal += d.absent ?? 0
+    }
+    return { attended, total, absentTotal }
+  }, [data])
 
   return (
     <>
@@ -322,17 +335,9 @@ export default function CalendarPage() {
               ) : (
                 <>
                   <p
-                    className={`text-2xl font-bold ${(data?.calendar.reduce((s, d) => s + (d.present ?? 0) + (d.late ?? 0), 0) ?? 0) > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
+                    className={`text-2xl font-bold ${calendarStats.attended > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
                   >
-                    {(() => {
-                      if (!data || !data.calendar?.length) return '0'
-                      const attended = data.calendar.reduce(
-                        (s, d) => s + (d.present ?? 0) + (d.late ?? 0),
-                        0
-                      )
-                      const total = data.calendar.reduce((s, d) => s + (d.total ?? 0), 0)
-                      return total > 0 ? Math.round((attended / total) * 100) : 0
-                    })()}
+                    {calendarStats.total > 0 ? Math.round((calendarStats.attended / calendarStats.total) * 100) : 0}
                     %
                   </p>
                 </>
@@ -348,7 +353,7 @@ export default function CalendarPage() {
                 <Skeleton className="h-8 w-20" />
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {data?.calendar.reduce((s, d) => s + (d.absent ?? 0), 0) ?? 0}
+                  {calendarStats.absentTotal}
                 </p>
               )}
             </CardContent>
@@ -360,7 +365,7 @@ export default function CalendarPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                  <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Previous month">
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <div className="flex items-center gap-2">
@@ -368,6 +373,7 @@ export default function CalendarPage() {
                       className="h-9 rounded-md border px-3 text-sm"
                       value={month}
                       onChange={(e) => setMonth(Number(e.target.value))}
+                      aria-label="Month"
                     >
                       {MONTHS.map((m, i) => (
                         <option key={i + 1} value={i + 1}>
@@ -379,6 +385,7 @@ export default function CalendarPage() {
                       className="h-9 rounded-md border px-3 text-sm"
                       value={year}
                       onChange={(e) => setYear(Number(e.target.value))}
+                      aria-label="Year"
                     >
                       {years.map((y) => (
                         <option key={y} value={y}>
@@ -387,7 +394,7 @@ export default function CalendarPage() {
                       ))}
                     </select>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => navigate(1)}>
+                  <Button variant="ghost" size="icon" onClick={() => navigate(1)} aria-label="Next month">
                     <ChevronRight className="h-5 w-5" />
                   </Button>
                 </div>
@@ -618,9 +625,9 @@ export default function CalendarPage() {
                                 className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-xs"
                               >
                                 <div>
-                                  <p className="font-medium">{r.teacher?.full_name ?? 'Unknown'}</p>
+                                  <p className="font-medium">{r.teacher?.[0]?.full_name ?? 'Unknown'}</p>
                                   <p className="text-muted-foreground">
-                                    {r.teacher?.staff_number ?? ''}
+                                    {r.teacher?.[0]?.staff_number ?? ''}
                                   </p>
                                 </div>
                                 <div className="text-right">

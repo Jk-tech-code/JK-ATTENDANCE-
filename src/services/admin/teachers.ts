@@ -24,7 +24,7 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
 
   let query = supabase
     .from('teachers')
-    .select('*', { count: 'exact' })
+    .select('id, full_name, staff_number, email, department, phone, reporting_time, employment_status, role, created_at', { count: 'exact' })
     .order('full_name', { ascending: true })
 
   if (params.search) {
@@ -51,7 +51,7 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
 export async function getAllTeachers(): Promise<Teacher[]> {
   const { data, error } = await supabase
     .from('teachers')
-    .select('*')
+    .select('id, full_name, staff_number, email, department, phone, reporting_time, employment_status, role, created_at')
     .order('full_name', { ascending: true })
     .limit(500)
 
@@ -75,21 +75,27 @@ export async function createTeacher(
   return callInviteEdgeFunction(input)
 }
 
-export async function updateTeacher(
-  id: string,
-  input: Partial<{
-    staff_number: string
-    full_name: string
-    email: string
-    department: string | null
-    phone: string | null
-    reporting_time: string | null
-    employment_status: string
-  }>
-): Promise<Teacher> {
+export type TeacherUpdateInput = Partial<{
+  staff_number: string
+  full_name: string
+  email: string
+  department: string | null
+  phone: string | null
+  reporting_time: string | null
+  employment_status: string
+}>
+
+export async function updateTeacher(id: string, input: TeacherUpdateInput): Promise<Teacher> {
+  // Defense-in-depth: teachers.role must never be written through the
+  // ordinary PostgREST update path (migration 00053 revokes
+  // UPDATE(role) + blocks direct writes via trigger; role transitions
+  // are superadmin-only via update_teacher_role()). Strip it here so a
+  // compromised caller cannot even attempt the write from this helper.
+  // The database remains the authoritative boundary if this is bypassed.
+  const { role: _role, ...safeInput } = input as TeacherUpdateInput & { role?: unknown }
   const { data, error } = await supabase
     .from('teachers')
-    .update(input)
+    .update(safeInput)
     .eq('id', id)
     .select()
     .single()

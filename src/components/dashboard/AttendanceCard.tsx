@@ -101,7 +101,7 @@ export function AttendanceCard() {
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col items-center gap-3 text-center">
-            <AlertCircle className="h-8 w-8 text-muted-foreground" />
+            <AlertCircle className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
             <div>
               <p className="font-medium">Profile not loaded</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -109,7 +109,7 @@ export function AttendanceCard() {
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={refreshProfile}>
-              <RefreshCw className="mr-1 h-4 w-4" /> Retry
+              <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" /> Retry
             </Button>
           </div>
         </CardContent>
@@ -162,8 +162,9 @@ export function AttendanceCard() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center p-6" role="status" aria-live="polite">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">Loading attendance…</span>
         </CardContent>
       </Card>
     )
@@ -173,7 +174,7 @@ export function AttendanceCard() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center gap-2 p-6">
-          <AlertCircle className="h-5 w-5 text-destructive" />
+          <AlertCircle className="h-5 w-5 text-destructive" aria-hidden="true" />
           <p className="text-sm text-destructive">Failed to load today's attendance</p>
         </CardContent>
       </Card>
@@ -189,7 +190,7 @@ export function AttendanceCard() {
             <div
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.bg} ${config.color}`}
             >
-              <StatusIcon className="h-3.5 w-3.5" />
+              <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
               {config.label}
             </div>
           </div>
@@ -203,7 +204,7 @@ export function AttendanceCard() {
         {isCheckedIn && (
           <div className="mt-3 space-y-1.5 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <LogIn className="h-3.5 w-3.5" />
+              <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
               <span>
                 Checked in at{' '}
                 {new Date(attendance.check_in!).toLocaleTimeString('en-US', {
@@ -229,13 +230,13 @@ export function AttendanceCard() {
               )}
             {attendance.working_hours && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Sun className="h-3.5 w-3.5" />
+                <Sun className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Worked {attendance.working_hours}</span>
               </div>
             )}
             {showAttachedGps && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
+                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
                   {attendance.distance_from_school}m from school &middot;{' '}
                   {attendance.location_status === 'inside_school'
@@ -246,7 +247,7 @@ export function AttendanceCard() {
             )}
             {isCheckedOut && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <LogOut className="h-3.5 w-3.5" />
+                <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
                   Checked out at{' '}
                   {new Date(attendance.check_out!).toLocaleTimeString('en-US', {
@@ -258,7 +259,7 @@ export function AttendanceCard() {
             )}
             {isCheckedOut && attendance.working_minutes != null && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Timer className="h-3.5 w-3.5" />
+                <Timer className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Worked {minutesToHours(attendance.working_minutes)}</span>
               </div>
             )}
@@ -268,7 +269,7 @@ export function AttendanceCard() {
         <div className="mt-4 space-y-3">
           {showDistance && locationStatus === 'inside_school' && (
             <div className="flex items-center gap-3 rounded-md border bg-emerald-50 px-3 py-2 text-xs dark:bg-emerald-950/20">
-              <Crosshair className="h-4 w-4 text-emerald-600" />
+              <Crosshair className="h-4 w-4 text-emerald-600" aria-hidden="true" />
               <div>
                 <p className="font-medium text-emerald-700 dark:text-emerald-300">
                   Distance from School: {distance} meters
@@ -282,7 +283,7 @@ export function AttendanceCard() {
 
           {showDistance && locationStatus === 'outside_school' && (
             <div className="flex items-center gap-3 rounded-md border bg-red-50 px-3 py-2 text-xs dark:bg-red-950/20">
-              <MapPin className="h-4 w-4 text-red-600" />
+              <MapPin className="h-4 w-4 text-red-600" aria-hidden="true" />
               <div>
                 <p className="font-medium text-red-700 dark:text-red-300">
                   Distance from School: {distance} meters
@@ -303,7 +304,7 @@ export function AttendanceCard() {
                   </>
                 ) : (
                   <>
-                    <LogIn className="mr-1 h-4 w-4" /> Check In
+                    <LogIn className="mr-1 h-4 w-4" aria-hidden="true" /> Check In
                   </>
                 )}
               </Button>
@@ -322,7 +323,7 @@ export function AttendanceCard() {
                   </>
                 ) : (
                   <>
-                    <LogOut className="mr-1 h-4 w-4" /> Check Out
+                    <LogOut className="mr-1 h-4 w-4" aria-hidden="true" /> Check Out
                   </>
                 )}
               </Button>
@@ -341,7 +342,7 @@ export function AttendanceCard() {
                   </>
                 ) : (
                   <>
-                    <Undo2 className="mr-1 h-4 w-4" /> Undo ({undoCountdown}s)
+                    <Undo2 className="mr-1 h-4 w-4" aria-hidden="true" /> Undo ({undoCountdown}s)
                   </>
                 )}
               </Button>
@@ -349,29 +350,29 @@ export function AttendanceCard() {
 
             {isCheckedOut && !showUndo && (
               <div className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-3.5 w-3.5" />
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Today's attendance complete
               </div>
             )}
           </div>
 
           {successMessage && !isCheckedIn && (
-            <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400" role="status" aria-live="polite">
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{successMessage}</span>
             </div>
           )}
 
           {displayError && (
-            <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{displayError}</span>
             </div>
           )}
 
           {rateLimitCountdown !== null && rateLimitCountdown > 0 && (
-            <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300" role="status" aria-live="polite" aria-atomic="true">
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>Too many attempts. Retry in {rateLimitCountdown}s</span>
             </div>
           )}

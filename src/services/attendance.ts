@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import type { Attendance } from '@/types'
-import { formatISODate } from '@/lib/format'
+import { todayEatClient, formatISODate } from '@/lib/format'
 import {
   AlreadyCheckedInError,
   AlreadyCheckedOutError,
@@ -30,10 +30,10 @@ export interface CheckInWithLocationResult {
 }
 
 export async function getTodayAttendance(teacherId: string): Promise<Attendance | null> {
-  const today = formatISODate(new Date())
+  const today = todayEatClient()
   const { data, error } = await supabase
     .from('attendance')
-    .select('*')
+    .select('id, teacher_id, attendance_date, check_in, check_out, late_minutes, working_minutes, status, location_status, device, browser, gps_accuracy')
     .eq('teacher_id', teacherId)
     .eq('attendance_date', today)
     .maybeSingle()

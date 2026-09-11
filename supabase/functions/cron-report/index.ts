@@ -16,7 +16,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
 import { timingSafeEqualStrings } from '../_shared/timing.ts'
-import { todayEat, currentYearEat, currentMonthEat } from '../_shared/timezone.ts'
+import { todayEat, currentYearEat, currentMonthEat, toNairobiMinutes } from '../_shared/timezone.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const cors = handleCors(req)
@@ -134,10 +134,7 @@ async function generateDailyReport(supabase: ReturnType<typeof createSupabaseAdm
     const times = avgData
       .map((r) => r.check_in)
       .filter(Boolean)
-      .map((t) => {
-        const d = new Date(t!)
-        return d.getHours() * 60 + d.getMinutes()
-      })
+      .map((t) => toNairobiMinutes(t!).totalMinutes)
 
     if (times.length > 0) {
       const avgMinutes = Math.round(times.reduce((a, b) => a + b, 0) / times.length)
@@ -178,6 +175,13 @@ async function generateMonthlyReport(
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`
   const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
 
+  const { data: workingDaysData, error: wdErr } = await supabase.rpc(
+    'count_month_working_days',
+    { p_year: year, p_month: month }
+  )
+  if (wdErr) throw wdErr
+  const workingDays = workingDaysData as number
+
   const { data: allAttendance } = await supabase
     .from('attendance')
     .select('teacher_id, status, check_in, check_out, working_minutes, late_minutes')
@@ -193,6 +197,13 @@ async function generateMonthlyReport(
     allAttendance?.filter((a) => ['present', 'checked_out'].includes(a.status ?? '')).length ?? 0
   const lateCount = allAttendance?.filter((a) => a.status === 'late').length ?? 0
   const absentCount = allAttendance?.filter((a) => a.status === 'absent').length ?? 0
+
+  const teacherCount = teachers?.length ?? 0
+  const totalPossibleAttendance = teacherCount * workingDays
+  const attendancePercentage =
+    totalPossibleAttendance > 0
+      ? Math.round(((presentCount + lateCount) / totalPossibleAttendance) * 100)
+      : 0
 
   const teacherStats = (teachers ?? []).map((teacher) => {
     const records = allAttendance?.filter((a) => a.teacher_id === teacher.id) ?? []
@@ -238,14 +249,12 @@ async function generateMonthlyReport(
     period_start: startDate,
     period_end: endDate,
     summary: {
-      total_teachers: teachers?.length ?? 0,
+      total_teachers: teacherCount,
+      working_days: workingDays,
       present_days: presentCount,
       late_days: lateCount,
       absent_days: absentCount,
-      attendance_percentage:
-        (teachers?.length ?? 0) > 0
-          ? Math.round(((presentCount + lateCount) / (teachers?.length ?? 1)) * 100)
-          : 0,
+      attendance_percentage: attendancePercentage,
       avg_working_hours: overallAvgHours,
     },
     teachers: teacherStats,

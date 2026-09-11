@@ -2,7 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
 import { adminMiddleware } from '../_shared/admin.ts'
-import { todayEat } from '../_shared/timezone.ts'
+import { todayEat, toNairobiMinutes } from '../_shared/timezone.ts'
 
 export async function handler(req: Request): Promise<Response> {
   const adminResult = await adminMiddleware(req, 'GET')
@@ -21,49 +21,30 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'Invalid date format. Use YYYY-MM-DD' }, 400)
     }
 
-    const { data: present, error: presentErr } = await supabase
-      .from('attendance')
-      .select('id', { count: 'exact' })
-      .eq('attendance_date', dateParam)
-      .in('status', ['present', 'checked_out'])
+    const [attendanceResult, totalResult] = await Promise.all([
+      supabase
+        .from('attendance')
+        .select('status')
+        .eq('attendance_date', dateParam),
+      supabase
+        .from('teachers')
+        .select('id', { count: 'exact', head: true })
+        .eq('employment_status', 'active'),
+    ])
 
-    if (presentErr) throw presentErr
+    if (attendanceResult.error) throw attendanceResult.error
+    if (totalResult.error) throw totalResult.error
 
-    const { count: absentCount, error: absentErr } = await supabase
-      .from('attendance')
-      .select('id', { count: 'exact' })
-      .eq('attendance_date', dateParam)
-      .eq('status', 'absent')
+    const rows = attendanceResult.data ?? []
+    const presentCount = rows.filter((r) => r.status === 'present' || r.status === 'checked_out').length
+    const absentCount = rows.filter((r) => r.status === 'absent').length
+    const lateCount = rows.filter((r) => r.status === 'late').length
+    const checkedOutCount = rows.filter((r) => r.status === 'checked_out').length
+    const totalTeachers = totalResult.count ?? 0
 
-    if (absentErr) throw absentErr
-
-    const { count: lateCount, error: lateErr } = await supabase
-      .from('attendance')
-      .select('id', { count: 'exact' })
-      .eq('attendance_date', dateParam)
-      .eq('status', 'late')
-
-    if (lateErr) throw lateErr
-
-    const { count: checkedOutCount, error: coErr } = await supabase
-      .from('attendance')
-      .select('id', { count: 'exact' })
-      .eq('attendance_date', dateParam)
-      .eq('status', 'checked_out')
-
-    if (coErr) throw coErr
-
-    const { count: totalTeachers, error: totalErr } = await supabase
-      .from('teachers')
-      .select('id', { count: 'exact' })
-      .eq('employment_status', 'active')
-
-    if (totalErr) throw totalErr
-
-    const presentCount = present?.length ?? 0
     const attendanceRate =
       totalTeachers && totalTeachers > 0
-        ? Math.round(((presentCount + (lateCount ?? 0)) / totalTeachers) * 100)
+        ? Math.round(((presentCount ?? 0) + (lateCount ?? 0)) / totalTeachers * 100)
         : 0
 
     const { data: avgData } = await supabase
@@ -79,10 +60,7 @@ export async function handler(req: Request): Promise<Response> {
       const times = avgData
         .map((r) => r.check_in)
         .filter(Boolean)
-        .map((t) => {
-          const d = new Date(t!)
-          return d.getHours() * 60 + d.getMinutes()
-        })
+        .map((t) => toNairobiMinutes(t!).totalMinutes)
 
       if (times.length > 0) {
         const avgMinutes = Math.round(times.reduce((a, b) => a + b, 0) / times.length)

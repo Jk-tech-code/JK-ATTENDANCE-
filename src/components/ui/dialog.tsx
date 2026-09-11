@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useId } from 'react'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 
@@ -9,15 +9,17 @@ interface DialogProps {
   children: ReactNode
   title?: string
   className?: string
+  describedBy?: string
 }
 
 const focusableSelector =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function Dialog({ open, onOpenChange, children, title, className }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, title, className, describedBy }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
+  const titleId = useId()
 
   const getFocusableElements = useCallback(() => {
     if (!contentRef.current) return []
@@ -50,6 +52,7 @@ export function Dialog({ open, onOpenChange, children, title, className }: Dialo
       const timer = setTimeout(() => {
         const elements = getFocusableElements()
         if (elements.length > 0) elements[0].focus()
+        else contentRef.current?.focus()
       }, 50)
       return () => {
         clearTimeout(timer)
@@ -77,7 +80,9 @@ export function Dialog({ open, onOpenChange, children, title, className }: Dialo
         ref={contentRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={!title ? 'Dialog' : undefined}
+        aria-describedby={describedBy}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
         className={cn(
@@ -87,8 +92,9 @@ export function Dialog({ open, onOpenChange, children, title, className }: Dialo
       >
         {title && (
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
             <button
+              type="button"
               onClick={() => onOpenChange(false)}
               className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
               aria-label="Close dialog"

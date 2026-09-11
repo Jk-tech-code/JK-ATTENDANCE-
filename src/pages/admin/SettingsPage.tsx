@@ -192,18 +192,20 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">School Name</label>
+                <label htmlFor="setting-school-name" className="text-sm font-medium">School Name</label>
                 <Input
+                  id="setting-school-name"
                   value={settings.school_name ?? ''}
                   onChange={(e) => setSettings({ ...settings, school_name: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="setting-latitude" className="text-sm font-medium">
                     Latitude <span className="text-destructive">*</span>
                   </label>
                   <Input
+                    id="setting-latitude"
                     type="number"
                     step="0.000001"
                     value={settings.latitude ?? ''}
@@ -214,17 +216,21 @@ export default function SettingsPage() {
                       })
                       setSettingsErrors({ ...settingsErrors, latitude: '' })
                     }}
+                    aria-required="true"
+                    aria-invalid={!!settingsErrors.latitude}
+                    aria-describedby={settingsErrors.latitude ? 'setting-latitude-error' : undefined}
                     className={settingsErrors.latitude ? 'border-destructive' : ''}
                   />
                   {settingsErrors.latitude && (
-                    <p className="text-xs text-destructive">{settingsErrors.latitude}</p>
+                    <p id="setting-latitude-error" className="text-xs text-destructive" role="alert">{settingsErrors.latitude}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="setting-longitude" className="text-sm font-medium">
                     Longitude <span className="text-destructive">*</span>
                   </label>
                   <Input
+                    id="setting-longitude"
                     type="number"
                     step="0.000001"
                     value={settings.longitude ?? ''}
@@ -235,18 +241,22 @@ export default function SettingsPage() {
                       })
                       setSettingsErrors({ ...settingsErrors, longitude: '' })
                     }}
+                    aria-required="true"
+                    aria-invalid={!!settingsErrors.longitude}
+                    aria-describedby={settingsErrors.longitude ? 'setting-longitude-error' : undefined}
                     className={settingsErrors.longitude ? 'border-destructive' : ''}
                   />
                   {settingsErrors.longitude && (
-                    <p className="text-xs text-destructive">{settingsErrors.longitude}</p>
+                    <p id="setting-longitude-error" className="text-xs text-destructive" role="alert">{settingsErrors.longitude}</p>
                   )}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label htmlFor="setting-radius" className="text-sm font-medium">
                   Allowed Radius (meters) <span className="text-destructive">*</span>
                 </label>
                 <Input
+                  id="setting-radius"
                   type="number"
                   min={1}
                   value={settings.allowed_radius_meters ?? ''}
@@ -257,10 +267,13 @@ export default function SettingsPage() {
                     })
                     setSettingsErrors({ ...settingsErrors, allowed_radius_meters: '' })
                   }}
+                  aria-required="true"
+                  aria-invalid={!!settingsErrors.allowed_radius_meters}
+                  aria-describedby={settingsErrors.allowed_radius_meters ? 'setting-radius-error' : undefined}
                   className={settingsErrors.allowed_radius_meters ? 'border-destructive' : ''}
                 />
                 {settingsErrors.allowed_radius_meters && (
-                  <p className="text-xs text-destructive">{settingsErrors.allowed_radius_meters}</p>
+                  <p id="setting-radius-error" className="text-xs text-destructive" role="alert">{settingsErrors.allowed_radius_meters}</p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
                   Current: {settings.school_name ?? 'School'} (
@@ -291,14 +304,14 @@ export default function SettingsPage() {
               </Button>
 
               {updateMutation.isSuccess && (
-                <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <div role="status" className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Settings saved successfully.
                 </div>
               )}
               {updateMutation.error && (
-                <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
+                <div role="alert" className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                   {updateMutation.error instanceof Error
                     ? updateMutation.error.message
                     : 'Failed to save settings'}
@@ -316,8 +329,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Reporting Start Time</label>
+                <label htmlFor="setting-reporting-time" className="text-sm font-medium">Reporting Start Time</label>
                 <Input
+                  id="setting-reporting-time"
                   type="time"
                   value={settings.reporting_start_time?.substring(0, 5) ?? '07:00'}
                   onChange={(e) =>
@@ -329,10 +343,11 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label htmlFor="setting-grace-period" className="text-sm font-medium">
                   Grace Period (minutes) <span className="text-destructive">*</span>
                 </label>
                 <Input
+                  id="setting-grace-period"
                   type="number"
                   min={0}
                   max={120}
@@ -344,30 +359,37 @@ export default function SettingsPage() {
                     })
                     setSettingsErrors({ ...settingsErrors, grace_period_minutes: '' })
                   }}
+                  aria-required="true"
+                  aria-invalid={!!settingsErrors.grace_period_minutes}
+                  aria-describedby={settingsErrors.grace_period_minutes ? 'setting-grace-error' : undefined}
                   className={settingsErrors.grace_period_minutes ? 'border-destructive' : ''}
                 />
                 {settingsErrors.grace_period_minutes && (
-                  <p className="text-xs text-destructive">{settingsErrors.grace_period_minutes}</p>
+                  <p id="setting-grace-error" className="text-xs text-destructive" role="alert">{settingsErrors.grace_period_minutes}</p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
                   Allowed late window after reporting time (default: 20 min)
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label htmlFor="setting-checkout-time" className="text-sm font-medium">
                   Official Checkout Time <span className="text-destructive">*</span>
                 </label>
                 <Input
+                  id="setting-checkout-time"
                   type="time"
                   value={settings.checkout_time?.substring(0, 5) ?? '17:30'}
                   onChange={(e) => {
                     setSettings({ ...settings, checkout_time: e.target.value + ':00' })
                     setSettingsErrors({ ...settingsErrors, checkout_time: '' })
                   }}
+                  aria-required="true"
+                  aria-invalid={!!settingsErrors.checkout_time}
+                  aria-describedby={settingsErrors.checkout_time ? 'setting-checkout-error' : undefined}
                   className={settingsErrors.checkout_time ? 'border-destructive' : ''}
                 />
                 {settingsErrors.checkout_time && (
-                  <p className="text-xs text-destructive">{settingsErrors.checkout_time}</p>
+                  <p id="setting-checkout-error" className="text-xs text-destructive" role="alert">{settingsErrors.checkout_time}</p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
                   Departure time (default: 17:30 / 5:30 PM)
@@ -431,9 +453,9 @@ export default function SettingsPage() {
               </Button>
 
               {testLat != null && testLng != null && (
-                <div className="space-y-1.5 rounded-md border bg-muted/50 p-3 text-xs">
+                <div className="space-y-1.5 rounded-md border bg-muted/50 p-3 text-xs" role="status" aria-live="polite">
                   <p className="flex items-center gap-1.5">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <MapPin className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                     <span className="font-medium">Your Position:</span>
                   </p>
                   <p className="pl-5 text-muted-foreground">

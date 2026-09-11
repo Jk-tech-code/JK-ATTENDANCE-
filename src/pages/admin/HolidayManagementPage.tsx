@@ -98,6 +98,7 @@ export default function HolidayManagementPage() {
               className="h-9 rounded-md border px-3 text-sm"
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
+              aria-label="Year"
             >
               {years.map((y) => (
                 <option key={y} value={y}>
@@ -193,10 +194,10 @@ export default function HolidayManagementPage() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(e)}>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(e)} aria-label="Edit holiday">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(e)}>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(e)} aria-label="Delete holiday">
                           <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </Button>
                       </div>

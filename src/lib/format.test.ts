@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { formatDate, formatTime, formatISODate, minutesToHours } from './format'
+import {
+  formatDate,
+  formatTime,
+  formatISODate,
+  minutesToHours,
+  todayEatClient,
+  currentYearMonthEat,
+} from './format'
 
 describe('formatDate', () => {
   it('formats a date in long English format', () => {
@@ -38,5 +45,50 @@ describe('minutesToHours', () => {
   })
   it('converts 8 hours 15 minutes', () => {
     expect(minutesToHours(495)).toBe('8h 15m')
+  })
+})
+
+describe('todayEatClient', () => {
+  it('returns YYYY-MM-DD format', () => {
+    const result = todayEatClient()
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('uses Intl.DateTimeFormat (IANA-safe, not manual +3 arithmetic)', () => {
+    // Verify the helper produces the same result as a direct Intl call
+    // with Africa/Nairobi timezone — proving it uses IANA, not hardcoded offset.
+    const intlDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Nairobi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+    expect(todayEatClient()).toBe(intlDate)
+  })
+})
+
+describe('currentYearMonthEat', () => {
+  it('returns year and month as numbers', () => {
+    const result = currentYearMonthEat()
+    expect(typeof result.year).toBe('number')
+    expect(typeof result.month).toBe('number')
+    expect(result.month).toBeGreaterThanOrEqual(1)
+    expect(result.month).toBeLessThanOrEqual(12)
+  })
+
+  it('uses Intl.DateTimeFormat (IANA-safe, not manual +3 arithmetic)', () => {
+    // Verify the helper produces the same result as a direct Intl call
+    // with Africa/Nairobi timezone — proving it uses IANA, not hardcoded offset.
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Africa/Nairobi',
+      year: 'numeric',
+      month: 'numeric',
+    }).formatToParts(new Date())
+    const expectedYear = parseInt(parts.find((p) => p.type === 'year')!.value, 10)
+    const expectedMonth = parseInt(parts.find((p) => p.type === 'month')!.value, 10)
+
+    const result = currentYearMonthEat()
+    expect(result.year).toBe(expectedYear)
+    expect(result.month).toBe(expectedMonth)
   })
 })

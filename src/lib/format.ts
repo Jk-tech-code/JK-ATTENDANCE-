@@ -31,3 +31,36 @@ export function minutesToHours(minutes: number): string {
   if (h === 0) return `${m}m`
   return `${h}h ${m}m`
 }
+
+// ─── Africa/Nairobi business-date helpers (client-side) ───────
+// Mirrors the server-side helpers in supabase/functions/_shared/timezone.ts.
+// Uses Intl.DateTimeFormat (IANA-safe, no manual +3 arithmetic).
+const BUSINESS_TZ = 'Africa/Nairobi'
+
+/**
+ * Return today's date as `YYYY-MM-DD` in Africa/Nairobi using
+ * Intl.DateTimeFormat (IANA-safe, no manual +3 arithmetic).
+ */
+export function todayEatClient(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+/**
+ * Return the current year and month (1-12) in Africa/Nairobi.
+ */
+export function currentYearMonthEat(): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TZ,
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(new Date())
+  return {
+    year: parseInt(parts.find((p) => p.type === 'year')!.value, 10),
+    month: parseInt(parts.find((p) => p.type === 'month')!.value, 10),
+  }
+}

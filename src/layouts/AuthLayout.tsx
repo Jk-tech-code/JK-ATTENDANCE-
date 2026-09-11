@@ -9,7 +9,13 @@ interface AuthLayoutProps {
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4">
-      <div className="w-full max-w-sm space-y-6">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+      <main id="main-content" className="w-full max-w-sm space-y-6">
         <div className="space-y-4 text-center">
           <img
             src="/4_transparent_background.png"
@@ -23,7 +29,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
         </div>
         {children}
-      </div>
+      </main>
     </div>
   )
 }

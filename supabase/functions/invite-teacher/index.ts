@@ -85,6 +85,17 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'staff_number, full_name, and email are required' }, 400)
     }
 
+    // Validate reporting_time format (HH:MM, 24-hour) if provided
+    if (input.reporting_time) {
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
+      if (!timeRegex.test(input.reporting_time)) {
+        return jsonResponse(
+          { error: 'Invalid reporting_time format. Use HH:MM (24-hour, e.g. 07:20)' },
+          400
+        )
+      }
+    }
+
     // ── Resend mode: generate new temp password ─────────────────
     if (input.resend_email) {
       const existingAuthUser = await lookupAuthUserByEmail(

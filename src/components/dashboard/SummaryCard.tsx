@@ -15,8 +15,9 @@ export function SummaryCard() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center p-6" role="status" aria-live="polite">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">Loading summary…</span>
         </CardContent>
       </Card>
     )
@@ -41,7 +42,7 @@ export function SummaryCard() {
             const value = summary[key as keyof typeof summary] ?? 0
             return (
               <div key={key} className="text-center">
-                <Icon className={`mx-auto h-4 w-4 ${color}`} />
+                <Icon className={`mx-auto h-4 w-4 ${color}`} aria-hidden="true" />
                 <p className="mt-1 text-lg font-bold">{value}</p>
                 <p className="text-[10px] text-muted-foreground">{label}</p>
               </div>

@@ -1,10 +1,32 @@
-import { lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, useEffect, useRef } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { RouteErrorBoundary } from '@/components/ui/ErrorPage'
 import { Loader2 } from 'lucide-react'
+
+function RouteAnnouncer() {
+  const location = useLocation()
+  const announcerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (announcerRef.current) {
+      const path = location.pathname
+      const pageName = path === '/' ? 'Home' : path.split('/').filter(Boolean).pop() || 'Page'
+      announcerRef.current.textContent = `${pageName.replace(/-/g, ' ')} loaded`
+    }
+  }, [location])
+
+  return (
+    <div
+      ref={announcerRef}
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    />
+  )
+}
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
@@ -27,8 +49,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">Loading…</span>
       </div>
     )
   }
@@ -40,8 +63,9 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">Loading…</span>
       </div>
     )
   }
@@ -59,8 +83,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">Loading…</span>
       </div>
     )
   }
@@ -78,6 +103,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" richColors />
+      <RouteAnnouncer />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route

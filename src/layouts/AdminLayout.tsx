@@ -62,7 +62,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           collapsed ? 'w-16' : 'w-56'
         }`}
       >
-        <div role="banner" className="flex h-14 items-center justify-between border-b px-4">
+        <div className="flex h-14 items-center justify-between border-b px-4">
           {!collapsed && (
             <div className="flex items-center gap-2">
               <img
@@ -95,7 +95,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         <nav className="flex-1 space-y-1 p-2">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href
+            const isActive = item.href === '/admin'
+              ? location.pathname === '/admin'
+              : location.pathname.startsWith(item.href)
             return (
               <Link
                 key={item.href}
@@ -108,8 +110,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 }`}
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
+                <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {!collapsed && <span>{item.label}</span>}
+                {collapsed && <span className="sr-only">{item.label}</span>}
               </Link>
             )
           })}
@@ -130,9 +133,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               size="sm"
               className={`justify-start gap-2 ${collapsed ? 'mx-auto px-2' : 'w-full'}`}
               onClick={() => navigate('/dashboard')}
+              aria-label={collapsed ? 'Dashboard' : undefined}
             >
-              <LayoutDashboard className="h-4 w-4" />
+              <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
               {!collapsed && <span>Dashboard</span>}
+              {collapsed && <span className="sr-only">Dashboard</span>}
             </Button>
             <Button
               variant="ghost"
@@ -142,14 +147,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               title="Sign out"
               className={collapsed ? 'mx-auto' : ''}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
       </aside>
 
       <div className="flex flex-1 flex-col overflow-auto">
-        <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 sm:px-6">
+        <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 sm:px-6" aria-label="Admin toolbar">
           <NotificationBell />
           <Button
             variant="ghost"
@@ -159,8 +164,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             className="text-muted-foreground hover:text-foreground"
           >
-            <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-            <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+            <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" aria-hidden="true" />
+            <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" aria-hidden="true" />
           </Button>
           <span className="text-xs text-muted-foreground hidden sm:inline">
             {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}

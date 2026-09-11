@@ -51,6 +51,12 @@ export default function LandingPage() {
         </script>
       </Helmet>
       <div className="flex min-h-screen flex-col">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <header className="border-b">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
             <span className="text-lg font-bold">JK Attendance</span>
@@ -65,7 +71,7 @@ export default function LandingPage() {
           </div>
         </header>
 
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           <section className="mx-auto max-w-6xl px-4 py-20 text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
               GPS Attendance Tracking for Schools
@@ -111,7 +117,7 @@ export default function LandingPage() {
                 },
               ].map((f) => (
                 <div key={f.title} className="rounded-lg border p-6 text-center">
-                  <f.icon className="mx-auto h-8 w-8 text-primary" />
+                  <f.icon className="mx-auto h-8 w-8 text-primary" aria-hidden="true" />
                   <h3 className="mt-4 font-semibold">{f.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
                 </div>

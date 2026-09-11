@@ -75,16 +75,6 @@ export async function adminMiddleware(
   const cors = handleCors(req)
   if (cors) return cors
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': Deno.env.get('CORS_ORIGIN') ?? '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
-    })
-  }
-
   if (req.method !== allowedMethod) {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }

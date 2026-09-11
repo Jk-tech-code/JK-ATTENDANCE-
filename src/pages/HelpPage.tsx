@@ -78,30 +78,38 @@ export default function HelpPage() {
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-        <div className="flex items-center gap-4">
-          <Link to="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold">Help & FAQ</h1>
-        </div>
-        <div className="grid gap-4">
-          {faqs.map((f, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <CardTitle className="text-base">{f.q}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{f.a}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <p className="text-center text-sm text-muted-foreground">
-          Still need help? Contact your school administrator.
-        </p>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
+        <main id="main-content" className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Link to="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
+                Back
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold">Help & FAQ</h1>
+          </div>
+          <div className="grid gap-4">
+            {faqs.map((f, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <CardTitle className="text-base" as="h3">{f.q}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{f.a}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            Still need help? Contact your school administrator.
+          </p>
+        </main>
       </div>
     </>
   )

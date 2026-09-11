@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { handleCors, jsonResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin, verifyAuth, isAdmin } from '../_shared/supabase.ts'
 import { adminMiddleware } from '../_shared/admin.ts'
+import { todayEat } from '../_shared/timezone.ts'
 
 interface NotificationPayload {
   teacher_id?: string
@@ -74,8 +75,7 @@ export async function handler(req: Request): Promise<Response> {
     const payload: NotificationPayload = await req.json()
     const supabase = createSupabaseAdmin()
 
-    const today = new Date().toISOString().slice(0, 10)
-    const date = payload.attendance_date ?? today
+    const date = payload.attendance_date ?? todayEat()
 
     if (payload.type === 'missed_check_in' || payload.type === 'late_check_in') {
       let teachersToNotify: { id: string; full_name: string; email: string }[] = []
