@@ -104,7 +104,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </span>
             </div>
-            {isAdminRole(user?.role) && (
+            {isAdminRole(user) && (
               <Button
                 variant="outline"
                 size="sm"

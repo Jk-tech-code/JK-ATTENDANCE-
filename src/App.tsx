@@ -80,7 +80,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  if (!isAdminRole(user.role))
+  if (!isAdminRole(user))
     return <Navigate to="/dashboard" replace />
   return (
     <AdminLayout>
@@ -102,7 +102,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (user)
     return (
       <Navigate
-        to={isAdminRole(user.role) ? '/admin' : '/dashboard'}
+        to={isAdminRole(user) ? '/admin' : '/dashboard'}
         replace
       />
     )
