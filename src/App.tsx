@@ -102,7 +102,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (user)
     return (
       <Navigate
-        to={isAdminRole(user) ? '/admin' : '/dashboard'}
+        to={isAdminRole(user) ? '/admin/dashboard' : '/dashboard'}
         replace
       />
     )

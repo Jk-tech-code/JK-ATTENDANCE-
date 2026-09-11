@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, Shield, Moon, Sun, Key, HelpCircle } from 'lucide-react'
+import { LogOut, User, Moon, Sun, Key, HelpCircle } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { NotificationBell } from '@/components/NotificationBell'
 import { Dialog } from '@/components/ui/dialog'
@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/services/supabase'
 import { toast } from 'sonner'
-import { isAdminRole } from '@/lib/auth'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -104,19 +103,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}
               </span>
             </div>
-            {isAdminRole(user) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/admin/dashboard')}
-                className="gap-1.5 text-xs"
-                aria-label="Go to Admin Dashboard"
-                title="Admin Dashboard"
-              >
-                <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="hidden sm:inline">Admin Dashboard</span>
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="icon"

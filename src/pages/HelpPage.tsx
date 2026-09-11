@@ -52,7 +52,7 @@ const faqJsonLd = {
 export default function HelpPage() {
   const { user } = useAuth()
   const backPath =
-    isAdminRole(user) ? '/admin' : user ? '/dashboard' : '/'
+    isAdminRole(user) ? '/admin/dashboard' : user ? '/dashboard' : '/'
 
   return (
     <>
