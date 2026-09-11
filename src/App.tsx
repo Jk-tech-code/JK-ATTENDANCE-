@@ -28,14 +28,7 @@ function RouteAnnouncer() {
     }
   }, [location])
 
-  return (
-    <div
-      ref={announcerRef}
-      aria-live="polite"
-      aria-atomic="true"
-      className="sr-only"
-    />
-  )
+  return <div ref={announcerRef} aria-live="polite" aria-atomic="true" className="sr-only" />
 }
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
@@ -59,7 +52,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+      <div
+        className="flex min-h-screen items-center justify-center"
+        role="status"
+        aria-live="polite"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
         <span className="sr-only">Loading…</span>
       </div>
@@ -73,15 +70,18 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+      <div
+        className="flex min-h-screen items-center justify-center"
+        role="status"
+        aria-live="polite"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
         <span className="sr-only">Loading…</span>
       </div>
     )
   }
   if (!user) return <Navigate to="/login" replace />
-  if (!isAdminRole(user))
-    return <Navigate to="/dashboard" replace />
+  if (!isAdminRole(user)) return <Navigate to="/dashboard" replace />
   return (
     <AdminLayout>
       <RouteErrorBoundary>{children}</RouteErrorBoundary>
@@ -93,19 +93,17 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+      <div
+        className="flex min-h-screen items-center justify-center"
+        role="status"
+        aria-live="polite"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
         <span className="sr-only">Loading…</span>
       </div>
     )
   }
-  if (user)
-    return (
-      <Navigate
-        to={isAdminRole(user) ? '/admin/dashboard' : '/dashboard'}
-        replace
-      />
-    )
+  if (user) return <Navigate to={isAdminRole(user) ? '/admin/dashboard' : '/dashboard'} replace />
   return <RouteErrorBoundary>{children}</RouteErrorBoundary>
 }
 
@@ -116,106 +114,106 @@ export default function App() {
       <RouteAnnouncer />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <ForgotPasswordPage />
-            </PublicRoute>
-          }
-        />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/help" element={<HelpPage />} />
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminOverviewPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <AdminRoute>
-              <AdminDashboardPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/teachers"
-          element={
-            <AdminRoute>
-              <TeachersPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/attendance"
-          element={
-            <AdminRoute>
-              <AttendanceRecordsPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/calendar"
-          element={
-            <AdminRoute>
-              <CalendarPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/holidays"
-          element={
-            <AdminRoute>
-              <HolidayManagementPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/reports"
-          element={
-            <AdminRoute>
-              <ReportsPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/settings"
-          element={
-            <AdminRoute>
-              <SettingsPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/admins"
-          element={
-            <AdminRoute>
-              <AdminManagementPage />
-            </AdminRoute>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
+              </PublicRoute>
+            }
+          />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/help" element={<HelpPage />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminOverviewPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <AdminRoute>
+                <AdminDashboardPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/teachers"
+            element={
+              <AdminRoute>
+                <TeachersPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/attendance"
+            element={
+              <AdminRoute>
+                <AttendanceRecordsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/calendar"
+            element={
+              <AdminRoute>
+                <CalendarPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/holidays"
+            element={
+              <AdminRoute>
+                <HolidayManagementPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <ReportsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <AdminRoute>
+                <SettingsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/admins"
+            element={
+              <AdminRoute>
+                <AdminManagementPage />
+              </AdminRoute>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

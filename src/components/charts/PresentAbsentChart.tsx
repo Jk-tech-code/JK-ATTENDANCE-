@@ -38,23 +38,35 @@ export function PresentAbsentChart({ data }: { data: TeacherStats[] }) {
   )
 
   return (
-    <div className="h-72" role="img" aria-label={`Present vs absent chart. ${data.length > 0 ? summary : 'No data'}`}>
+    <div
+      className="h-72"
+      role="img"
+      aria-label={`Present vs absent chart. ${data.length > 0 ? summary : 'No data'}`}
+    >
       <div className="sr-only">
         <table>
           <caption>Teacher present/absent data</caption>
           <thead>
-            <tr><th>Teacher</th><th>Present</th><th>Absent</th></tr>
+            <tr>
+              <th>Teacher</th>
+              <th>Present</th>
+              <th>Absent</th>
+            </tr>
           </thead>
           <tbody>
             {data.map((d) => (
               <tr key={d.full_name}>
-                <td>{d.full_name}</td><td>{d.present}</td><td>{d.absent}</td>
+                <td>{d.full_name}</td>
+                <td>{d.present}</td>
+                <td>{d.absent}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <Suspense fallback={<Skeleton className="h-72 w-full" aria-label="Loading present/absent chart" />}>
+      <Suspense
+        fallback={<Skeleton className="h-72 w-full" aria-label="Loading present/absent chart" />}
+      >
         <LazyBarChart data={data} />
       </Suspense>
     </div>

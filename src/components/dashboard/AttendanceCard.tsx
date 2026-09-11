@@ -162,7 +162,11 @@ export function AttendanceCard() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-6" role="status" aria-live="polite">
+        <CardContent
+          className="flex items-center justify-center p-6"
+          role="status"
+          aria-live="polite"
+        >
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
           <span className="sr-only">Loading attendance…</span>
         </CardContent>
@@ -357,21 +361,33 @@ export function AttendanceCard() {
           </div>
 
           {successMessage && !isCheckedIn && (
-            <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400" role="status" aria-live="polite">
+            <div
+              className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400"
+              role="status"
+              aria-live="polite"
+            >
               <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{successMessage}</span>
             </div>
           )}
 
           {displayError && (
-            <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+            <div
+              className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{displayError}</span>
             </div>
           )}
 
           {rateLimitCountdown !== null && rateLimitCountdown > 0 && (
-            <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300" role="status" aria-live="polite" aria-atomic="true">
+            <div
+              className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>Too many attempts. Retry in {rateLimitCountdown}s</span>
             </div>

@@ -175,10 +175,10 @@ async function generateMonthlyReport(
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`
   const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
 
-  const { data: workingDaysData, error: wdErr } = await supabase.rpc(
-    'count_month_working_days',
-    { p_year: year, p_month: month }
-  )
+  const { data: workingDaysData, error: wdErr } = await supabase.rpc('count_month_working_days', {
+    p_year: year,
+    p_month: month,
+  })
   if (wdErr) throw wdErr
   const workingDays = workingDaysData as number
 

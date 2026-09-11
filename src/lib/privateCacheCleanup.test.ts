@@ -23,10 +23,7 @@ const mockCaches = {
 
 vi.stubGlobal('caches', mockCaches)
 
-import {
-  cleanupPrivateApiCaches,
-  isCacheStorageSupported,
-} from './privateCacheCleanup'
+import { cleanupPrivateApiCaches, isCacheStorageSupported } from './privateCacheCleanup'
 
 /** A request-like object: cache.keys() returns these, cache.match reads .url. */
 function req(url: string): Request {
@@ -97,7 +94,9 @@ describe('privateCacheCleanup (H1 logout cleanup)', () => {
     const result = await cleanupPrivateApiCaches()
 
     const deletedUrls = spillOverCache.delete.mock.calls.map((c) => c[0].url)
-    expect(deletedUrls).toContain('https://ireyodsiyvvjfqymgdpa.supabase.co/rest/v1/attendance?select=*')
+    expect(deletedUrls).toContain(
+      'https://ireyodsiyvvjfqymgdpa.supabase.co/rest/v1/attendance?select=*'
+    )
     expect(deletedUrls).toContain('https://ireyodsiyvvjfqymgdpa.supabase.co/auth/v1/user')
     expect(deletedUrls).not.toContain(STATIC_APP_PRECACHE_URL)
     expect(result.entriesRemoved).toBe(2)

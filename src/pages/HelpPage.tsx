@@ -51,8 +51,7 @@ const faqJsonLd = {
 
 export default function HelpPage() {
   const { user } = useAuth()
-  const backPath =
-    isAdminRole(user) ? '/admin/dashboard' : user ? '/dashboard' : '/'
+  const backPath = isAdminRole(user) ? '/admin/dashboard' : user ? '/dashboard' : '/'
 
   return (
     <>
@@ -104,7 +103,9 @@ export default function HelpPage() {
             {faqs.map((f, i) => (
               <Card key={i}>
                 <CardHeader>
-                  <CardTitle className="text-base" as="h3">{f.q}</CardTitle>
+                  <CardTitle className="text-base" as="h3">
+                    {f.q}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{f.a}</p>

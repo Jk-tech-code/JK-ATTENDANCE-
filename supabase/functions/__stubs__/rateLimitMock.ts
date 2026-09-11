@@ -88,10 +88,7 @@ export function createRateLimitBackendMock(options?: { now?: () => number }) {
    * Edge Function isolate. `overrides` lets one isolate simulate a backend
    * outage (rpcError) or malformed response.
    */
-  function makeClient(overrides?: {
-    rpcError?: { message: string } | null
-    malformed?: boolean
-  }) {
+  function makeClient(overrides?: { rpcError?: { message: string } | null; malformed?: boolean }) {
     return {
       rpc: async (name: string, args?: Record<string, unknown>) => {
         calls.push({ name, args: args ?? {} })

@@ -24,7 +24,10 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
 
   let query = supabase
     .from('teachers')
-    .select('id, full_name, staff_number, email, department, phone, reporting_time, employment_status, role, created_at', { count: 'exact' })
+    .select(
+      'id, full_name, staff_number, email, department, phone, reporting_time, employment_status, role, created_at',
+      { count: 'exact' }
+    )
     .order('full_name', { ascending: true })
 
   if (params.search) {
@@ -51,7 +54,9 @@ export async function getTeachers(params: GetTeachersParams = {}): Promise<Pagin
 export async function getAllTeachers(): Promise<Teacher[]> {
   const { data, error } = await supabase
     .from('teachers')
-    .select('id, full_name, staff_number, email, department, phone, reporting_time, employment_status, role, created_at')
+    .select(
+      'id, full_name, staff_number, email, department, phone, reporting_time, employment_status, role, created_at'
+    )
     .order('full_name', { ascending: true })
     .limit(500)
 

@@ -121,17 +121,13 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       const newTempPassword = generateTempPassword()
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
-        existingAuthUser.id,
-        { password: newTempPassword }
-      )
+      const { error: updateError } = await supabase.auth.admin.updateUserById(existingAuthUser.id, {
+        password: newTempPassword,
+      })
 
       if (updateError) {
         console.error('[invite-teacher] Reset password failed:', updateError.message)
-        return jsonResponse(
-          { error: `Failed to reset password: ${updateError.message}` },
-          400
-        )
+        return jsonResponse({ error: `Failed to reset password: ${updateError.message}` }, 400)
       }
 
       await supabase

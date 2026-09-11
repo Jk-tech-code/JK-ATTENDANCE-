@@ -50,10 +50,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications([])
   }, [])
 
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
-  )
+  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications])
 
   const value = useMemo(
     () => ({
@@ -67,9 +64,5 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     [notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearNotifications]
   )
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  )
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>
 }

@@ -88,7 +88,9 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
               className={errors.staff_number ? 'border-destructive' : ''}
             />
             {errors.staff_number && (
-              <p id="invite-staff-number-error" className="text-xs text-destructive" role="alert">{errors.staff_number.message}</p>
+              <p id="invite-staff-number-error" className="text-xs text-destructive" role="alert">
+                {errors.staff_number.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -104,7 +106,9 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
               className={errors.full_name ? 'border-destructive' : ''}
             />
             {errors.full_name && (
-              <p id="invite-full-name-error" className="text-xs text-destructive" role="alert">{errors.full_name.message}</p>
+              <p id="invite-full-name-error" className="text-xs text-destructive" role="alert">
+                {errors.full_name.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -120,7 +124,11 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
               aria-describedby={errors.email ? 'invite-email-error' : undefined}
               className={errors.email ? 'border-destructive' : ''}
             />
-            {errors.email && <p id="invite-email-error" className="text-xs text-destructive" role="alert">{errors.email.message}</p>}
+            {errors.email && (
+              <p id="invite-email-error" className="text-xs text-destructive" role="alert">
+                {errors.email.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="invite-department">Department</Label>
@@ -135,7 +143,11 @@ export function InviteTeacherModal({ open, onOpenChange, onSubmit }: InviteTeach
               aria-describedby={errors.phone ? 'invite-phone-error' : undefined}
               className={errors.phone ? 'border-destructive' : ''}
             />
-            {errors.phone && <p id="invite-phone-error" className="text-xs text-destructive" role="alert">{errors.phone.message}</p>}
+            {errors.phone && (
+              <p id="invite-phone-error" className="text-xs text-destructive" role="alert">
+                {errors.phone.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="invite-reporting-time">Reporting Time</Label>

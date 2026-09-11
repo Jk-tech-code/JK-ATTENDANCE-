@@ -93,7 +93,12 @@ export default function AttendanceRecordsPage() {
           <CardHeader>
             <div className="flex flex-wrap gap-3">
               <div>
-                <label htmlFor="att-filter-date" className="block text-xs text-muted-foreground mb-1">Date</label>
+                <label
+                  htmlFor="att-filter-date"
+                  className="block text-xs text-muted-foreground mb-1"
+                >
+                  Date
+                </label>
                 <Input
                   id="att-filter-date"
                   type="date"
@@ -106,7 +111,12 @@ export default function AttendanceRecordsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="att-filter-status" className="block text-xs text-muted-foreground mb-1">Status</label>
+                <label
+                  htmlFor="att-filter-status"
+                  className="block text-xs text-muted-foreground mb-1"
+                >
+                  Status
+                </label>
                 <select
                   id="att-filter-status"
                   className="flex h-9 w-36 rounded-md border border-input bg-background px-3 py-1 text-sm"
@@ -124,7 +134,12 @@ export default function AttendanceRecordsPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="att-filter-teacher" className="block text-xs text-muted-foreground mb-1">Teacher</label>
+                <label
+                  htmlFor="att-filter-teacher"
+                  className="block text-xs text-muted-foreground mb-1"
+                >
+                  Teacher
+                </label>
                 <select
                   id="att-filter-teacher"
                   className="flex h-9 w-48 rounded-md border border-input bg-background px-3 py-1 text-sm"

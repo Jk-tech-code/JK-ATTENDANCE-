@@ -176,10 +176,7 @@ export async function handler(req: Request): Promise<Response> {
     })
   } catch (err) {
     console.error('attendance-validator error:', err)
-    return jsonResponse(
-      { error: 'Internal server error' },
-      500
-    )
+    return jsonResponse({ error: 'Internal server error' }, 500)
   }
 }
 

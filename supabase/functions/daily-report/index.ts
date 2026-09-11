@@ -22,10 +22,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const [attendanceResult, totalResult] = await Promise.all([
-      supabase
-        .from('attendance')
-        .select('status')
-        .eq('attendance_date', dateParam),
+      supabase.from('attendance').select('status').eq('attendance_date', dateParam),
       supabase
         .from('teachers')
         .select('id', { count: 'exact', head: true })
@@ -36,7 +33,9 @@ export async function handler(req: Request): Promise<Response> {
     if (totalResult.error) throw totalResult.error
 
     const rows = attendanceResult.data ?? []
-    const presentCount = rows.filter((r) => r.status === 'present' || r.status === 'checked_out').length
+    const presentCount = rows.filter(
+      (r) => r.status === 'present' || r.status === 'checked_out'
+    ).length
     const absentCount = rows.filter((r) => r.status === 'absent').length
     const lateCount = rows.filter((r) => r.status === 'late').length
     const checkedOutCount = rows.filter((r) => r.status === 'checked_out').length
@@ -44,7 +43,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const attendanceRate =
       totalTeachers && totalTeachers > 0
-        ? Math.round(((presentCount ?? 0) + (lateCount ?? 0)) / totalTeachers * 100)
+        ? Math.round((((presentCount ?? 0) + (lateCount ?? 0)) / totalTeachers) * 100)
         : 0
 
     const { data: avgData } = await supabase

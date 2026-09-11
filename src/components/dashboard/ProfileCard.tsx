@@ -56,7 +56,10 @@ export function ProfileCard() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+            aria-hidden="true"
+          >
             {(teacher.full_name ?? '')
               .split(/\s+/)
               .filter(Boolean)

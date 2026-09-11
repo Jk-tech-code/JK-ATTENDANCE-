@@ -260,9 +260,15 @@ export default function CalendarPage() {
     }
   }
 
-  const workingDays = useMemo(() => data?.calendar.filter((d) => d.day_type === 'working_day') ?? [], [data])
+  const workingDays = useMemo(
+    () => data?.calendar.filter((d) => d.day_type === 'working_day') ?? [],
+    [data]
+  )
   const totalWorking = workingDays.length
-  const completedDays = useMemo(() => workingDays.filter((d) => d.present > 0 || d.late > 0).length, [workingDays])
+  const completedDays = useMemo(
+    () => workingDays.filter((d) => d.present > 0 || d.late > 0).length,
+    [workingDays]
+  )
 
   const calendarStats = useMemo(() => {
     if (!data?.calendar?.length) return { attended: 0, total: 0, absentTotal: 0 }
@@ -337,7 +343,9 @@ export default function CalendarPage() {
                   <p
                     className={`text-2xl font-bold ${calendarStats.attended > 0 ? 'text-green-600' : 'text-muted-foreground'}`}
                   >
-                    {calendarStats.total > 0 ? Math.round((calendarStats.attended / calendarStats.total) * 100) : 0}
+                    {calendarStats.total > 0
+                      ? Math.round((calendarStats.attended / calendarStats.total) * 100)
+                      : 0}
                     %
                   </p>
                 </>
@@ -352,9 +360,7 @@ export default function CalendarPage() {
               {loading ? (
                 <Skeleton className="h-8 w-20" />
               ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {calendarStats.absentTotal}
-                </p>
+                <p className="text-2xl font-bold text-red-600">{calendarStats.absentTotal}</p>
               )}
             </CardContent>
           </Card>
@@ -365,7 +371,12 @@ export default function CalendarPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Previous month">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate(-1)}
+                    aria-label="Previous month"
+                  >
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <div className="flex items-center gap-2">
@@ -394,7 +405,12 @@ export default function CalendarPage() {
                       ))}
                     </select>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => navigate(1)} aria-label="Next month">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate(1)}
+                    aria-label="Next month"
+                  >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
                 </div>
@@ -625,7 +641,9 @@ export default function CalendarPage() {
                                 className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-xs"
                               >
                                 <div>
-                                  <p className="font-medium">{r.teacher?.[0]?.full_name ?? 'Unknown'}</p>
+                                  <p className="font-medium">
+                                    {r.teacher?.[0]?.full_name ?? 'Unknown'}
+                                  </p>
                                   <p className="text-muted-foreground">
                                     {r.teacher?.[0]?.staff_number ?? ''}
                                   </p>

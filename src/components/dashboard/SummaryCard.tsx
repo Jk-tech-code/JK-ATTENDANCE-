@@ -15,7 +15,11 @@ export function SummaryCard() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-6" role="status" aria-live="polite">
+        <CardContent
+          className="flex items-center justify-center p-6"
+          role="status"
+          aria-live="polite"
+        >
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
           <span className="sr-only">Loading summary…</span>
         </CardContent>

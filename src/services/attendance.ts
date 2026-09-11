@@ -33,7 +33,9 @@ export async function getTodayAttendance(teacherId: string): Promise<Attendance 
   const today = todayEatClient()
   const { data, error } = await supabase
     .from('attendance')
-    .select('id, teacher_id, attendance_date, check_in, check_out, late_minutes, working_minutes, status, location_status, device, browser, gps_accuracy')
+    .select(
+      'id, teacher_id, attendance_date, check_in, check_out, late_minutes, working_minutes, status, location_status, device, browser, gps_accuracy'
+    )
     .eq('teacher_id', teacherId)
     .eq('attendance_date', today)
     .maybeSingle()

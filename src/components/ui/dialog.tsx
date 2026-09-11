@@ -15,7 +15,14 @@ interface DialogProps {
 const focusableSelector =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function Dialog({ open, onOpenChange, children, title, className, describedBy }: DialogProps) {
+export function Dialog({
+  open,
+  onOpenChange,
+  children,
+  title,
+  className,
+  describedBy,
+}: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -92,7 +99,9 @@ export function Dialog({ open, onOpenChange, children, title, className, describ
       >
         {title && (
           <div className="mb-4 flex items-center justify-between">
-            <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-lg font-semibold">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={() => onOpenChange(false)}

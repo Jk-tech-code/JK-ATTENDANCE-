@@ -8,10 +8,7 @@ type Client = {
       createUser: (
         opts: unknown
       ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
-      updateUserById: (
-        id: string,
-        opts: unknown
-      ) => Promise<{ error: { message: string } | null }>
+      updateUserById: (id: string, opts: unknown) => Promise<{ error: { message: string } | null }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
   }
@@ -422,10 +419,7 @@ describe('invite-teacher', () => {
         insertedTeacher: { id: 'new-auth-1', full_name: 'T', email: 't@x.com' },
       })
       const res = await handler(
-        makeRequest(
-          { staff_number: 'S-1', full_name: 'T', email: 't@x.com' },
-          'Bearer admin'
-        )
+        makeRequest({ staff_number: 'S-1', full_name: 'T', email: 't@x.com' }, 'Bearer admin')
       )
       expect(res.status).toBe(201)
     })

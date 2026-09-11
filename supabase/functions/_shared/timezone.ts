@@ -57,9 +57,11 @@ export const BUSINESS_TZ = 'Africa/Nairobi' as const
  * Nairobi) are handled by the runtime's IANA database, not by manual
  * arithmetic.
  */
-export function toNairobiMinutes(
-  timestamp: string | Date
-): { hours: number; minutes: number; totalMinutes: number } {
+export function toNairobiMinutes(timestamp: string | Date): {
+  hours: number
+  minutes: number
+  totalMinutes: number
+} {
   const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: BUSINESS_TZ,

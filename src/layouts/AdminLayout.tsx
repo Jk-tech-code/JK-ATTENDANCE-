@@ -97,9 +97,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         <nav className="flex-1 space-y-1 p-2">
           {navItems.map((item) => {
-            const isActive = item.href === '/admin'
-              ? location.pathname === '/admin'
-              : location.pathname.startsWith(item.href)
+            const isActive =
+              item.href === '/admin'
+                ? location.pathname === '/admin'
+                : location.pathname.startsWith(item.href)
             return (
               <Link
                 key={item.href}
@@ -156,7 +157,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </aside>
 
       <div className="flex flex-1 flex-col overflow-auto">
-        <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 sm:px-6" aria-label="Admin toolbar">
+        <header
+          className="flex h-14 items-center justify-end gap-2 border-b bg-background px-4 sm:px-6"
+          aria-label="Admin toolbar"
+        >
           <NotificationBell />
           <Button
             variant="ghost"
@@ -166,8 +170,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             className="text-muted-foreground hover:text-foreground"
           >
-            <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" aria-hidden="true" />
-            <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" aria-hidden="true" />
+            <Sun
+              className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"
+              aria-hidden="true"
+            />
+            <Moon
+              className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
+              aria-hidden="true"
+            />
           </Button>
           <span className="text-xs text-muted-foreground hidden sm:inline">
             {user?.teacher?.full_name ?? user?.profile?.full_name ?? user?.email}

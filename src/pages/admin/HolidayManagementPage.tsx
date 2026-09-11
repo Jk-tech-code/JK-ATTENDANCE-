@@ -194,10 +194,20 @@ export default function HolidayManagementPage() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(e)} aria-label="Edit holiday">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(e)}
+                          aria-label="Edit holiday"
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(e)} aria-label="Delete holiday">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteTarget(e)}
+                          aria-label="Delete holiday"
+                        >
                           <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </Button>
                       </div>

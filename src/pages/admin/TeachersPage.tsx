@@ -20,7 +20,17 @@ import {
 } from '@/hooks/useTeachers'
 import { InviteTeacherModal, type InviteTeacherFormData } from '@/components/InviteTeacherModal'
 import type { Teacher } from '@/types'
-import { Plus, Pencil, Trash2, Search, UserPlus, Users, Mail, Copy, CheckCircle2 } from 'lucide-react'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  UserPlus,
+  Users,
+  Mail,
+  Copy,
+  CheckCircle2,
+} from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
@@ -399,10 +409,7 @@ export default function TeachersPage() {
                 The teacher should log in at <strong>{createdTeacher.email}</strong> and change this
                 password from their dashboard menu.
               </p>
-              <Button
-                className="w-full"
-                onClick={() => setCreatedTeacher(null)}
-              >
+              <Button className="w-full" onClick={() => setCreatedTeacher(null)}>
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Done
               </Button>
@@ -447,15 +454,34 @@ function VirtualizedTeacherTable({
 
   return (
     <div role="grid" aria-label="Teachers">
-      <div role="row" className="flex items-center border-b pb-2 text-left text-xs font-medium text-muted-foreground">
-        <div role="columnheader" className={`${columnWidths[0]} px-2`}>Staff No.</div>
-        <div role="columnheader" className={`${columnWidths[1]} px-2`}>Name</div>
-        <div role="columnheader" className={`${columnWidths[2]} px-2`}>Email</div>
-        <div role="columnheader" className={`${columnWidths[3]} px-2`}>Department</div>
-        <div role="columnheader" className={`${columnWidths[4]} px-2`}>Phone</div>
-        <div role="columnheader" className={`${columnWidths[5]} px-2`}>Reporting</div>
-        <div role="columnheader" className={`${columnWidths[6]} px-2`}>Status</div>
-        <div role="columnheader" className={`${columnWidths[7]} px-2`}>Actions</div>
+      <div
+        role="row"
+        className="flex items-center border-b pb-2 text-left text-xs font-medium text-muted-foreground"
+      >
+        <div role="columnheader" className={`${columnWidths[0]} px-2`}>
+          Staff No.
+        </div>
+        <div role="columnheader" className={`${columnWidths[1]} px-2`}>
+          Name
+        </div>
+        <div role="columnheader" className={`${columnWidths[2]} px-2`}>
+          Email
+        </div>
+        <div role="columnheader" className={`${columnWidths[3]} px-2`}>
+          Department
+        </div>
+        <div role="columnheader" className={`${columnWidths[4]} px-2`}>
+          Phone
+        </div>
+        <div role="columnheader" className={`${columnWidths[5]} px-2`}>
+          Reporting
+        </div>
+        <div role="columnheader" className={`${columnWidths[6]} px-2`}>
+          Status
+        </div>
+        <div role="columnheader" className={`${columnWidths[7]} px-2`}>
+          Actions
+        </div>
       </div>
       <div
         ref={parentRef}
@@ -485,7 +511,10 @@ function VirtualizedTeacherTable({
                 <div role="gridcell" className={`${columnWidths[0]} min-w-0 px-2 py-2 truncate`}>
                   {t.staff_number}
                 </div>
-                <div role="gridcell" className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}>
+                <div
+                  role="gridcell"
+                  className={`${columnWidths[1]} min-w-0 px-2 py-2 truncate font-medium`}
+                >
                   {t.full_name}
                 </div>
                 <div
@@ -522,7 +551,10 @@ function VirtualizedTeacherTable({
                     {t.employment_status}
                   </span>
                 </div>
-                <div role="gridcell" className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}>
+                <div
+                  role="gridcell"
+                  className={`${columnWidths[7]} flex shrink-0 items-center gap-1 px-2 py-2`}
+                >
                   <Button
                     variant="ghost"
                     size="icon"
@@ -532,10 +564,22 @@ function VirtualizedTeacherTable({
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(t)} title="Edit" aria-label="Edit teacher">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(t)}
+                    title="Edit"
+                    aria-label="Edit teacher"
+                  >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(t)} title="Delete" aria-label="Delete teacher">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(t)}
+                    title="Delete"
+                    aria-label="Delete teacher"
+                  >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>

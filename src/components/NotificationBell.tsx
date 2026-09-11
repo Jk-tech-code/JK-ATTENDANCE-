@@ -75,7 +75,11 @@ export function NotificationBell() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border bg-card shadow-lg" role="menu" aria-label="Notifications">
+        <div
+          className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border bg-card shadow-lg"
+          role="menu"
+          aria-label="Notifications"
+        >
           <div className="flex items-center justify-between border-b px-4 py-2.5">
             <h3 className="text-sm font-semibold">Notifications</h3>
             <div className="flex gap-1">
@@ -143,7 +147,10 @@ export function NotificationBell() {
                       <p className="mt-1 text-[10px] text-muted-foreground/60">{timeAgo}</p>
                     </div>
                     {!n.read && (
-                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" aria-hidden="true" />
+                      <div
+                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive"
+                        aria-hidden="true"
+                      />
                     )}
                   </button>
                 )

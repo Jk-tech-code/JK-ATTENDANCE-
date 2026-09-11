@@ -43,7 +43,9 @@ describe('H3 teachers.role escalation boundary (00053)', () => {
   it('revokes UPDATE(role) on teachers from anon and authenticated', () => {
     const sql = migration00053Sql()
     expect(sql).toMatch(/REVOKE\s+UPDATE\s*\(\s*role\s*\)\s+ON\s+public\.teachers\s+FROM\s+anon/i)
-    expect(sql).toMatch(/REVOKE\s+UPDATE\s*\(\s*role\s*\)\s+ON\s+public\.teachers\s+FROM\s+authenticated/i)
+    expect(sql).toMatch(
+      /REVOKE\s+UPDATE\s*\(\s*role\s*\)\s+ON\s+public\.teachers\s+FROM\s+authenticated/i
+    )
   })
 
   it('installs a BEFORE UPDATE trigger rejecting direct role changes with 42501', () => {
@@ -79,10 +81,18 @@ describe('H3 teachers.role escalation boundary (00053)', () => {
 
   it('does not grant role management to anon or PUBLIC', () => {
     const sql = migration00053Sql()
-    expect(sql).toMatch(/REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM anon/i)
-    expect(sql).toMatch(/REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM PUBLIC/i)
-    expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) TO anon/i)
-    expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) TO PUBLIC/i)
+    expect(sql).toMatch(
+      /REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM anon/i
+    )
+    expect(sql).toMatch(
+      /REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM PUBLIC/i
+    )
+    expect(sql).not.toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) TO anon/i
+    )
+    expect(sql).not.toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) TO PUBLIC/i
+    )
   })
 
   it('audit-logs role transitions via the existing audit_logs table', () => {
@@ -148,9 +158,7 @@ describe('H3 trigger/RPC interplay (00055)', () => {
   it('RPC does not accept a client-controlled bypass parameter', () => {
     const sql = migration00055Sql()
     // The function signature should only have p_teacher_id and p_new_role
-    const fnMatch = sql.match(
-      /CREATE OR REPLACE FUNCTION public\.update_teacher_role\([^)]*\)/is
-    )
+    const fnMatch = sql.match(/CREATE OR REPLACE FUNCTION public\.update_teacher_role\([^)]*\)/is)
     expect(fnMatch).toBeTruthy()
     const params = fnMatch![0]
     expect(params).not.toMatch(/p_token/i)
@@ -175,9 +183,15 @@ describe('H3 trigger/RPC interplay (00055)', () => {
 
   it('does not grant EXECUTE to anon or PUBLIC', () => {
     const sql = migration00055Sql()
-    expect(sql).toMatch(/REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM anon/i)
-    expect(sql).toMatch(/REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM PUBLIC/i)
-    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) TO authenticated/i)
+    expect(sql).toMatch(
+      /REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM anon/i
+    )
+    expect(sql).toMatch(
+      /REVOKE EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) FROM PUBLIC/i
+    )
+    expect(sql).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.update_teacher_role\(UUID, TEXT\) TO authenticated/i
+    )
   })
 
   it('does not modify existing tables or objects from earlier migrations', () => {

@@ -318,7 +318,9 @@ describe('Accessibility - Phase 5B Regression', () => {
     const { container } = renderWithProviders(
       <div>
         <Input aria-invalid="true" aria-describedby="test-error" />
-        <p id="test-error" role="alert">Field is required</p>
+        <p id="test-error" role="alert">
+          Field is required
+        </p>
       </div>
     )
     const alert = container.querySelector('[role="alert"]')

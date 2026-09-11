@@ -24,10 +24,10 @@ export async function handler(req: Request): Promise<Response> {
     const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
 
     // Count working days using the school_calendar table (excludes weekends + holidays)
-    const { data: workingDaysData, error: wdErr } = await supabase.rpc(
-      'count_month_working_days',
-      { p_year: year, p_month: month }
-    )
+    const { data: workingDaysData, error: wdErr } = await supabase.rpc('count_month_working_days', {
+      p_year: year,
+      p_month: month,
+    })
     if (wdErr) throw wdErr
     const workingDays = workingDaysData as number
 

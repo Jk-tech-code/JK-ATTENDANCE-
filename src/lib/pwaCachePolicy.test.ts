@@ -65,7 +65,7 @@ describe('H1: PWA runtime caching security policy (vite.config.ts)', () => {
     expect(workbox).not.toMatch(/\bCacheFirst\b/)
     expect(workbox).not.toMatch(/\bStaleWhileRevalidate\b/)
     // Strategies are declared via `handler: '<Strategy>'`; none may exist.
-    expect(workbox).not.toMatch(/handler\s*:\s*['"]/) 
+    expect(workbox).not.toMatch(/handler\s*:\s*['"]/)
   })
 
   it('TEST 3: legacy private cache cleanup is wired into the service worker', () => {
@@ -95,7 +95,13 @@ describe('H1: PWA runtime caching security policy (vite.config.ts)', () => {
   it('TEST 6: private attendance/teacher/report data receives no cache strategy', () => {
     // These endpoints were all matched by the removed wildcard rule; verify
     // no per-endpoint caching rule exists for any of them.
-    for (const path of ['rest/v1/attendance', 'rest/v1/teachers', 'rest/v1/profiles', 'rest/v1/report', 'rest/v1/notifications']) {
+    for (const path of [
+      'rest/v1/attendance',
+      'rest/v1/teachers',
+      'rest/v1/profiles',
+      'rest/v1/report',
+      'rest/v1/notifications',
+    ]) {
       expect(workbox).not.toContain(path)
     }
   })
@@ -116,7 +122,9 @@ describe('H1: logout defense-in-depth wiring', () => {
   it('the cleanup module is origin-scoped to the private Supabase project', () => {
     const mod = read('src/lib/privateCacheCleanup.ts')
     // Pins the exact project ref (regex-source form in the module).
-    expect(mod).toMatch(/SUPABASE_HOST_PATTERN = \/\(\^\|\\\.\)ireyodsiyvvjfqymgdpa\\\.supabase\\\.co\$\/i/)
+    expect(mod).toMatch(
+      /SUPABASE_HOST_PATTERN = \/\(\^\|\\\.\)ireyodsiyvvjfqymgdpa\\\.supabase\\\.co\$\/i/
+    )
     // Deletion must be name- or URL-targeted, never cache-wide.
     expect(mod).toMatch(/cache\.delete\(/)
   })

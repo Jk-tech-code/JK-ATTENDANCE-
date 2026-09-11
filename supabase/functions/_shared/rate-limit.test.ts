@@ -40,10 +40,12 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
     for (let i = 0; i < 3; i++) {
-      const res = await enforceRateLimit(
-        client,
-        { namespace: 'create-admin', identifier: 'admin-1', maxAttempts: 3, windowSeconds: 60 }
-      )
+      const res = await enforceRateLimit(client, {
+        namespace: 'create-admin',
+        identifier: 'admin-1',
+        maxAttempts: 3,
+        windowSeconds: 60,
+      })
       expect(res.allowed).toBe(true)
     }
   })
@@ -52,16 +54,20 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
     for (let i = 0; i < 3; i++) {
-      const res = await enforceRateLimit(
-        client,
-        { namespace: 'create-admin', identifier: 'admin-1', maxAttempts: 3, windowSeconds: 60 }
-      )
+      const res = await enforceRateLimit(client, {
+        namespace: 'create-admin',
+        identifier: 'admin-1',
+        maxAttempts: 3,
+        windowSeconds: 60,
+      })
       expect(res.allowed).toBe(true)
     }
-    const res = await enforceRateLimit(
-      client,
-      { namespace: 'create-admin', identifier: 'admin-1', maxAttempts: 3, windowSeconds: 60 }
-    )
+    const res = await enforceRateLimit(client, {
+      namespace: 'create-admin',
+      identifier: 'admin-1',
+      maxAttempts: 3,
+      windowSeconds: 60,
+    })
     expect(res.allowed).toBe(false)
     if (!res.allowed) {
       expect(res.status).toBe(429)
@@ -73,15 +79,19 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
     for (let i = 0; i < 5; i++) {
-      await enforceRateLimit(
-        client,
-        { namespace: 'delete-teacher', identifier: 'admin-1', maxAttempts: 5, windowSeconds: 60 }
-      )
+      await enforceRateLimit(client, {
+        namespace: 'delete-teacher',
+        identifier: 'admin-1',
+        maxAttempts: 5,
+        windowSeconds: 60,
+      })
     }
-    const res = await enforceRateLimit(
-      client,
-      { namespace: 'delete-teacher', identifier: 'admin-1', maxAttempts: 5, windowSeconds: 60 }
-    )
+    const res = await enforceRateLimit(client, {
+      namespace: 'delete-teacher',
+      identifier: 'admin-1',
+      maxAttempts: 5,
+      windowSeconds: 60,
+    })
     expect(res.allowed).toBe(false)
     if (!res.allowed) {
       expect(res.status).toBe(429)
@@ -96,7 +106,12 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const isolateA = backend.makeClient()
     const isolateB = backend.makeClient()
-    const check = { namespace: 'invite-teacher', identifier: 'admin-1', maxAttempts: 5, windowSeconds: 60 }
+    const check = {
+      namespace: 'invite-teacher',
+      identifier: 'admin-1',
+      maxAttempts: 5,
+      windowSeconds: 60,
+    }
 
     for (let i = 0; i < 3; i++) {
       const a = await enforceRateLimit(isolateA, check)
@@ -117,7 +132,12 @@ describe('H2 shared distributed rate-limit layer', () => {
   it('TEST E: cold start (fresh module identity) cannot reset the authoritative limit', async () => {
     const backend = createRateLimitBackendMock()
     const firstBoot = backend.makeClient()
-    const check = { namespace: 'create-admin', identifier: 'admin-1', maxAttempts: 3, windowSeconds: 60 }
+    const check = {
+      namespace: 'create-admin',
+      identifier: 'admin-1',
+      maxAttempts: 3,
+      windowSeconds: 60,
+    }
     for (let i = 0; i < 3; i++) {
       await enforceRateLimit(firstBoot, check)
     }
@@ -132,11 +152,18 @@ describe('H2 shared distributed rate-limit layer', () => {
   it('TEST F: concurrent requests never exceed the configured limit', async () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
-    const check = { namespace: 'invite-teacher', identifier: 'admin-1', maxAttempts: 5, windowSeconds: 60 }
+    const check = {
+      namespace: 'invite-teacher',
+      identifier: 'admin-1',
+      maxAttempts: 5,
+      windowSeconds: 60,
+    }
 
     // 25 simultaneous consumers race the same bucket, like concurrent
     // requests racing the row lock in the atomic RPC.
-    const results = await Promise.all(Array.from({ length: 25 }, () => enforceRateLimit(client, check)))
+    const results = await Promise.all(
+      Array.from({ length: 25 }, () => enforceRateLimit(client, check))
+    )
     const allowed = results.filter((r) => r.allowed).length
     const denied = results.filter((r) => !r.allowed && 'status' in r && r.status === 429).length
     expect(allowed).toBe(5)
@@ -147,17 +174,21 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
     for (let i = 0; i < 3; i++) {
-      const res = await enforceRateLimit(
-        client,
-        { namespace: 'create-admin', identifier: 'admin-A', maxAttempts: 3, windowSeconds: 60 }
-      )
+      const res = await enforceRateLimit(client, {
+        namespace: 'create-admin',
+        identifier: 'admin-A',
+        maxAttempts: 3,
+        windowSeconds: 60,
+      })
       expect(res.allowed).toBe(true)
     }
     // admin-B is unaffected by admin-A's exhausted bucket.
-    const res = await enforceRateLimit(
-      client,
-      { namespace: 'create-admin', identifier: 'admin-B', maxAttempts: 3, windowSeconds: 60 }
-    )
+    const res = await enforceRateLimit(client, {
+      namespace: 'create-admin',
+      identifier: 'admin-B',
+      maxAttempts: 3,
+      windowSeconds: 60,
+    })
     expect(res.allowed).toBe(true)
   })
 
@@ -168,7 +199,12 @@ describe('H2 shared distributed rate-limit layer', () => {
     // no IP/user-agent dimension in the key at all — the only way to vary
     // the bucket is the namespace/identifier/limit/window, none of which a
     // caller controls. Prove limit exhaustion is sticky for the identity.
-    const check = { namespace: 'delete-teacher', identifier: 'admin-1', maxAttempts: 5, windowSeconds: 60 }
+    const check = {
+      namespace: 'delete-teacher',
+      identifier: 'admin-1',
+      maxAttempts: 5,
+      windowSeconds: 60,
+    }
     for (let i = 0; i < 5; i++) {
       await enforceRateLimit(client, check)
     }
@@ -186,25 +222,34 @@ describe('H2 shared distributed rate-limit layer', () => {
     for (let spoofedIp of ['1.2.3.4', '5.6.7.8', '9.10.11.12', '13.14.15.16', '17.18.19.20']) {
       // The IP tag is a SECONDARY bucket; the primary email bucket is
       // consumed regardless of which spoofed header accompanies it.
-      const primary = await enforceRateLimit(
-        backend.makeClient(),
-        { namespace: 'recover-password', identifier: emailKey, maxAttempts: 5, windowSeconds: 60 }
-      )
+      const primary = await enforceRateLimit(backend.makeClient(), {
+        namespace: 'recover-password',
+        identifier: emailKey,
+        maxAttempts: 5,
+        windowSeconds: 60,
+      })
       expect(primary.allowed).toBe(true)
       void spoofedIp
     }
     // 6th attempt with yet another "new IP" — denied: no bypass.
-    const denied = await enforceRateLimit(
-      backend.makeClient(),
-      { namespace: 'recover-password', identifier: emailKey, maxAttempts: 5, windowSeconds: 60 }
-    )
+    const denied = await enforceRateLimit(backend.makeClient(), {
+      namespace: 'recover-password',
+      identifier: emailKey,
+      maxAttempts: 5,
+      windowSeconds: 60,
+    })
     expect(denied.allowed).toBe(false)
   })
 
   it('TEST J: backend failure is fail-closed (503, generic message) by default and fail-open only when opted in', async () => {
     const backend = createRateLimitBackendMock()
     const failing = backend.makeClient({ rpcError: { message: 'connection refused' } })
-    const check = { namespace: 'create-admin', identifier: 'admin-1', maxAttempts: 3, windowSeconds: 60 }
+    const check = {
+      namespace: 'create-admin',
+      identifier: 'admin-1',
+      maxAttempts: 3,
+      windowSeconds: 60,
+    }
 
     // Default: FAIL CLOSED with 503 (not 429 — this is not a rate-limit hit).
     const closed = await enforceRateLimit(failing, check)
@@ -222,7 +267,12 @@ describe('H2 shared distributed rate-limit layer', () => {
   it('TEST K: expired windows allow requests again (fixed-window reset)', async () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
-    const check = { namespace: 'create-admin', identifier: 'admin-1', maxAttempts: 3, windowSeconds: 60 }
+    const check = {
+      namespace: 'create-admin',
+      identifier: 'admin-1',
+      maxAttempts: 3,
+      windowSeconds: 60,
+    }
     for (let i = 0; i < 3; i++) {
       await enforceRateLimit(client, check)
     }
@@ -238,10 +288,16 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient()
     await consumeRateLimit(client, {
-      namespace: 'ns', identifier: 'old', maxAttempts: 5, windowSeconds: 60,
+      namespace: 'ns',
+      identifier: 'old',
+      maxAttempts: 5,
+      windowSeconds: 60,
     })
     await consumeRateLimit(client, {
-      namespace: 'ns', identifier: 'current', maxAttempts: 5, windowSeconds: 60,
+      namespace: 'ns',
+      identifier: 'current',
+      maxAttempts: 5,
+      windowSeconds: 60,
     })
     expect(backend.bucketCount()).toBe(2)
 
@@ -249,7 +305,10 @@ describe('H2 shared distributed rate-limit layer', () => {
     backend.advanceMs(11 * 60_000)
     // Both buckets are now expired; a fresh consume creates a new window row.
     await consumeRateLimit(client, {
-      namespace: 'ns', identifier: 'current', maxAttempts: 5, windowSeconds: 60,
+      namespace: 'ns',
+      identifier: 'current',
+      maxAttempts: 5,
+      windowSeconds: 60,
     })
     const deleted = backend.cleanupExpired()
     expect(deleted).toBeGreaterThanOrEqual(1)
@@ -265,7 +324,10 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient({ rpcError: { message: 'SQLSTATE internal detail' } })
     const res = await consumeRateLimit(client, {
-      namespace: 'ns', identifier: 'id', maxAttempts: 5, windowSeconds: 60,
+      namespace: 'ns',
+      identifier: 'id',
+      maxAttempts: 5,
+      windowSeconds: 60,
     })
     expect(res.ok).toBe(false)
     if (!res.ok) expect(res.error).toContain('SQLSTATE')
@@ -275,7 +337,10 @@ describe('H2 shared distributed rate-limit layer', () => {
     const backend = createRateLimitBackendMock()
     const client = backend.makeClient({ malformed: true })
     const res = await consumeRateLimit(client, {
-      namespace: 'ns', identifier: 'id', maxAttempts: 5, windowSeconds: 60,
+      namespace: 'ns',
+      identifier: 'id',
+      maxAttempts: 5,
+      windowSeconds: 60,
     })
     expect(res.ok).toBe(false)
   })

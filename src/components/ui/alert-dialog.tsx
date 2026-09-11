@@ -32,7 +32,9 @@ export function AlertDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={title} describedBy={descriptionId}>
-      <p id={descriptionId} className="text-sm text-muted-foreground mb-4">{description}</p>
+      <p id={descriptionId} className="text-sm text-muted-foreground mb-4">
+        {description}
+      </p>
       <div className="flex justify-end gap-2">
         <Button
           variant="outline"
