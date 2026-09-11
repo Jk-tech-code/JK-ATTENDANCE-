@@ -65,10 +65,13 @@ export default function AdminManagementPage() {
     }
 
     try {
-      await createAdminMutation.mutateAsync(trimmed)
+      const result = await createAdminMutation.mutateAsync(trimmed)
+      const tempPassword = result.admin.temp_password
       toast.success('Administrator account created', {
-        description: `Invitation sent to ${trimmed.email}. They will receive an email to set their password.`,
-        duration: 10000,
+        description: tempPassword
+          ? `Account created for ${trimmed.email}. Temporary password: ${tempPassword}\n\nShare this password securely. The admin can change it after logging in.`
+          : `Account created for ${trimmed.email}. A password reset email has been sent.`,
+        duration: 30000,
       })
       reset()
       setShowCreateDialog(false)

@@ -103,27 +103,41 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'An account with this email already exists' }, 409)
     }
 
-    // ── Create auth user via invite ───────────────
+    // ── Create auth user with temp password ───────
+    // Uses createUser() instead of inviteUserByEmail() so SMTP config is not required.
+    // The admin is created with a random temp password; a reset email is sent best-effort.
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://jk-attendance.vercel.app'
     console.warn('[create-admin] Creating admin:', input.role)
 
-    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-      input.email,
-      {
-        redirectTo: `${siteUrl}/reset-password`,
-        data: { role: input.role, full_name: input.full_name },
-      }
-    )
+    // Generate a random 16-char temp password (letters + digits)
+    const tempPassword = Array.from({ length: 16 }, () =>
+      'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]
+    ).join('')
 
-    if (inviteError) {
-      console.error('[create-admin] inviteUserByEmail failed:', inviteError.message)
+    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+      email: input.email,
+      password: tempPassword,
+      email_confirm: true, // skip email verification
+      user_metadata: { role: input.role, full_name: input.full_name },
+    })
+
+    if (userError) {
+      console.error('[create-admin] createUser failed:', userError.message)
+      if (userError.message.includes('already exists')) {
+        return jsonResponse({ error: 'An account with this email already exists' }, 409)
+      }
       return jsonResponse({ error: 'Unable to create the administrator account' }, 400)
     }
-    if (!inviteData.user) {
+    if (!userData.user) {
       return jsonResponse({ error: 'Unable to create the administrator account' }, 500)
     }
 
-    const authUserId = inviteData.user.id
+    const authUserId = userData.user.id
+
+    // Best-effort: send password reset email (requires SMTP; silently ignored if not configured)
+    await supabase.auth.resetPasswordForEmail(input.email, {
+      redirectTo: `${siteUrl}/reset-password`,
+    })
 
     // ── Create teacher record with admin role ─────
     const { error: teacherError } = await supabase.from('teachers').insert({
@@ -164,6 +178,7 @@ export async function handler(req: Request): Promise<Response> {
           email: input.email,
           full_name: input.full_name,
           role: input.role,
+          temp_password: tempPassword,
         },
       },
       201

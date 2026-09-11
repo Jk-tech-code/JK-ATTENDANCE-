@@ -35,9 +35,17 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
  * The Edge Function handles auth user creation, teacher record creation,
  * profile update, and server-side authorization checks.
  */
-export async function createAdminAccount(input: CreateAdminInput): Promise<{
-  admin: { id: string; email: string; full_name: string; role: string }
-}> {
+export interface CreateAdminResult {
+  admin: {
+    id: string
+    email: string
+    full_name: string
+    role: string
+    temp_password?: string
+  }
+}
+
+export async function createAdminAccount(input: CreateAdminInput): Promise<CreateAdminResult> {
   const {
     data: { session },
   } = await supabase.auth.getSession()

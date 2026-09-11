@@ -5,12 +5,12 @@ type Client = {
   auth: {
     getUser: (token: string) => Promise<{ data: { user: unknown }; error: unknown }>
     admin: {
-      inviteUserByEmail: (
-        email: string,
+      createUser: (
         opts: unknown
       ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
+    resetPasswordForEmail: (email: string, opts?: unknown) => Promise<{ data: unknown; error: unknown }>
   }
   rpc: (name: string, args?: unknown) => Promise<{ data: unknown; error: unknown }>
   from: (table: string) => unknown
@@ -46,9 +46,9 @@ function configureClient(opts: {
   existingTeacher?: { id: string } | null
   // profiles table duplicate check
   existingProfile?: { id: string } | null
-  // inviteUserByEmail result
-  invitedUser?: { id: string } | null
-  inviteError?: { message: string }
+  // createUser result
+  createdUser?: { id: string } | null
+  createUserError?: { message: string }
   // teacher insert result
   insertError?: { message: string }
   // deleteUser call counter (rollback assertion)
@@ -68,10 +68,10 @@ function configureClient(opts: {
             error: null,
           }),
       admin: {
-        inviteUserByEmail: async () => {
-          if (opts.inviteError) return { data: { user: null }, error: opts.inviteError }
+        createUser: async () => {
+          if (opts.createUserError) return { data: { user: null }, error: opts.createUserError }
           return {
-            data: { user: opts.invitedUser ? { id: opts.invitedUser.id } : null },
+            data: { user: opts.createdUser ? { id: opts.createdUser.id } : null },
             error: null,
           }
         },
@@ -80,6 +80,7 @@ function configureClient(opts: {
           return { error: null }
         },
       },
+      resetPasswordForEmail: async () => ({ data: {}, error: null }),
     },
     // H2: the distributed rate limit lives behind the consume_rate_limit
     // RPC (migration 00054). Mocks return an "allowed" row so business
@@ -305,7 +306,7 @@ describe('create-admin', () => {
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        invitedUser: { id: 'new-1' },
+        createdUser: { id: 'new-1' },
       })
       const res = await handler(
         makeRequest(
@@ -322,7 +323,7 @@ describe('create-admin', () => {
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        invitedUser: { id: 'new-1' },
+        createdUser: { id: 'new-1' },
       })
       const res = await handler(
         makeRequest(
@@ -339,7 +340,7 @@ describe('create-admin', () => {
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        invitedUser: { id: 'new-1' },
+        createdUser: { id: 'new-1' },
       })
       const res = await handler(
         makeRequest(
@@ -405,7 +406,7 @@ describe('create-admin', () => {
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        invitedUser: { id: 'new-admin-1' },
+        createdUser: { id: 'new-admin-1' },
       })
       const res = await handler(
         makeRequest(
@@ -419,6 +420,8 @@ describe('create-admin', () => {
       expect(body.admin.full_name).toBe('New Admin')
       expect(body.admin.role).toBe('admin')
       expect(body.admin.id).toBe('new-admin-1')
+      expect(body.admin.temp_password).toBeDefined()
+      expect(body.admin.temp_password.length).toBe(16)
     })
 
     it('creates superadmin account and returns 201', async () => {
@@ -427,7 +430,7 @@ describe('create-admin', () => {
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        invitedUser: { id: 'new-sa-1' },
+        createdUser: { id: 'new-sa-1' },
       })
       const res = await handler(
         makeRequest(
@@ -449,7 +452,7 @@ describe('create-admin', () => {
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        invitedUser: { id: 'new-1' },
+        createdUser: { id: 'new-1' },
         insertError: { message: 'insert failed' },
         onDeleteUser: () => {
           deleteCount += 1
@@ -466,14 +469,14 @@ describe('create-admin', () => {
     })
   })
 
-  describe('invite failures', () => {
-    it('returns 400 when inviteUserByEmail fails', async () => {
+  describe('user creation failures', () => {
+    it('returns 400 when createUser fails', async () => {
       configureClient({
         callerRole: 'superadmin',
         existingAuthUser: null,
         existingTeacher: null,
         existingProfile: null,
-        inviteError: { message: 'smtp down' },
+        createUserError: { message: 'auth error' },
       })
       const res = await handler(
         makeRequest(
@@ -482,6 +485,23 @@ describe('create-admin', () => {
         )
       )
       expect(res.status).toBe(400)
+    })
+
+    it('returns 409 when createUser says user already exists', async () => {
+      configureClient({
+        callerRole: 'superadmin',
+        existingAuthUser: null,
+        existingTeacher: null,
+        existingProfile: null,
+        createUserError: { message: 'User already exists' },
+      })
+      const res = await handler(
+        makeRequest(
+          { email: 'new@school.com', full_name: 'New Admin', role: 'admin' },
+          'Bearer superadmin'
+        )
+      )
+      expect(res.status).toBe(409)
     })
   })
 })

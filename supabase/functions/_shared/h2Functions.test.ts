@@ -47,7 +47,7 @@ function configureClient(opts: {
             error: null,
           }),
       admin: {
-        inviteUserByEmail: async () => ({ data: { user: { id: 'new-user-1' } }, error: null }),
+        createUser: async () => ({ data: { user: { id: 'new-user-1' } }, error: null }),
       },
       resetPasswordForEmail: async () => ({ data: {}, error: null }),
     },
