@@ -16,6 +16,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
   const signingOutRef = useRef(false)
+  const signInInProgressRef = useRef(false)
 
   const loadUser = useCallback(async () => {
     const currentUser = await getCurrentUser()
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (session?.user) {
+        if (signInInProgressRef.current) return
         try {
           await loadUser()
         } catch (err) {
@@ -83,16 +85,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadUser])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const result = await authSignIn(email, password)
-    if (result.user) {
-      setUser(result.user)
-      if (!result.user.teacher && !result.user.profile) {
-        setProfileError('Teacher profile not found. Contact your administrator.')
-      } else {
-        setProfileError(null)
+    signInInProgressRef.current = true
+    try {
+      const result = await authSignIn(email, password)
+      if (result.user) {
+        setUser(result.user)
+        if (!result.user.teacher && !result.user.profile) {
+          setProfileError('Teacher profile not found. Contact your administrator.')
+        } else {
+          setProfileError(null)
+        }
       }
+      return { error: result.error, user: result.user }
+    } finally {
+      signInInProgressRef.current = false
     }
-    return { error: result.error, user: result.user }
   }, [])
 
   const signInWithGoogle = useCallback(async () => {

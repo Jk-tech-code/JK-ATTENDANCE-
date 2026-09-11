@@ -127,7 +127,13 @@ export default function LandingPage() {
         </main>
 
         <footer className="border-t py-6 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} JK Attendance System. All rights reserved.
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4">
+            <p>&copy; {new Date().getFullYear()} JK Attendance System. All rights reserved.</p>
+            <nav className="flex items-center justify-center gap-4" aria-label="Footer navigation">
+              <Link to="/help" className="hover:underline">Help & FAQ</Link>
+              <Link to="/login" className="hover:underline">Sign In</Link>
+            </nav>
+          </div>
         </footer>
       </div>
     </>

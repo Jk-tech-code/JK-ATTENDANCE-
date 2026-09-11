@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 const siteUrl =
   typeof window !== 'undefined' ? window.location.origin : 'https://jk-attendance.vercel.app'
@@ -48,6 +49,10 @@ const faqJsonLd = {
 }
 
 export default function HelpPage() {
+  const { user } = useAuth()
+  const backPath =
+    user?.role === 'admin' || user?.role === 'superadmin' ? '/admin' : user ? '/dashboard' : '/'
+
   return (
     <>
       <Helmet>
@@ -86,7 +91,7 @@ export default function HelpPage() {
         </a>
         <main id="main-content" className="space-y-6">
           <div className="flex items-center gap-4">
-            <Link to="/">
+            <Link to={backPath}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
                 Back

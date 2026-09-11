@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, Shield, Moon, Sun, Key } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { LogOut, User, Shield, Moon, Sun, Key, HelpCircle } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { NotificationBell } from '@/components/NotificationBell'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -73,6 +73,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <span className="text-sm font-semibold">Attendance</span>
           </div>
           <div className="flex items-center gap-1">
+            <Link to="/help">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Help and FAQ"
+                title="Help and FAQ"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </Link>
             <NotificationBell />
             <Button
               variant="ghost"

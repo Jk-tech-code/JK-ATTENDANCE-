@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   Shield,
+  HelpCircle,
 } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
@@ -33,6 +34,7 @@ const navItems = [
   { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
   { href: '/admin/admins', label: 'Admin Management', icon: Shield },
   { href: '/admin/settings', label: 'Settings', icon: MapPin },
+  { href: '/help', label: 'Help & FAQ', icon: HelpCircle },
 ]
 
 export function AdminLayout({ children }: AdminLayoutProps) {

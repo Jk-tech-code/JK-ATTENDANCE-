@@ -1,10 +1,19 @@
-import { lazy, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { RouteErrorBoundary } from '@/components/ui/ErrorPage'
 import { Loader2 } from 'lucide-react'
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+      <span className="sr-only">Loading…</span>
+    </div>
+  )
+}
 
 function RouteAnnouncer() {
   const location = useLocation()
@@ -104,7 +113,8 @@ export default function App() {
     <BrowserRouter>
       <Toaster position="top-right" richColors />
       <RouteAnnouncer />
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route
           path="/login"
@@ -205,7 +215,8 @@ export default function App() {
           }
         />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }
