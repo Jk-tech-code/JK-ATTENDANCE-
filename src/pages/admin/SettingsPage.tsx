@@ -369,7 +369,7 @@ export default function SettingsPage() {
                   }
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Official reporting time (default: 07:00)
+                  Official reporting time
                 </p>
               </div>
               <div className="space-y-2">
@@ -402,7 +402,7 @@ export default function SettingsPage() {
                   </p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
-                  Allowed late window after reporting time (default: 20 min)
+                  Allowed late window after reporting time
                 </p>
               </div>
               <div className="space-y-2">
