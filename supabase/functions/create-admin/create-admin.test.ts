@@ -10,7 +10,10 @@ type Client = {
       ) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>
       deleteUser: (id: string) => Promise<{ error: unknown }>
     }
-    resetPasswordForEmail: (email: string, opts?: unknown) => Promise<{ data: unknown; error: unknown }>
+    resetPasswordForEmail: (
+      email: string,
+      opts?: unknown
+    ) => Promise<{ data: unknown; error: unknown }>
   }
   rpc: (name: string, args?: unknown) => Promise<{ data: unknown; error: unknown }>
   from: (table: string) => unknown

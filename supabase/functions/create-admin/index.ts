@@ -110,8 +110,9 @@ export async function handler(req: Request): Promise<Response> {
     console.warn('[create-admin] Creating admin:', input.role)
 
     // Generate a random 16-char temp password (letters + digits)
-    const tempPassword = Array.from({ length: 16 }, () =>
-      'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]
+    const tempPassword = Array.from(
+      { length: 16 },
+      () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]
     ).join('')
 
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
