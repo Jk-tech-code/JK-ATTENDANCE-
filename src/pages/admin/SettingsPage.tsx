@@ -368,9 +368,7 @@ export default function SettingsPage() {
                     setSettings({ ...settings, reporting_start_time: e.target.value + ':00' })
                   }
                 />
-                <p className="text-[10px] text-muted-foreground">
-                  Official reporting time (default: 07:00)
-                </p>
+                <p className="text-[10px] text-muted-foreground">Official reporting time</p>
               </div>
               <div className="space-y-2">
                 <label htmlFor="setting-grace-period" className="text-sm font-medium">
@@ -402,7 +400,7 @@ export default function SettingsPage() {
                   </p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
-                  Allowed late window after reporting time (default: 20 min)
+                  Allowed late window after reporting time
                 </p>
               </div>
               <div className="space-y-2">
