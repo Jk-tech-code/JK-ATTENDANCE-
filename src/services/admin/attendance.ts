@@ -34,7 +34,7 @@ export async function getAttendanceRecords(
   let query = supabase.from('attendance').select('*, teacher:teachers(*)', { count: 'exact' })
 
   if (filters.date) query = query.eq('attendance_date', filters.date)
-  if (filters.status) query = query.eq('status', filters.status)
+  if (filters.status) query = query.or(`attendance_status.eq.${filters.status},status.eq.${filters.status}`)
   if (filters.teacher_id) query = query.eq('teacher_id', filters.teacher_id)
 
   const { data, error, count } = await query
