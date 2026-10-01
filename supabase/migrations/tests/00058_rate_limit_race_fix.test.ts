@@ -40,11 +40,11 @@ describe('migration 00058 — race-free rate limiting in check_in_with_location'
     expect(sql).toMatch(/v_attempt_count > 5/)
   })
 
-  it('rolls back the rejected attempt so the table stays accurate', () => {
+  it('rolls back the rejected attempt via PL/pgSQL subtransaction so the table stays accurate', () => {
     // On rejection, the function must discard its own insert to prevent
     // inflating the counter for a blocked caller.
-    expect(sql).toMatch(/ROLLBACK TO SAVEPOINT rate_limit_point/)
-    expect(sql).toMatch(/SAVEPOINT rate_limit_point/)
+    expect(sql).toMatch(/RAISE EXCEPTION 'RATE_LIMIT_EXCEEDED'/)
+    expect(sql).toMatch(/EXCEPTION WHEN SQLSTATE 'P0001'/)
   })
 
   it('preserves the ownership/authorization guard', () => {

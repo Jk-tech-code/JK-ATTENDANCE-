@@ -63,8 +63,6 @@ DECLARE
   v_attempt_count INTEGER;
   v_retry_after_seconds INTEGER;
   v_oldest_attempt TIMESTAMPTZ;
-  -- Savepoint name for atomic rate-limit rollback
-  rl_savepoint TEXT := 'rate_limit_point';
 BEGIN
   -- ========================================
   -- OWNERSHIP CHECK
@@ -80,7 +78,6 @@ BEGIN
   -- Insert this attempt FIRST. The INSERT is atomic under row-level
   -- locking; concurrent transactions serialize here. We then count all
   -- attempts in the window (including ours) and decide.
-  SAVEPOINT rate_limit_point;
   BEGIN
     INSERT INTO public.rate_limit_checkins (teacher_id, attempt_time)
     VALUES (p_teacher_id, v_now);
@@ -90,17 +87,13 @@ BEGIN
     FROM public.rate_limit_checkins
     WHERE teacher_id = p_teacher_id
       AND attempt_time >= v_window_start;
-  EXCEPTION WHEN OTHERS THEN
-    RAISE;
-  END;
 
-  IF v_attempt_count > 5 THEN
-    -- Over the limit: roll back our own insert to keep the table clean
-    -- and accurate for the next legitimate attempt.
-    ROLLBACK TO SAVEPOINT rate_limit_point;
-
-    -- Calculate how long until the oldest attempt in the window expires
-    -- (i.e., until the window truly slides forward).
+    IF v_attempt_count > 5 THEN
+      RAISE EXCEPTION 'RATE_LIMIT_EXCEEDED' USING ERRCODE = 'P0001';
+    END IF;
+  EXCEPTION WHEN SQLSTATE 'P0001' THEN
+    -- Over the limit: subtransaction automatically rolls back our own insert
+    -- to keep the table clean and accurate for the next legitimate attempt.
     SELECT attempt_time INTO v_oldest_attempt
     FROM public.rate_limit_checkins
     WHERE teacher_id = p_teacher_id
@@ -122,7 +115,7 @@ BEGIN
       'max_attempts', 5,
       'window_minutes', 5
     );
-  END IF;
+  END;
 
   -- Cleanup old entries opportunistically (1% chance to avoid overhead)
   IF FLOOR(RANDOM() * 100) = 0 THEN

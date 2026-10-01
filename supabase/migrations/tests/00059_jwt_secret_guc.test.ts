@@ -1,9 +1,9 @@
 /**
  * Tests — migration 00059 contract (static SQL verification).
  *
- * Verifies that the `app.settings.jwt_secret` GUC is configured at the
- * database level so the role-change RPC (`update_teacher_role`) and its
- * trigger (`trg_teachers_role_immutable`) can compute the HMAC token.
+ * Verifies that `update_teacher_role` and `verify_role_change_token` read the
+ * `app.settings.jwt_secret` GUC and FAIL CLOSED when it is unset — i.e. there
+ * is no hardcoded fallback secret in the migration text.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -17,18 +17,33 @@ const migrationPath = path.join(
 )
 const sql = readFileSync(migrationPath, 'utf8')
 
-describe('migration 00059 — jwt_secret GUC configuration', () => {
-  it('sets the app.settings.jwt_secret GUC at the database level', () => {
-    expect(sql).toMatch(/ALTER DATABASE postgres SET app\.settings\.jwt_secret TO/)
+describe('migration 00059 — jwt_secret fail-closed configuration', () => {
+  it('updates verify_role_change_token and update_teacher_role to read the GUC', () => {
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.verify_role_change_token/)
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.update_teacher_role/)
+    expect(sql).toMatch(/app\.settings\.jwt_secret/)
   })
 
-  it('uses a non-empty secret value (not NULL or empty string)', () => {
-    expect(sql).not.toMatch(/ALTER DATABASE postgres SET app\.settings\.jwt_secret TO ''/)
-    expect(sql).not.toMatch(/ALTER DATABASE postgres SET app\.settings\.jwt_secret TO NULL/)
+  it('fails closed: no hardcoded fallback secret in the migration text', () => {
+    // The old hardcoded secret must not appear anywhere in the migration.
+    expect(sql).not.toMatch(/304081e21600b6166734d1d2d06a672f460a6ddb94ed1301d847ae5c2ff2daf6/)
+    // No COALESCE(..., '<secret>') fallback pattern.
+    expect(sql).not.toMatch(/COALESCE\([\s\S]*'\s*[0-9a-f]{32,}\s*'\s*\)/i)
   })
 
-  it('reloads the PostgreSQL configuration so the change takes effect immediately', () => {
-    expect(sql).toMatch(/SELECT pg_reload_conf\(\)/)
+  it('verify_role_change_token returns FALSE when the secret is unset', () => {
+    expect(sql).toMatch(/app\.settings\.jwt_secret not configured/i)
+    expect(sql).toMatch(/RETURN FALSE/)
+  })
+
+  it('update_teacher_role raises when the secret is unset', () => {
+    expect(sql).toMatch(/app\.settings\.jwt_secret not configured/i)
+    expect(sql).toMatch(/ERRCODE\s*=\s*'42501'/i)
+  })
+
+  it('maintains SECURITY DEFINER and pinned search_path', () => {
+    expect(sql).toMatch(/SECURITY DEFINER/)
+    expect(sql).toMatch(/SET search_path = pg_catalog, public, pg_temp/)
   })
 
   it('does not expose the secret in any client-facing code path', () => {
