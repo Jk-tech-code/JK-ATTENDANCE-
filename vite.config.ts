@@ -69,8 +69,8 @@ export default defineConfig({
     sitemap({
       hostname: siteUrl,
       readable: true,
-      dynamicRoutes: ['/', '/login', '/help'],
-      exclude: ['/admin/*', '/dashboard', '/reset-password', '/forgot-password'],
+      dynamicRoutes: ['/', '/login', '/help', '/forgot-password', '/reset-password'],
+      exclude: ['/admin/*', '/dashboard'],
       generateRobotsTxt: false,
     }),
   ],

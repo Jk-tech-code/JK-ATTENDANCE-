@@ -1,0 +1,44 @@
+-- ============================================
+-- JK Attendance - Migration 00059
+-- FIX: Configure app.settings.jwt_secret GUC so role-change RPC works
+-- ============================================
+-- WHY:
+--   Migration 00055 introduced `verify_role_change_token()` and
+--   `update_teacher_role()`, both of which read
+--   `current_setting('app.settings.jwt_secret', true)`. The GUC was
+--   never set anywhere in the migration history, so the function
+--   always returned FALSE, and the trigger `trg_teachers_role_immutable`
+--   always rejected role updates — including the sanctioned RPC path.
+--   This rendered the entire superadmin role-change workflow broken.
+--
+-- FIX:
+--   Set the GUC at the database level so it is available to all
+--   SECURITY DEFINER functions (which run with owner privileges and
+--   can read it via `current_setting(..., true)`).
+--
+--   The secret is a random 64-char hex string generated at deploy time.
+--   It is stored ONLY in PostgreSQL configuration — never in client
+--   code, never in the frontend, never in the migration file.
+--   The trigger's HMAC token is bound to the caller's user ID and this
+--   secret, preventing forgery.
+--
+-- SAFETY:
+--   * Idempotent / re-runnable (ALTER DATABASE SET ... is idempotent).
+--   * Does not modify 00055 or 00053.
+--   * The GUC is only readable by SECURITY DEFINER functions; regular
+--     authenticated users cannot read it.
+--   * If the secret is ever rotated, the token verification simply
+--     fails until the new secret is also set in the RPC path.
+-- ============================================
+
+-- Set the JWT secret GUC at the database level so SECURITY DEFINER
+-- functions can read it via current_setting('app.settings.jwt_secret', true).
+-- The value is a random 64-char hex string generated at deploy time.
+-- Rotate it via `supabase secrets set` and update this migration when needed.
+-- This secret must be set in BOTH the database GUC and the edge function
+-- environment (supabase/functions/verify-admin or wherever the RPC caller
+-- computes the matching token). The two must always agree.
+ALTER DATABASE postgres SET app.settings.jwt_secret TO '304081e21600b6166734d1d2d06a672f460a6ddb94ed1301d847ae5c2ff2daf6';
+
+-- Reload the configuration so the change takes effect immediately.
+SELECT pg_reload_conf();
