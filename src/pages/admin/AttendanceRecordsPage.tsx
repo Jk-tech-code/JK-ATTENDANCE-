@@ -220,11 +220,14 @@ export default function AttendanceRecordsPage() {
                           <td className="py-2">
                             <span
                               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                (r.attendance_status ?? r.status) === 'present' || (r.attendance_status ?? r.status) === 'PRESENT'
+                                (r.attendance_status ?? r.status) === 'present' ||
+                                (r.attendance_status ?? r.status) === 'PRESENT'
                                   ? 'bg-green-100 text-green-700'
-                                  : (r.attendance_status ?? r.status) === 'late' || (r.attendance_status ?? r.status) === 'LATE'
+                                  : (r.attendance_status ?? r.status) === 'late' ||
+                                      (r.attendance_status ?? r.status) === 'LATE'
                                     ? 'bg-yellow-100 text-yellow-700'
-                                    : (r.attendance_status ?? r.status) === 'absent' || (r.attendance_status ?? r.status) === 'ABSENT'
+                                    : (r.attendance_status ?? r.status) === 'absent' ||
+                                        (r.attendance_status ?? r.status) === 'ABSENT'
                                       ? 'bg-red-100 text-red-700'
                                       : 'bg-purple-100 text-purple-700'
                               }`}
