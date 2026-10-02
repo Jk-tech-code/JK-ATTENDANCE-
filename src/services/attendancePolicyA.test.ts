@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 /**
  * Policy A Regression Tests
- * 
+ *
  * Verifies that:
  * 1. Grace period is a classification threshold, NOT a hard cutoff.
  * 2. Check-ins after grace period are successfully accepted as 'LATE'.
@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest'
 interface CheckInEvaluation {
   reportingStartTime: string // e.g. '06:40'
   gracePeriodMinutes: number // e.g. 25
-  checkInTime: string        // e.g. '07:06'
+  checkInTime: string // e.g. '07:06'
 }
 
 function evaluatePolicyA(input: CheckInEvaluation) {
